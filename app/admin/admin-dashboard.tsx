@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import AdminDiscussionGenerator from "@/components/admin-discussion-generator";
 import MemberMultiSelect from "@/components/member-multi-select";
 import DatePicker from "@/components/date-picker";
 import CategorySelect from "@/components/category-select";
@@ -752,60 +753,9 @@ export default function AdminDashboard() {
             <SectionHeader
               icon={<Sparkles className="w-5 h-5" />}
               title="토론 질문 AI"
-              description="AI가 해당 모임의 책을 기반으로 토론 질문을 자동 생성합니다."
+              description="모임·독후감을 선택하고 AI로 토론 질문을 생성합니다."
             />
-            <FormCard title="질문 생성">
-              <div className="flex gap-2">
-                <select value={selectedMeetingId} onChange={(e) => setSelectedMeetingId(e.target.value)}
-                  className="flex-1 border rounded-md px-3 py-2 text-sm bg-background cursor-pointer">
-                  <option value="">모임 선택</option>
-                  {meetings.map((m) => <option key={m.id} value={m.id}>{m.title} ({m.date})</option>)}
-                </select>
-                <Button onClick={generateDiscussion} className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer gap-1.5">
-                  <Sparkles className="w-4 h-4" /> AI 생성
-                </Button>
-              </div>
-            </FormCard>
-
-            <div className="space-y-3">
-              {discussions.map((d) => {
-                const qs: string[] = JSON.parse(d.questions);
-                return (
-                  <div key={d.id} className="bg-white rounded-xl border border-[#E8DDD0] p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <div>
-                        <p className="text-[9px] font-bold tracking-widest uppercase text-neutral-400 mb-0.5">모임</p>
-                        <p className="font-semibold text-sm text-[#1C1A17]">{d.meetings?.title ?? "—"}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full",
-                          d.is_public ? "bg-[#2A6B5E]/10 text-[#2A6B5E]" : "bg-neutral-100 text-neutral-400"
-                        )}>
-                          {d.is_public ? "공개" : "비공개"}
-                        </span>
-                        <button
-                          onClick={() => togglePublic(d.id, d.is_public)}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors cursor-pointer text-neutral-500"
-                        >
-                          {d.is_public ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                          {d.is_public ? "비공개로" : "공개로"}
-                        </button>
-                      </div>
-                    </div>
-                    <ol className="space-y-2">
-                      {qs.map((q, i) => (
-                        <li key={i} className="flex gap-3 text-sm text-neutral-600">
-                          <span className="text-[#8B3A2A] font-bold flex-shrink-0">{i + 1}.</span>
-                          <span className="leading-relaxed">{q}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                );
-              })}
-              {discussions.length === 0 && <EmptyState text="생성된 토론 질문이 없습니다." />}
-            </div>
+            <AdminDiscussionGenerator meetings={meetings as any} discussions={discussions as any} />
           </div>
         )}
       </main>

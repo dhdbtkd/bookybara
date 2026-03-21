@@ -1,0 +1,363 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Sparkles, Eye, EyeOff, ChevronDown, FileText, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { ko } from "date-fns/locale";
+
+// ── 타입 ──
+type Meeting = { id: number; title: string; date: string; books: { title: string; author: string } | null };
+type Review = { id: number; author_name: string; content: string };
+type Discussion = {
+  id: number; questions: string; is_public: boolean;
+  meeting_id: number | null;
+  meetings: { title: string } | null;
+};
+
+// ── 모델 목록 ──
+const MODELS = {
+  claude: [
+    { value: "claude-opus-4-6", label: "Claude Opus 4.6" },
+    { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6 (권장)" },
+    { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5 (빠름)" },
+  ],
+  openai: [
+    { value: "gpt-4o", label: "GPT-4o (권장)" },
+    { value: "gpt-4o-mini", label: "GPT-4o mini (빠름)" },
+    { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
+  ],
+};
+
+function buildPromptPreview(
+  meeting: Meeting | null,
+  reviews: Review[],
+  selectedIds: Set<number>
+): string {
+  if (!meeting) return "";
+  const selected = reviews.filter((r) => selectedIds.has(r.id));
+  const bookInfo = meeting.books
+    ? `"${meeting.books.title}" (저자: ${meeting.books.author})`
+    : `"${meeting.title}"`;
+  const reviewsText =
+    selected.length > 0
+      ? selected.map((r) => `[${r.author_name}]\n${r.content}`).join("\n\n---\n\n")
+      : "아직 독후감이 없습니다.";
+
+  return `독서모임에서 ${bookInfo}를 읽었습니다.
+
+제출된 독후감 (${selected.length}편):
+${reviewsText}
+
+위 독후감들을 바탕으로 독서모임 토론에 활용할 수 있는 질문 5개를 생성해주세요.
+질문은 다양한 관점(주제, 인물, 사회적 맥락, 개인적 경험 연결 등)을 다루어야 합니다.
+
+반드시 JSON 배열 형식으로만 답변해주세요:
+["질문1", "질문2", "질문3", "질문4", "질문5"]`;
+}
+
+export default function AdminDiscussionGenerator({
+  meetings,
+  discussions: initialDiscussions,
+}: {
+  meetings: Meeting[];
+  discussions: Discussion[];
+}) {
+  const [discussions, setDiscussions] = useState<Discussion[]>(initialDiscussions);
+
+  // 설정
+  const [meetingId, setMeetingId] = useState("");
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [provider, setProvider] = useState<"claude" | "openai">("claude");
+  const [model, setModel] = useState("claude-sonnet-4-6");
+  const [generating, setGenerating] = useState(false);
+
+  // 프롬프트 미리보기 모달
+  const [previewOpen, setPreviewOpen] = useState(false);
+
+  const selectedMeeting = meetings.find((m) => String(m.id) === meetingId) ?? null;
+
+  // 모임 변경 → 독후감 로드
+  useEffect(() => {
+    if (!meetingId) { setReviews([]); setSelectedIds(new Set()); return; }
+    setLoadingReviews(true);
+    fetch(`/api/meetings/${meetingId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        const rv: Review[] = data.reviews ?? [];
+        setReviews(rv);
+        setSelectedIds(new Set(rv.map((r: Review) => r.id)));
+      })
+      .finally(() => setLoadingReviews(false));
+  }, [meetingId]);
+
+  // provider 변경 → 기본 모델 세팅
+  useEffect(() => {
+    setModel(MODELS[provider][1].value); // 두 번째(권장) 선택
+  }, [provider]);
+
+  function toggleReview(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  }
+
+  function toggleAll() {
+    if (selectedIds.size === reviews.length) setSelectedIds(new Set());
+    else setSelectedIds(new Set(reviews.map((r) => r.id)));
+  }
+
+  async function generate() {
+    if (!meetingId) { toast.error("모임을 선택해주세요."); return; }
+    setGenerating(true);
+    toast.info("AI가 토론 질문을 생성 중입니다...");
+    const res = await fetch("/api/discussion", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        meeting_id: Number(meetingId),
+        review_ids: selectedIds.size > 0 ? [...selectedIds] : undefined,
+        provider,
+        model,
+      }),
+    });
+    if (res.ok) {
+      const created = await res.json();
+      setDiscussions((prev) => [{ ...created, meetings: selectedMeeting ? { title: selectedMeeting.title } : null }, ...prev]);
+      toast.success("토론 질문 생성 완료!");
+    } else {
+      const { error } = await res.json();
+      toast.error(error ?? "오류가 발생했습니다.");
+    }
+    setGenerating(false);
+  }
+
+  async function togglePublic(id: number, current: boolean) {
+    const res = await fetch("/api/discussion", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, is_public: !current }),
+    });
+    if (res.ok) {
+      setDiscussions((prev) => prev.map((d) => d.id === id ? { ...d, is_public: !current } : d));
+      toast.success(current ? "비공개로 변경" : "공개로 변경");
+    }
+  }
+
+  const promptPreview = buildPromptPreview(selectedMeeting, reviews, selectedIds);
+
+  return (
+    <div className="space-y-6">
+      {/* ── 생성 폼 ── */}
+      <div className="bg-white rounded-xl border border-[#E8DDD0] overflow-hidden">
+        {/* 1. 모임 선택 */}
+        <div className="p-5 border-b border-[#F0EAE0]">
+          <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-400 mb-3">1. 모임 선택</p>
+          <div className="relative">
+            <select
+              value={meetingId}
+              onChange={(e) => setMeetingId(e.target.value)}
+              className="w-full appearance-none border border-neutral-200 rounded-lg px-3 py-2.5 text-sm bg-white cursor-pointer pr-8 focus:outline-none focus:border-[#1C1A17]"
+            >
+              <option value="">모임을 선택하세요</option>
+              {meetings.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {format(new Date(m.date), "yyyy.M.d", { locale: ko })} — {m.title}
+                  {m.books ? ` (${m.books.title})` : ""}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+          </div>
+        </div>
+
+        {/* 2. 독후감 선택 */}
+        <div className="p-5 border-b border-[#F0EAE0]">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-400">2. 독후감 선택</p>
+            {reviews.length > 0 && (
+              <button
+                type="button"
+                onClick={toggleAll}
+                className="text-xs text-[#8B3A2A] hover:underline cursor-pointer"
+              >
+                {selectedIds.size === reviews.length ? "전체 해제" : "전체 선택"}
+              </button>
+            )}
+          </div>
+
+          {!meetingId ? (
+            <p className="text-xs text-neutral-300 py-2">모임을 먼저 선택해주세요.</p>
+          ) : loadingReviews ? (
+            <p className="text-xs text-neutral-400 py-2">불러오는 중...</p>
+          ) : reviews.length === 0 ? (
+            <p className="text-xs text-neutral-400 py-2">이 모임에 독후감이 없습니다. 독후감 없이 진행합니다.</p>
+          ) : (
+            <div className="space-y-2">
+              {reviews.map((r) => (
+                <label key={r.id} className="flex items-start gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(r.id)}
+                    onChange={() => toggleReview(r.id)}
+                    className="mt-0.5 w-4 h-4 rounded border-neutral-300 cursor-pointer accent-[#1C1A17]"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-[#1C1A17]">{r.author_name}</p>
+                    <p className="text-xs text-neutral-400 line-clamp-2 mt-0.5">{r.content}</p>
+                  </div>
+                  <FileText className="w-3.5 h-3.5 text-neutral-300 flex-shrink-0 mt-0.5" />
+                </label>
+              ))}
+              <p className="text-[11px] text-neutral-400 pt-1">
+                {selectedIds.size}/{reviews.length}편 선택됨
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* 3. Provider + Model */}
+        <div className="p-5 border-b border-[#F0EAE0]">
+          <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-400 mb-3">3. AI 설정</p>
+          <div className="space-y-3">
+            {/* Provider 탭 */}
+            <div className="flex gap-1 bg-neutral-100 rounded-lg p-1 w-fit">
+              {(["claude", "openai"] as const).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setProvider(p)}
+                  className={cn(
+                    "px-4 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer",
+                    provider === p
+                      ? "bg-white text-[#1C1A17] shadow-sm"
+                      : "text-neutral-500 hover:text-neutral-700"
+                  )}
+                >
+                  {p === "claude" ? "Claude" : "OpenAI"}
+                </button>
+              ))}
+            </div>
+
+            {/* 모델 선택 */}
+            <div className="relative">
+              <select
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                className="w-full appearance-none border border-neutral-200 rounded-lg px-3 py-2 text-sm bg-white cursor-pointer pr-8 focus:outline-none focus:border-[#1C1A17]"
+              >
+                {MODELS[provider].map((m) => (
+                  <option key={m.value} value={m.value}>{m.label}</option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+            </div>
+
+            {/* API 키 안내 */}
+            <p className="text-[11px] text-neutral-400">
+              API 키는 서버 환경변수({provider === "claude" ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY"})에서 읽어옵니다.
+            </p>
+          </div>
+        </div>
+
+        {/* 4. 액션 버튼 */}
+        <div className="p-5 flex items-center gap-3">
+          <Button
+            onClick={generate}
+            disabled={generating || !meetingId}
+            className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer gap-1.5"
+          >
+            <Sparkles className="w-4 h-4" />
+            {generating ? "생성 중..." : "AI 질문 생성"}
+          </Button>
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            disabled={!meetingId}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm border border-neutral-200 rounded-lg text-neutral-500 hover:border-neutral-400 hover:text-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+          >
+            <Eye className="w-4 h-4" />
+            프롬프트 미리보기
+          </button>
+        </div>
+      </div>
+
+      {/* ── 생성된 질문 목록 ── */}
+      <div className="space-y-3">
+        {discussions.map((d) => {
+          const qs: string[] = JSON.parse(d.questions);
+          return (
+            <div key={d.id} className="bg-white rounded-xl border border-[#E8DDD0] p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-[9px] font-bold tracking-widest uppercase text-neutral-400 mb-0.5">모임</p>
+                  <p className="font-semibold text-sm text-[#1C1A17]">{d.meetings?.title ?? "—"}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={cn(
+                    "text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full",
+                    d.is_public ? "bg-[#2A6B5E]/10 text-[#2A6B5E]" : "bg-neutral-100 text-neutral-400"
+                  )}>
+                    {d.is_public ? "공개" : "비공개"}
+                  </span>
+                  <button
+                    onClick={() => togglePublic(d.id, d.is_public)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors cursor-pointer text-neutral-500"
+                  >
+                    {d.is_public ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                    {d.is_public ? "비공개로" : "공개로"}
+                  </button>
+                </div>
+              </div>
+              <ol className="space-y-2">
+                {qs.map((q, i) => (
+                  <li key={i} className="flex gap-3 text-sm text-neutral-600">
+                    <span className="text-[#8B3A2A] font-bold flex-shrink-0">{i + 1}.</span>
+                    <span className="leading-relaxed">{q}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          );
+        })}
+        {discussions.length === 0 && (
+          <div className="bg-white/60 rounded-xl border border-dashed border-[#DDD5C8] px-6 py-8 text-center">
+            <p className="text-sm text-neutral-400">생성된 토론 질문이 없습니다.</p>
+          </div>
+        )}
+      </div>
+
+      {/* ── 프롬프트 미리보기 모달 ── */}
+      <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold">프롬프트 미리보기</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <pre className="text-xs text-neutral-700 whitespace-pre-wrap leading-relaxed bg-neutral-50 rounded-lg p-4 border border-neutral-200">
+              {promptPreview || "모임을 선택하면 프롬프트를 미리볼 수 있습니다."}
+            </pre>
+          </div>
+          <div className="pt-3 border-t border-neutral-100 flex justify-between items-center text-xs text-neutral-400">
+            <span>
+              {provider === "claude" ? "Claude" : "OpenAI"} · {model} · 독후감 {selectedIds.size}편 포함
+            </span>
+            <button
+              onClick={() => setPreviewOpen(false)}
+              className="text-neutral-500 hover:text-neutral-800 cursor-pointer"
+            >
+              닫기
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
