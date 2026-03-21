@@ -86,6 +86,7 @@ export default function AdminDashboard() {
   const [bookSearchOpen, setBookSearchOpen] = useState(false);
   const [bookDetailFetching, setBookDetailFetching] = useState(false);
   const [bookModalOpen, setBookModalOpen] = useState(false);
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
   type SourceKey = "kakao" | "naver" | "google";
   type BookSources = {
     kakao: { thumbnail: string | null; description: string | null };
@@ -514,24 +515,38 @@ export default function AdminDashboard() {
               description="도서와 카테고리를 등록하고 관리합니다."
             />
 
-            <FormCard title="카테고리">
-              <form onSubmit={addCategory} className="flex gap-2 items-center mb-3">
-                <input type="color" value={newCategoryColor} onChange={(e) => setNewCategoryColor(e.target.value)}
-                  className="w-8 h-8 rounded border cursor-pointer flex-shrink-0 p-0.5" title="색상 선택" />
-                <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="카테고리 이름" className="flex-1" maxLength={20} />
-                <Button type="submit" size="sm" className="bg-[#1C1A17] hover:bg-[#8B3A2A] cursor-pointer">추가</Button>
-              </form>
-              <div className="flex flex-wrap gap-2">
-                {categories.map((c) => (
-                  <div key={c.id} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium" style={{ backgroundColor: c.color + "22", color: c.color }}>
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
-                    {c.name}
-                    <button onClick={() => deleteCategory(c.id)} className="ml-1 opacity-50 hover:opacity-100 cursor-pointer text-xs leading-none">✕</button>
-                  </div>
-                ))}
-                {categories.length === 0 && <p className="text-sm text-neutral-400">등록된 카테고리가 없습니다.</p>}
-              </div>
-            </FormCard>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setCategoryModalOpen(true)}
+              className="cursor-pointer"
+            >
+              카테고리 관리
+            </Button>
+
+            <Dialog open={categoryModalOpen} onOpenChange={setCategoryModalOpen}>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle>카테고리 관리</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={addCategory} className="flex gap-2 items-center">
+                  <input type="color" value={newCategoryColor} onChange={(e) => setNewCategoryColor(e.target.value)}
+                    className="w-8 h-8 rounded border cursor-pointer flex-shrink-0 p-0.5" title="색상 선택" />
+                  <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="카테고리 이름" className="flex-1" maxLength={20} />
+                  <Button type="submit" size="sm" className="bg-[#1C1A17] hover:bg-[#8B3A2A] cursor-pointer">추가</Button>
+                </form>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {categories.map((c) => (
+                    <div key={c.id} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium" style={{ backgroundColor: c.color + "22", color: c.color }}>
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
+                      {c.name}
+                      <button onClick={() => deleteCategory(c.id)} className="ml-1 opacity-50 hover:opacity-100 cursor-pointer text-xs leading-none">✕</button>
+                    </div>
+                  ))}
+                  {categories.length === 0 && <p className="text-sm text-neutral-400">등록된 카테고리가 없습니다.</p>}
+                </div>
+              </DialogContent>
+            </Dialog>
 
             <Button
               type="button"
