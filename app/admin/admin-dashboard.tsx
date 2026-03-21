@@ -14,7 +14,7 @@ import CategorySelect from "@/components/category-select";
 import {
   LayoutDashboard, CalendarDays, BookOpen, Users, BookMarked,
   FileText, Megaphone, Sparkles, LogOut, Plus, Trash2,
-  ChevronDown, ChevronUp, BookCopy, Eye, EyeOff, Check, Search, CheckCircle2,
+  ChevronDown, ChevronUp, BookCopy, Eye, EyeOff, Check, Search, CheckCircle2, Loader2, X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -79,6 +79,11 @@ export default function AdminDashboard() {
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
 
   const [bookForm, setBookForm] = useState({ title: "", author: "", cover_url: "", description: "", category_id: "" });
+  const [bookSearch, setBookSearch] = useState("");
+  const [bookSearchResults, setBookSearchResults] = useState<{ title: string; authors: string[]; thumbnail: string | null; description: string | null }[]>([]);
+  const [bookSearching, setBookSearching] = useState(false);
+  const [bookSearchOpen, setBookSearchOpen] = useState(false);
+  const bookSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryColor, setNewCategoryColor] = useState("#6B7280");
   const [newMemberName, setNewMemberName] = useState("");
@@ -125,11 +130,38 @@ export default function AdminDashboard() {
   }
 
   // ── Books ──
+  function handleBookSearchChange(q: string) {
+    setBookSearch(q);
+    setBookSearchOpen(true);
+    if (bookSearchTimer.current) clearTimeout(bookSearchTimer.current);
+    if (!q.trim()) { setBookSearchResults([]); setBookSearching(false); return; }
+    setBookSearching(true);
+    bookSearchTimer.current = setTimeout(async () => {
+      const res = await fetch(`/api/search-book?query=${encodeURIComponent(q)}`);
+      const data = res.ok ? await res.json() : [];
+      setBookSearchResults(data);
+      setBookSearching(false);
+    }, 400);
+  }
+
+  function selectBookFromSearch(book: { title: string; authors: string[]; thumbnail: string | null; description: string | null }) {
+    setBookForm((p) => ({
+      ...p,
+      title: book.title,
+      author: book.authors.join(", "),
+      cover_url: book.thumbnail ?? "",
+      description: book.description ?? "",
+    }));
+    setBookSearch(book.title);
+    setBookSearchOpen(false);
+    setBookSearchResults([]);
+  }
+
   async function addBook(e: React.FormEvent) {
     e.preventDefault();
     const body = { ...bookForm, category_id: bookForm.category_id ? Number(bookForm.category_id) : null };
     const res = await fetch("/api/books", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    if (res.ok) { toast.success("책 등록 완료"); setBookForm({ title: "", author: "", cover_url: "", description: "", category_id: "" }); loadAll(); }
+    if (res.ok) { toast.success("책 등록 완료"); setBookForm({ title: "", author: "", cover_url: "", description: "", category_id: "" }); setBookSearch(""); setBookSearchResults([]); loadAll(); }
     else { const { error } = await res.json(); toast.error(error); }
   }
   async function deleteBook(id: number) {
@@ -438,6 +470,54 @@ export default function AdminDashboard() {
 
             <FormCard title="새 도서 등록">
               <form onSubmit={addBook} className="space-y-3">
+                {/* Kakao search */}
+                <Field label="도서 검색">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+                    <Input
+                      value={bookSearch}
+                      onChange={(e) => handleBookSearchChange(e.target.value)}
+                      onFocus={() => bookSearchResults.length > 0 && setBookSearchOpen(true)}
+                      placeholder="제목 또는 저자 검색..."
+                      className="pl-9 pr-9"
+                    />
+                    {bookSearch && (
+                      <button type="button" onClick={() => { setBookSearch(""); setBookSearchResults([]); setBookSearchOpen(false); }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer">
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                    {bookSearchOpen && (bookSearching || bookSearchResults.length > 0) && (
+                      <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-200 rounded-xl shadow-lg overflow-hidden">
+                        {bookSearching ? (
+                          <div className="flex items-center justify-center gap-2 py-4 text-sm text-neutral-400">
+                            <Loader2 className="w-4 h-4 animate-spin" /> 검색 중...
+                          </div>
+                        ) : (
+                          <ul className="max-h-60 overflow-y-auto divide-y divide-neutral-100">
+                            {bookSearchResults.map((b, i) => (
+                              <li key={i}>
+                                <button type="button" onClick={() => selectBookFromSearch(b)}
+                                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#F8F5F0] text-left transition-colors cursor-pointer">
+                                  {b.thumbnail ? (
+                                    <img src={b.thumbnail} alt={b.title} className="w-8 h-11 object-cover rounded flex-shrink-0" />
+                                  ) : (
+                                    <div className="w-8 h-11 bg-neutral-100 rounded flex-shrink-0" />
+                                  )}
+                                  <div className="min-w-0">
+                                    <p className="text-sm font-medium text-[#1C1A17] truncate">{b.title}</p>
+                                    <p className="text-xs text-neutral-500 truncate">{b.authors.join(", ")}</p>
+                                  </div>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </Field>
+
                 <div className="grid grid-cols-2 gap-3">
                   <Field label="제목 *">
                     <Input value={bookForm.title} onChange={(e) => setBookForm((p) => ({ ...p, title: e.target.value }))} placeholder="책 제목" />

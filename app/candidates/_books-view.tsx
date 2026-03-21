@@ -46,10 +46,12 @@ type Candidate = {
 const EMPTY_FORM = { title: "", author: "", proposed_by: "", notes: "", cover_url: "" };
 
 export default function BooksView({
+  readingBooks,
   readBooks,
   candidates,
   members,
 }: {
+  readingBooks: ReadBook[];
   readBooks: ReadBook[];
   candidates: Candidate[];
   members: { id: number; name: string }[];
@@ -139,7 +141,7 @@ export default function BooksView({
       <div className="flex items-center justify-between mb-6">
         <div className="flex gap-1 bg-neutral-100 rounded-lg p-1">
           <TabBtn active={tab === "read"} onClick={() => setTab("read")}>
-            읽은 책 <span className="ml-1 text-[10px] opacity-60">{readBooks.length}</span>
+            읽은 책 <span className="ml-1 text-[10px] opacity-60">{readingBooks.length + readBooks.length}</span>
           </TabBtn>
           <TabBtn active={tab === "candidates"} onClick={() => setTab("candidates")}>
             후보 도서 <span className="ml-1 text-[10px] opacity-60">{pending.length}</span>
@@ -159,37 +161,38 @@ export default function BooksView({
 
       {/* ── Tab: 읽은 책 ── */}
       {tab === "read" && (
-        <div>
-          {readBooks.length === 0 ? (
+        <div className="space-y-8">
+          {readingBooks.length === 0 && readBooks.length === 0 && (
             <EmptyState text="아직 읽은 책이 없습니다." />
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-              {readBooks.map((book) => {
-                const lastMeeting = book.meetings.sort((a, b) => b.date.localeCompare(a.date))[0];
-                return (
-                  <div key={book.id} className="group">
-                    <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#E8DDD0] shadow-sm mb-2">
-                      {book.cover_url ? (
-                        <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <BookOpen className="w-8 h-8 text-[#B8A898]" />
-                        </div>
-                      )}
-                      {lastMeeting && (
-                        <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                          <p className="text-white text-[10px] font-medium leading-snug">{lastMeeting.title}</p>
-                          <p className="text-white/70 text-[9px]">
-                            {format(new Date(lastMeeting.date + "T00:00:00"), "yyyy.M.d", { locale: ko })}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                    <p className="text-sm font-semibold text-[#1C1A17] leading-snug line-clamp-2">{book.title}</p>
-                    <p className="text-xs text-neutral-400 mt-0.5">{book.author}</p>
-                  </div>
-                );
-              })}
+          )}
+
+          {/* 읽는 중 */}
+          {readingBooks.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400 mb-4">읽는 중</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {readingBooks.map((book) => {
+                  const nextMeeting = book.meetings.sort((a, b) => a.date.localeCompare(b.date)).find(() => true);
+                  return (
+                    <BookCard key={book.id} book={book} meeting={nextMeeting} badge="reading" />
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* 완독 */}
+          {readBooks.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400 mb-4">완독</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {readBooks.map((book) => {
+                  const lastMeeting = book.meetings.sort((a, b) => b.date.localeCompare(a.date))[0];
+                  return (
+                    <BookCard key={book.id} book={book} meeting={lastMeeting} badge="done" />
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
@@ -452,6 +455,56 @@ function ProposerPicker({
           멤버 목록에서 선택
         </button>
       )}
+    </div>
+  );
+}
+
+function BookCard({
+  book,
+  meeting,
+  badge,
+}: {
+  book: ReadBook;
+  meeting: { id: number; date: string; title: string } | undefined;
+  badge: "reading" | "done";
+}) {
+  return (
+    <div className="group">
+      <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#E8DDD0] shadow-sm mb-2">
+        {book.cover_url ? (
+          <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <BookOpen className="w-8 h-8 text-[#B8A898]" />
+          </div>
+        )}
+
+        {/* 배지 */}
+        <div className="absolute top-2 left-2">
+          {badge === "reading" ? (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide bg-[#C8956C] text-white shadow-sm">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+              읽는 중
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold tracking-wide bg-black/40 text-white/90 backdrop-blur-sm">
+              완독
+            </span>
+          )}
+        </div>
+
+        {/* 하단 모임 정보 */}
+        {meeting && (
+          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/65 to-transparent p-2">
+            <p className="text-white text-[10px] font-medium leading-snug">{meeting.title}</p>
+            <p className="text-white/70 text-[9px]">
+              {format(new Date(meeting.date + "T00:00:00"), "yyyy.M.d", { locale: ko })}
+            </p>
+          </div>
+        )}
+      </div>
+      <p className="text-sm font-semibold text-[#1C1A17] leading-snug line-clamp-2">{book.title}</p>
+      <p className="text-xs text-neutral-400 mt-0.5">{book.author}</p>
     </div>
   );
 }

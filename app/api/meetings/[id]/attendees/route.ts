@@ -2,15 +2,15 @@ import { isAdminAuthenticated } from "@/lib/auth";
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
-// 개별 참석자 추가 (모임 상세 페이지 - 이름 직접 입력)
+// 개별 참석자 추가 (멤버 선택)
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { name } = await req.json();
+  const { name, member_id } = await req.json();
   if (!name?.trim()) return NextResponse.json({ error: "이름을 입력해주세요." }, { status: 400 });
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("attendees")
-    .insert({ meeting_id: Number(id), name: name.trim() })
+    .insert({ meeting_id: Number(id), name: name.trim(), member_id: member_id ?? null })
     .select()
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });

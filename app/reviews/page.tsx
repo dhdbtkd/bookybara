@@ -38,7 +38,7 @@ export default function ReviewsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">독후감</h1>
-        <Link href="/reviews/new" className="px-4 py-2 bg-neutral-900 text-white text-sm rounded-md hover:bg-neutral-700 transition-colors">
+        <Link href="/reviews/new" className="px-4 py-2 bg-[#1C1A17] text-white text-sm font-semibold rounded-xl hover:bg-[#8B3A2A] transition-colors">
           독후감 쓰기
         </Link>
       </div>
