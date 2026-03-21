@@ -20,7 +20,7 @@ function getBadge(index: number, createdAt: string): { label: string; isNew: boo
 
 export default function HomeCandidates({ candidates }: { candidates: Candidate[] }) {
   return (
-    <section className="-mx-4 mt-0 bg-[#FAFAF8] py-12 px-4 sm:px-8 pb-14">
+    <section className="-mx-4 mt-0 py-12 px-4 sm:px-8 pb-14">
       {/* 헤더 */}
       <div className="flex items-center gap-4 mb-8">
         <h2 className="text-2xl sm:text-3xl font-bold text-[#1C1A17] whitespace-nowrap leading-tight">

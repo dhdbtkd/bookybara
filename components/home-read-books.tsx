@@ -13,7 +13,7 @@ export default function HomeReadBooks({ books }: { books: Book[] }) {
   }
 
   return (
-    <section className="-mx-4 mt-16 bg-[#F7F4F0] py-12 px-4 sm:px-8">
+    <section className="-mx-4 mt-16 py-12 px-4 sm:px-8">
       {/* 헤더 */}
       <div className="flex items-start justify-between mb-8 gap-4">
         <div>
