@@ -147,7 +147,7 @@ export default function MeetingsView({
               <div>
                 <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-[#8B3A2A] flex items-center gap-1.5 mb-2">
                   <CalendarDays className="w-3 h-3" />
-                  {isSelectedPast ? "Past Meeting" : "Next Meeting"}
+                  {isSelectedPast ? "지난 모임" : "다음 모임"}
                 </p>
                 <h3 className="text-[1.4rem] leading-tight text-[#1C1A17] font-bold">
                   {displayBook?.title ?? displayMeeting.title}
@@ -161,14 +161,14 @@ export default function MeetingsView({
 
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
-                  <p className="text-[9px] font-bold tracking-widest uppercase text-neutral-400 mb-1">DATE</p>
+                  <p className="text-[9px] font-bold tracking-widest uppercase text-neutral-400 mb-1">날짜</p>
                   <p className="text-[#1C1A17] font-semibold leading-snug">
                     {format(new Date(displayMeeting.date), "M월 d일, EEEE", { locale: ko })}
                   </p>
                 </div>
                 {displayMeeting.location && (
                   <div>
-                    <p className="text-[9px] font-bold tracking-widest uppercase text-neutral-400 mb-1">LOCATION</p>
+                    <p className="text-[9px] font-bold tracking-widest uppercase text-neutral-400 mb-1">장소</p>
                     <p className="text-[#1C1A17] font-semibold leading-snug flex items-start gap-1">
                       <MapPin className="w-3 h-3 mt-0.5 flex-shrink-0 text-neutral-400" />
                       {displayMeeting.location}
