@@ -17,6 +17,7 @@ const links = [
 export default function Nav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
 
   // 라우트 변경 시 닫기
   useEffect(() => { setOpen(false); }, [pathname]);
@@ -27,51 +28,90 @@ export default function Nav() {
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
+  // 스크롤 감지
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
   return (
     <>
-      <header className="border-b bg-[#F0EAE0] sticky top-0 z-50">
-        <div className="max-w-4xl mx-auto px-4 flex items-center justify-between h-14 gap-2">
-          <Link
-            href="/"
-            className="text-lg tracking-tight text-[#1C1A17] flex-shrink-0"
-            style={{ fontFamily: "var(--font-playfair)", fontStyle: "italic" }}
-          >
-            독서모임
-          </Link>
-
-          {/* 데스크탑 메뉴 */}
-          <nav className="hidden sm:flex items-center gap-0.5 -mr-2 pr-2">
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-2.5 py-1.5 rounded-md text-sm whitespace-nowrap transition-colors ${
-                  pathname === link.href
-                    ? "bg-[#1C1A17] text-white"
-                    : "text-[#5C5348] hover:bg-[#E5DDD0] cursor-pointer"
-                }`}
-              >
-                {link.label}
-              </Link>
-            ))}
+      {/* 스크롤 전: 전체 폭 헤더 / 스크롤 후: 플로팅 pill */}
+      <div className="sticky top-0 z-50 pointer-events-none">
+        <motion.header
+          animate={scrolled ? "floating" : "default"}
+          variants={{
+            default: {
+              marginLeft: 0,
+              marginRight: 0,
+              marginTop: 0,
+              borderRadius: 0,
+              backgroundColor: "rgba(240,234,224,1)",
+              backdropFilter: "blur(0px)",
+              boxShadow: "none",
+              borderBottomWidth: "1px",
+            },
+            floating: {
+              marginLeft: 320,
+              marginRight: 320,
+              marginTop: 10,
+              borderRadius: 9999,
+              backgroundColor: "rgba(240,234,224,0.72)",
+              backdropFilter: "blur(16px)",
+              boxShadow: "0 4px 24px 0 rgba(28,26,23,0.10)",
+              borderBottomWidth: "0px",
+            },
+          }}
+          transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+          style={{ borderBottomColor: "rgba(200,190,180,0.6)" }}
+          className="pointer-events-auto overflow-hidden border-b border-[#DDD5C8]"
+        >
+          <div className="mx-auto px-8 flex items-center justify-between h-14 gap-2">
             <Link
-              href="/admin"
-              className="ml-0.5 px-2.5 py-1.5 rounded-md text-sm whitespace-nowrap text-[#8B3A2A]/60 hover:text-[#8B3A2A] transition-colors cursor-pointer"
+              href="/"
+              className="flex items-center gap-2 flex-shrink-0"
             >
-              관리자
+              <img src="/logo.png" alt="책피바라" className="h-7 w-auto" />
+              <span className="text-lg tracking-tight text-[#1C1A17]" style={{ fontFamily: "var(--font-playfair)" }}>
+                책피바라
+              </span>
             </Link>
-          </nav>
 
-          {/* 모바일 햄버거 버튼 */}
-          <button
-            className="sm:hidden p-2 -mr-1 text-[#1C1A17] cursor-pointer"
-            onClick={() => setOpen(true)}
-            aria-label="메뉴 열기"
-          >
-            <Menu className="w-5 h-5" />
-          </button>
-        </div>
-      </header>
+            {/* 데스크탑 메뉴 */}
+            <nav className="hidden sm:flex items-center gap-0.5 -mr-2 pr-2">
+              {links.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`px-2.5 py-1.5 rounded-md text-sm whitespace-nowrap transition-colors ${
+                    pathname === link.href
+                      ? "bg-[#1C1A17] text-white"
+                      : "text-[#5C5348] hover:bg-[#E5DDD0] cursor-pointer"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              <Link
+                href="/admin"
+                className="ml-0.5 px-2.5 py-1.5 rounded-md text-sm whitespace-nowrap text-[#8B3A2A]/60 hover:text-[#8B3A2A] transition-colors cursor-pointer"
+              >
+                관리자
+              </Link>
+            </nav>
+
+            {/* 모바일 햄버거 버튼 */}
+            <button
+              className="sm:hidden p-2 -mr-1 text-[#1C1A17] cursor-pointer"
+              onClick={() => setOpen(true)}
+              aria-label="메뉴 열기"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+          </div>
+        </motion.header>
+      </div>
 
       {/* 모바일 사이드 패널 */}
       <AnimatePresence>
@@ -97,12 +137,12 @@ export default function Nav() {
             >
               {/* 패널 헤더 */}
               <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 flex-shrink-0">
-                <span
-                  className="text-white text-base"
-                  style={{ fontFamily: "var(--font-playfair)", fontStyle: "italic" }}
-                >
-                  독서모임
-                </span>
+                <div className="flex items-center gap-2">
+                  <img src="/logo.png" alt="책피바라" className="h-6 w-auto brightness-0 invert" />
+                  <span className="text-white text-base" style={{ fontFamily: "var(--font-playfair)" }}>
+                    책피바라
+                  </span>
+                </div>
                 <button
                   onClick={() => setOpen(false)}
                   className="p-1.5 text-white/50 hover:text-white transition-colors cursor-pointer"

@@ -3,6 +3,7 @@ import { Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/nav";
 import { Toaster } from "@/components/ui/sonner";
+import ScrollToTop from "@/components/scroll-to-top";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -34,6 +35,7 @@ export default function RootLayout({
         </div>
         <Nav />
         <main className="relative z-10 flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 py-4 md:py-8">{children}</main>
+        <ScrollToTop />
         <Toaster />
       </body>
     </html>
