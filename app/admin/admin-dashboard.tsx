@@ -85,6 +85,7 @@ export default function AdminDashboard() {
   const [bookSearching, setBookSearching] = useState(false);
   const [bookSearchOpen, setBookSearchOpen] = useState(false);
   const [bookDetailFetching, setBookDetailFetching] = useState(false);
+  const [bookModalOpen, setBookModalOpen] = useState(false);
   type SourceKey = "kakao" | "naver" | "google";
   type BookSources = {
     kakao: { thumbnail: string | null; description: string | null };
@@ -225,7 +226,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     const body = { ...bookForm, category_id: bookForm.category_id ? Number(bookForm.category_id) : null };
     const res = await fetch("/api/books", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    if (res.ok) { toast.success("책 등록 완료"); setBookForm({ title: "", author: "", cover_url: "", cover_url_hires: "", description: "", category_id: "", isbn: "" }); setBookSearch(""); setBookSearchResults([]); setBookSources(null); setSelectedCoverSource("kakao"); setSelectedDescSource("kakao"); loadAll(); }
+    if (res.ok) { toast.success("책 등록 완료"); setBookForm({ title: "", author: "", cover_url: "", cover_url_hires: "", description: "", category_id: "", isbn: "" }); setBookSearch(""); setBookSearchResults([]); setBookSources(null); setSelectedCoverSource("kakao"); setSelectedDescSource("kakao"); setBookModalOpen(false); loadAll(); }
     else { const { error } = await res.json(); toast.error(error); }
   }
   async function deleteBook(id: number) {
@@ -532,185 +533,208 @@ export default function AdminDashboard() {
               </div>
             </FormCard>
 
-            <FormCard title="새 도서 등록">
-              <form onSubmit={addBook} className="space-y-3">
-                {/* Kakao search */}
-                <Field label="도서 검색">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
-                    <Input
-                      value={bookSearch}
-                      onChange={(e) => handleBookSearchChange(e.target.value)}
-                      onFocus={() => bookSearchResults.length > 0 && setBookSearchOpen(true)}
-                      placeholder="제목 또는 저자 검색..."
-                      className="pl-9 pr-9"
-                    />
-                    {bookSearch && (
-                      <button type="button" onClick={() => { setBookSearch(""); setBookSearchResults([]); setBookSearchOpen(false); }}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer">
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                    {bookSearchOpen && (bookSearching || bookSearchResults.length > 0) && (
-                      <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-200 rounded-xl shadow-lg overflow-hidden">
-                        {bookSearching ? (
-                          <div className="flex items-center justify-center gap-2 py-4 text-sm text-neutral-400">
-                            <Loader2 className="w-4 h-4 animate-spin" /> 검색 중...
-                          </div>
-                        ) : (
-                          <ul className="max-h-60 overflow-y-auto divide-y divide-neutral-100">
-                            {bookSearchResults.map((b, i) => (
-                              <li key={i}>
-                                <button type="button" onClick={() => selectBookFromSearch(b)}
-                                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#F8F5F0] text-left transition-colors cursor-pointer">
-                                  {b.thumbnail ? (
-                                    <img src={b.thumbnail} alt={b.title} className="w-8 h-11 object-cover rounded flex-shrink-0" />
-                                  ) : (
-                                    <div className="w-8 h-11 bg-neutral-100 rounded flex-shrink-0" />
-                                  )}
-                                  <div className="min-w-0">
-                                    <p className="text-sm font-medium text-[#1C1A17] truncate">{b.title}</p>
-                                    <p className="text-xs text-neutral-500 truncate">{b.authors.join(", ")}</p>
-                                  </div>
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </Field>
+            <Button
+              type="button"
+              onClick={() => setBookModalOpen(true)}
+              className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4 mr-1.5" /> 새 도서 등록
+            </Button>
 
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="제목 *">
-                    <Input value={bookForm.title} onChange={(e) => setBookForm((p) => ({ ...p, title: e.target.value }))} placeholder="책 제목" />
-                  </Field>
-                  <Field label="저자 *">
-                    <Input value={bookForm.author} onChange={(e) => setBookForm((p) => ({ ...p, author: e.target.value }))} placeholder="저자" />
-                  </Field>
-                </div>
-                <Field label="표지 URL">
-                  <Input value={bookForm.cover_url} onChange={(e) => setBookForm((p) => ({ ...p, cover_url: e.target.value }))} placeholder="https://..." />
-                </Field>
-
-                {/* 소스 선택 UI */}
-                {bookDetailFetching && (
-                  <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-xs text-neutral-400 flex items-center gap-2">
-                    <span className="inline-block w-3.5 h-3.5 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-500 flex-shrink-0" />
-                    네이버·Google Books 조회 중...
-                  </div>
-                )}
-                {bookSources && (() => {
-                  const coverSources: { key: SourceKey | "kyobo"; label: string }[] = [
-                    { key: "kyobo", label: "교보" },
-                    { key: "naver", label: "네이버" },
-                    { key: "google", label: "Google" },
-                    { key: "kakao", label: "카카오" },
-                  ];
-                  const descSources: { key: SourceKey; label: string }[] = [
-                    { key: "naver", label: "네이버" },
-                    { key: "google", label: "Google" },
-                    { key: "kakao", label: "카카오" },
-                  ];
-                  const getImg = (k: SourceKey | "kyobo") => {
-                    if (k === "kakao") return bookSources.kakao.thumbnail;
-                    if (k === "kyobo") return bookSources.kyobo?.hiresUrl ?? null;
-                    return bookSources[k]?.hiresUrl ?? null;
-                  };
-                  const getDesc = (k: SourceKey) =>
-                    k === "kakao" ? bookSources.kakao.description : bookSources[k]?.description ?? null;
-                  const applySelection = (coverKey: SourceKey | "kyobo", descKey: SourceKey) => {
-                    setBookForm((p) => ({
-                      ...p,
-                      cover_url_hires: coverKey === "kakao" ? "" : (getImg(coverKey) ?? ""),
-                      description: getDesc(descKey) ?? "",
-                    }));
-                  };
-                  return (
-                    <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-xs space-y-3">
-                      {/* 표지 선택 */}
-                      <div>
-                        <p className="font-semibold text-neutral-500 mb-1.5">표지 선택</p>
-                        <div className="flex gap-2">
-                          {coverSources.map(({ key, label }) => {
-                            const url = getImg(key);
-                            const selected = selectedCoverSource === key;
-                            const keyMissing = key === "naver" && bookSources.naverKeyMissing;
-                            return (
-                              <button
-                                key={key}
-                                type="button"
-                                disabled={keyMissing}
-                                onClick={() => {
-                                  setSelectedCoverSource(key);
-                                  applySelection(key, selectedDescSource);
-                                }}
-                                className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border-2 transition-colors ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent" : `cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent hover:border-neutral-300"}`}`}
-                              >
-                                {url ? (
-                                  <img src={url} alt={label} className="w-10 h-14 object-cover rounded shadow-sm" />
-                                ) : (
-                                  <div className="w-10 h-14 rounded bg-neutral-200 flex items-center justify-center text-neutral-400 text-center leading-tight px-1">
-                                    {keyMissing ? "키없음" : "없음"}
-                                  </div>
-                                )}
-                                <span className={selected ? "text-[#8B3A2A] font-semibold" : "text-neutral-400"}>{label}</span>
-                              </button>
-                            );
-                          })}
+            <Dialog open={bookModalOpen} onOpenChange={(open) => {
+              if (!open) {
+                setBookForm({ title: "", author: "", cover_url: "", cover_url_hires: "", description: "", category_id: "", isbn: "" });
+                setBookSearch(""); setBookSearchResults([]); setBookSearchOpen(false);
+                setBookSources(null); setSelectedCoverSource("kakao"); setSelectedDescSource("kakao");
+              }
+              setBookModalOpen(open);
+            }}>
+              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>새 도서 등록</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={addBook} className="space-y-3">
+                  {/* Kakao search */}
+                  <Field label="도서 검색">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+                      <Input
+                        value={bookSearch}
+                        onChange={(e) => handleBookSearchChange(e.target.value)}
+                        onFocus={() => bookSearchResults.length > 0 && setBookSearchOpen(true)}
+                        placeholder="제목 또는 저자 검색..."
+                        className="pl-9 pr-9"
+                      />
+                      {bookSearch && (
+                        <button type="button" onClick={() => { setBookSearch(""); setBookSearchResults([]); setBookSearchOpen(false); }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer">
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                      {bookSearchOpen && (bookSearching || bookSearchResults.length > 0) && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-200 rounded-xl shadow-lg overflow-hidden">
+                          {bookSearching ? (
+                            <div className="flex items-center justify-center gap-2 py-4 text-sm text-neutral-400">
+                              <Loader2 className="w-4 h-4 animate-spin" /> 검색 중...
+                            </div>
+                          ) : (
+                            <ul className="max-h-60 overflow-y-auto divide-y divide-neutral-100">
+                              {bookSearchResults.map((b, i) => (
+                                <li key={i}>
+                                  <button type="button" onClick={() => selectBookFromSearch(b)}
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#F8F5F0] text-left transition-colors cursor-pointer">
+                                    {b.thumbnail ? (
+                                      <img src={b.thumbnail} alt={b.title} className="w-8 h-11 object-cover rounded flex-shrink-0" />
+                                    ) : (
+                                      <div className="w-8 h-11 bg-neutral-100 rounded flex-shrink-0" />
+                                    )}
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-medium text-[#1C1A17] truncate">{b.title}</p>
+                                      <p className="text-xs text-neutral-500 truncate">{b.authors.join(", ")}</p>
+                                    </div>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </div>
-                      </div>
-                      {/* 소개 선택 */}
-                      <div>
-                        <p className="font-semibold text-neutral-500 mb-1.5">소개 선택</p>
-                        <div className="flex flex-col gap-1.5">
-                          {descSources.map(({ key, label }) => {
-                            const desc = getDesc(key);
-                            const selected = selectedDescSource === key;
-                            const keyMissing = key === "naver" && bookSources.naverKeyMissing;
-                            return (
-                              <button
-                                key={key}
-                                type="button"
-                                disabled={keyMissing}
-                                onClick={() => {
-                                  setSelectedDescSource(key);
-                                  applySelection(selectedCoverSource, key);
-                                }}
-                                className={`text-left px-2.5 py-2 rounded-lg border-2 transition-colors ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent bg-white" : `cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent bg-white hover:border-neutral-300"}`}`}
-                              >
-                                <span className={`font-semibold ${selected ? "text-[#8B3A2A]" : "text-neutral-400"}`}>{label}</span>
-                                {keyMissing
-                                  ? <span className="ml-2 text-amber-500">API 키 없음 (NAVER_CLIENT_ID/SECRET)</span>
-                                  : desc
-                                    ? <span className="ml-2 text-neutral-500 line-clamp-1">{desc}</span>
-                                    : <span className="ml-2 text-neutral-300">없음</span>
-                                }
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
+                      )}
                     </div>
-                  );
-                })()}
+                  </Field>
 
-                <Field label="소개">
-                  <Textarea value={bookForm.description} onChange={(e) => setBookForm((p) => ({ ...p, description: e.target.value }))} rows={2} className="resize-none" />
-                </Field>
-                <Field label="카테고리">
-                  <CategorySelect categories={categories} value={bookForm.category_id} onChange={(v) => setBookForm((p) => ({ ...p, category_id: v }))} />
-                </Field>
-                <Button type="submit" disabled={bookDetailFetching} className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                  {bookDetailFetching ? (
-                    <><span className="w-4 h-4 mr-1.5 inline-block animate-spin rounded-full border-2 border-white border-t-transparent" /> 정보 가져오는 중...</>
-                  ) : (
-                    <><Plus className="w-4 h-4 mr-1.5" /> 등록</>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="제목 *">
+                      <Input value={bookForm.title} onChange={(e) => setBookForm((p) => ({ ...p, title: e.target.value }))} placeholder="책 제목" />
+                    </Field>
+                    <Field label="저자 *">
+                      <Input value={bookForm.author} onChange={(e) => setBookForm((p) => ({ ...p, author: e.target.value }))} placeholder="저자" />
+                    </Field>
+                  </div>
+                  <Field label="표지 URL">
+                    <Input value={bookForm.cover_url} onChange={(e) => setBookForm((p) => ({ ...p, cover_url: e.target.value }))} placeholder="https://..." />
+                  </Field>
+
+                  {/* 소스 선택 UI */}
+                  {bookDetailFetching && (
+                    <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-xs text-neutral-400 flex items-center gap-2">
+                      <span className="inline-block w-3.5 h-3.5 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-500 flex-shrink-0" />
+                      교보·네이버·Google Books 조회 중...
+                    </div>
                   )}
-                </Button>
-              </form>
-            </FormCard>
+                  {bookSources && (() => {
+                    const coverSources: { key: SourceKey | "kyobo"; label: string }[] = [
+                      { key: "kyobo", label: "교보" },
+                      { key: "naver", label: "네이버" },
+                      { key: "google", label: "Google" },
+                      { key: "kakao", label: "카카오" },
+                    ];
+                    const descSources: { key: SourceKey; label: string }[] = [
+                      { key: "naver", label: "네이버" },
+                      { key: "google", label: "Google" },
+                      { key: "kakao", label: "카카오" },
+                    ];
+                    const getImg = (k: SourceKey | "kyobo") => {
+                      if (k === "kakao") return bookSources.kakao.thumbnail;
+                      if (k === "kyobo") return bookSources.kyobo?.hiresUrl ?? null;
+                      return bookSources[k]?.hiresUrl ?? null;
+                    };
+                    const getDesc = (k: SourceKey) =>
+                      k === "kakao" ? bookSources.kakao.description : bookSources[k]?.description ?? null;
+                    const applySelection = (coverKey: SourceKey | "kyobo", descKey: SourceKey) => {
+                      setBookForm((p) => ({
+                        ...p,
+                        cover_url_hires: coverKey === "kakao" ? "" : (getImg(coverKey) ?? ""),
+                        description: getDesc(descKey) ?? "",
+                      }));
+                    };
+                    return (
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-xs space-y-3">
+                        {/* 표지 선택 */}
+                        <div>
+                          <p className="font-semibold text-neutral-500 mb-1.5">표지 선택</p>
+                          <div className="flex gap-2">
+                            {coverSources.map(({ key, label }) => {
+                              const url = getImg(key);
+                              const selected = selectedCoverSource === key;
+                              const keyMissing = key === "naver" && bookSources.naverKeyMissing;
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  disabled={keyMissing}
+                                  onClick={() => {
+                                    setSelectedCoverSource(key);
+                                    applySelection(key, selectedDescSource);
+                                  }}
+                                  className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border-2 transition-colors ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent" : `cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent hover:border-neutral-300"}`}`}
+                                >
+                                  {url ? (
+                                    <img src={url} alt={label} className="w-10 h-14 object-cover rounded shadow-sm" />
+                                  ) : (
+                                    <div className="w-10 h-14 rounded bg-neutral-200 flex items-center justify-center text-neutral-400 text-center leading-tight px-1">
+                                      {keyMissing ? "키없음" : "없음"}
+                                    </div>
+                                  )}
+                                  <span className={selected ? "text-[#8B3A2A] font-semibold" : "text-neutral-400"}>{label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        {/* 소개 선택 */}
+                        <div>
+                          <p className="font-semibold text-neutral-500 mb-1.5">소개 선택</p>
+                          <div className="flex flex-col gap-1.5">
+                            {descSources.map(({ key, label }) => {
+                              const desc = getDesc(key);
+                              const selected = selectedDescSource === key;
+                              const keyMissing = key === "naver" && bookSources.naverKeyMissing;
+                              return (
+                                <button
+                                  key={key}
+                                  type="button"
+                                  disabled={keyMissing}
+                                  onClick={() => {
+                                    setSelectedDescSource(key);
+                                    applySelection(selectedCoverSource, key);
+                                  }}
+                                  className={`text-left px-2.5 py-2 rounded-lg border-2 transition-colors ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent bg-white" : `cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent bg-white hover:border-neutral-300"}`}`}
+                                >
+                                  <span className={`font-semibold ${selected ? "text-[#8B3A2A]" : "text-neutral-400"}`}>{label}</span>
+                                  {keyMissing
+                                    ? <span className="ml-2 text-amber-500">API 키 없음 (NAVER_CLIENT_ID/SECRET)</span>
+                                    : desc
+                                      ? <span className="ml-2 text-neutral-500 line-clamp-1">{desc}</span>
+                                      : <span className="ml-2 text-neutral-300">없음</span>
+                                  }
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  <Field label="소개">
+                    <Textarea value={bookForm.description} onChange={(e) => setBookForm((p) => ({ ...p, description: e.target.value }))} rows={3} className="resize-none" />
+                  </Field>
+                  <Field label="카테고리">
+                    <CategorySelect categories={categories} value={bookForm.category_id} onChange={(v) => setBookForm((p) => ({ ...p, category_id: v }))} />
+                  </Field>
+                  <div className="flex justify-end gap-2 pt-1">
+                    <Button type="button" variant="outline" onClick={() => setBookModalOpen(false)} className="cursor-pointer">취소</Button>
+                    <Button type="submit" disabled={bookDetailFetching} className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                      {bookDetailFetching ? (
+                        <><span className="w-4 h-4 mr-1.5 inline-block animate-spin rounded-full border-2 border-white border-t-transparent" /> 정보 가져오는 중...</>
+                      ) : (
+                        <><Plus className="w-4 h-4 mr-1.5" /> 등록</>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
 
             <div>
               <p className="text-xs font-bold tracking-widest uppercase text-neutral-400 mb-3">등록된 도서 ({books.length})</p>
