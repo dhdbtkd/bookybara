@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Sparkles, Eye, EyeOff, ChevronDown, FileText, Search, BookOpen } from "lucide-react";
+import { Sparkles, Eye, EyeOff, ChevronDown, Search, BookOpen } from "lucide-react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -257,23 +257,28 @@ export default function AdminDiscussionGenerator({
           ) : reviews.length === 0 ? (
             <p className="text-xs text-neutral-400 py-2">이 모임에 독후감이 없습니다. 독후감 없이 진행합니다.</p>
           ) : (
-            <div className="space-y-2">
-              {reviews.map((r) => (
-                <label key={r.id} className="flex items-start gap-3 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(r.id)}
-                    onChange={() => toggleReview(r.id)}
-                    className="mt-0.5 w-4 h-4 rounded border-neutral-300 cursor-pointer accent-[#1C1A17]"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-[#1C1A17]">{r.author_name}</p>
-                    <p className="text-xs text-neutral-400 line-clamp-2 mt-0.5">{r.content}</p>
-                  </div>
-                  <FileText className="w-3.5 h-3.5 text-neutral-300 flex-shrink-0 mt-0.5" />
-                </label>
-              ))}
-              <p className="text-[11px] text-neutral-400 pt-1">
+            <div>
+              <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                {reviews.map((r) => {
+                  const selected = selectedIds.has(r.id);
+                  return (
+                    <button
+                      key={r.id}
+                      type="button"
+                      onClick={() => toggleReview(r.id)}
+                      className={cn(
+                        "px-3 py-2.5 rounded-lg border text-sm font-medium text-center transition-all cursor-pointer truncate",
+                        selected
+                          ? "border-[#1C1A17] bg-[#1C1A17] text-white"
+                          : "border-neutral-200 bg-white text-neutral-500 hover:border-neutral-400"
+                      )}
+                    >
+                      {r.author_name}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-[11px] text-neutral-400 mt-2">
                 {selectedIds.size}/{reviews.length}편 선택됨
               </p>
             </div>
