@@ -85,6 +85,7 @@ export default function AdminDashboard() {
   const [bookSearching, setBookSearching] = useState(false);
   const [bookSearchOpen, setBookSearchOpen] = useState(false);
   const [bookGoogleFetching, setBookGoogleFetching] = useState(false);
+  const [bookGoogleResult, setBookGoogleResult] = useState<{ found: boolean; hiresUrl: string; descriptionLength: number } | null>(null);
   const bookSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryColor, setNewCategoryColor] = useState("#6B7280");
@@ -159,6 +160,7 @@ export default function AdminDashboard() {
     setBookSearch(book.title);
     setBookSearchOpen(false);
     setBookSearchResults([]);
+    setBookGoogleResult(null);
 
     const cleanIsbn = book.isbn?.split(" ")[0];
     if (!cleanIsbn) return;
@@ -178,9 +180,16 @@ export default function AdminDashboard() {
           cover_url_hires: hiresUrl,
           description: info?.description || p.description,
         }));
+        setBookGoogleResult({
+          found: !!json.items?.[0],
+          hiresUrl,
+          descriptionLength: info?.description?.length ?? 0,
+        });
+      } else {
+        setBookGoogleResult({ found: false, hiresUrl: "", descriptionLength: 0 });
       }
     } catch {
-      // Google Books 실패 시 기존 값 유지
+      setBookGoogleResult({ found: false, hiresUrl: "", descriptionLength: 0 });
     } finally {
       setBookGoogleFetching(false);
     }
@@ -190,7 +199,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     const body = { ...bookForm, category_id: bookForm.category_id ? Number(bookForm.category_id) : null };
     const res = await fetch("/api/books", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    if (res.ok) { toast.success("책 등록 완료"); setBookForm({ title: "", author: "", cover_url: "", cover_url_hires: "", description: "", category_id: "", isbn: "" }); setBookSearch(""); setBookSearchResults([]); loadAll(); }
+    if (res.ok) { toast.success("책 등록 완료"); setBookForm({ title: "", author: "", cover_url: "", cover_url_hires: "", description: "", category_id: "", isbn: "" }); setBookSearch(""); setBookSearchResults([]); setBookGoogleResult(null); loadAll(); }
     else { const { error } = await res.json(); toast.error(error); }
   }
   async function deleteBook(id: number) {
@@ -558,6 +567,43 @@ export default function AdminDashboard() {
                 <Field label="표지 URL">
                   <Input value={bookForm.cover_url} onChange={(e) => setBookForm((p) => ({ ...p, cover_url: e.target.value }))} placeholder="https://..." />
                 </Field>
+
+                {/* Google Books 조회 결과 */}
+                {bookGoogleResult && (
+                  <div className={`rounded-lg border px-3 py-2.5 text-xs space-y-2 ${bookGoogleResult.found ? "border-green-200 bg-green-50" : "border-neutral-200 bg-neutral-50"}`}>
+                    <p className="font-semibold text-neutral-500">Google Books 조회 결과</p>
+                    {bookGoogleResult.found ? (
+                      <div className="flex gap-3 items-start">
+                        <div className="flex gap-2 items-end flex-shrink-0">
+                          {bookForm.cover_url && (
+                            <div className="text-center">
+                              <img src={bookForm.cover_url} alt="" className="w-10 h-14 object-cover rounded shadow-sm" />
+                              <p className="text-neutral-400 mt-1">카카오</p>
+                            </div>
+                          )}
+                          {bookGoogleResult.hiresUrl && (
+                            <div className="text-center">
+                              <img src={bookGoogleResult.hiresUrl} alt="" className="w-10 h-14 object-cover rounded shadow-sm" />
+                              <p className="text-green-600 mt-1">Google</p>
+                            </div>
+                          )}
+                          {!bookGoogleResult.hiresUrl && (
+                            <p className="text-neutral-400">썸네일 없음</p>
+                          )}
+                        </div>
+                        <div className="text-neutral-600">
+                          {bookGoogleResult.descriptionLength > 0
+                            ? <span className="text-green-700">소개 {bookGoogleResult.descriptionLength}자 가져옴</span>
+                            : <span className="text-neutral-400">소개 없음 (카카오 원문 사용)</span>
+                          }
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-neutral-400">검색 결과 없음 — 카카오 데이터만 사용됩니다.</p>
+                    )}
+                  </div>
+                )}
+
                 <Field label="소개">
                   <Textarea value={bookForm.description} onChange={(e) => setBookForm((p) => ({ ...p, description: e.target.value }))} rows={2} className="resize-none" />
                 </Field>
