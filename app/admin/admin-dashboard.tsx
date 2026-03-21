@@ -84,8 +84,16 @@ export default function AdminDashboard() {
   const [bookSearchResults, setBookSearchResults] = useState<{ title: string; authors: string[]; thumbnail: string | null; description: string | null; isbn: string }[]>([]);
   const [bookSearching, setBookSearching] = useState(false);
   const [bookSearchOpen, setBookSearchOpen] = useState(false);
-  const [bookGoogleFetching, setBookGoogleFetching] = useState(false);
-  const [bookDetailResult, setBookDetailResult] = useState<{ found: boolean; hiresUrl: string; descriptionLength: number; source: string | null } | null>(null);
+  const [bookDetailFetching, setBookDetailFetching] = useState(false);
+  type SourceKey = "kakao" | "naver" | "google";
+  type BookSources = {
+    kakao: { thumbnail: string | null; description: string | null };
+    naver: { hiresUrl: string | null; description: string | null } | null;
+    google: { hiresUrl: string | null; description: string | null } | null;
+  };
+  const [bookSources, setBookSources] = useState<BookSources | null>(null);
+  const [selectedCoverSource, setSelectedCoverSource] = useState<SourceKey>("kakao");
+  const [selectedDescSource, setSelectedDescSource] = useState<SourceKey>("kakao");
   const bookSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryColor, setNewCategoryColor] = useState("#6B7280");
@@ -160,32 +168,45 @@ export default function AdminDashboard() {
     setBookSearch(book.title);
     setBookSearchOpen(false);
     setBookSearchResults([]);
-    setBookDetailResult(null);
+    setBookSources(null);
+    setSelectedCoverSource("kakao");
+    setSelectedDescSource("kakao");
 
     if (!book.isbn) return;
-    setBookGoogleFetching(true);
+    setBookDetailFetching(true);
     try {
       const res = await fetch(`/api/book-detail?isbn=${encodeURIComponent(book.isbn)}`);
       if (res.ok) {
         const data = await res.json();
+        setBookSources({
+          kakao: { thumbnail: book.thumbnail, description: book.description },
+          naver: data.naver,
+          google: data.google,
+        });
+        // 자동 선택: 소개는 가장 긴 것, 이미지는 첫 번째로 있는 것
+        const descPriority: SourceKey[] = ["naver", "google", "kakao"];
+        const bestDesc = descPriority.find((s) =>
+          s === "kakao" ? !!book.description : !!(data[s as "naver" | "google"]?.description)
+        ) ?? "kakao";
+        const imgPriority: SourceKey[] = ["naver", "google", "kakao"];
+        const bestImg = imgPriority.find((s) =>
+          s === "kakao" ? !!book.thumbnail : !!(data[s as "naver" | "google"]?.hiresUrl)
+        ) ?? "kakao";
+        setSelectedDescSource(bestDesc);
+        setSelectedCoverSource(bestImg);
         setBookForm((p) => ({
           ...p,
-          cover_url_hires: data.hiresUrl ?? "",
-          description: data.description || p.description,
+          cover_url_hires: bestImg === "kakao" ? "" : (data[bestImg]?.hiresUrl ?? ""),
+          description:
+            bestDesc === "kakao"
+              ? (book.description ?? "")
+              : (data[bestDesc]?.description ?? book.description ?? ""),
         }));
-        setBookDetailResult({
-          found: !!data.source,
-          hiresUrl: data.hiresUrl ?? "",
-          descriptionLength: data.description?.length ?? 0,
-          source: data.source,
-        });
-      } else {
-        setBookDetailResult({ found: false, hiresUrl: "", descriptionLength: 0, source: null });
       }
     } catch {
-      setBookDetailResult({ found: false, hiresUrl: "", descriptionLength: 0, source: null });
+      // 실패 시 카카오 기본값 유지
     } finally {
-      setBookGoogleFetching(false);
+      setBookDetailFetching(false);
     }
   }
 
@@ -193,7 +214,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     const body = { ...bookForm, category_id: bookForm.category_id ? Number(bookForm.category_id) : null };
     const res = await fetch("/api/books", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    if (res.ok) { toast.success("책 등록 완료"); setBookForm({ title: "", author: "", cover_url: "", cover_url_hires: "", description: "", category_id: "", isbn: "" }); setBookSearch(""); setBookSearchResults([]); setBookDetailResult(null); loadAll(); }
+    if (res.ok) { toast.success("책 등록 완료"); setBookForm({ title: "", author: "", cover_url: "", cover_url_hires: "", description: "", category_id: "", isbn: "" }); setBookSearch(""); setBookSearchResults([]); setBookSources(null); setSelectedCoverSource("kakao"); setSelectedDescSource("kakao"); loadAll(); }
     else { const { error } = await res.json(); toast.error(error); }
   }
   async function deleteBook(id: number) {
@@ -562,47 +583,90 @@ export default function AdminDashboard() {
                   <Input value={bookForm.cover_url} onChange={(e) => setBookForm((p) => ({ ...p, cover_url: e.target.value }))} placeholder="https://..." />
                 </Field>
 
-                {/* 도서 상세 조회 결과 */}
-                {bookDetailResult && (
-                  <div className={`rounded-lg border px-3 py-2.5 text-xs space-y-2 ${bookDetailResult.found ? "border-green-200 bg-green-50" : "border-neutral-200 bg-neutral-50"}`}>
-                    <p className="font-semibold text-neutral-500">
-                      도서 상세 조회 결과
-                      {bookDetailResult.source && (
-                        <span className="ml-2 font-normal text-green-600">
-                          ({bookDetailResult.source === "naver" ? "네이버" : "Google Books"})
-                        </span>
-                      )}
-                    </p>
-                    {bookDetailResult.found ? (
-                      <div className="flex gap-3 items-start">
-                        <div className="flex gap-2 items-end flex-shrink-0">
-                          {bookForm.cover_url && (
-                            <div className="text-center">
-                              <img src={bookForm.cover_url} alt="" className="w-10 h-14 object-cover rounded shadow-sm" />
-                              <p className="text-neutral-400 mt-1">카카오</p>
-                            </div>
-                          )}
-                          {bookDetailResult.hiresUrl ? (
-                            <div className="text-center">
-                              <img src={bookDetailResult.hiresUrl} alt="" className="w-10 h-14 object-cover rounded shadow-sm" />
-                              <p className="text-green-600 mt-1">{bookDetailResult.source === "naver" ? "네이버" : "Google"}</p>
-                            </div>
-                          ) : (
-                            <p className="text-neutral-400">썸네일 없음</p>
-                          )}
-                        </div>
-                        <div className="text-neutral-600">
-                          {bookDetailResult.descriptionLength > 0
-                            ? <span className="text-green-700">소개 {bookDetailResult.descriptionLength}자 가져옴</span>
-                            : <span className="text-neutral-400">소개 없음 (카카오 원문 사용)</span>
-                          }
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-neutral-400">검색 결과 없음 — 카카오 데이터만 사용됩니다.</p>
-                    )}
+                {/* 소스 선택 UI */}
+                {bookDetailFetching && (
+                  <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-xs text-neutral-400 flex items-center gap-2">
+                    <span className="inline-block w-3.5 h-3.5 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-500 flex-shrink-0" />
+                    네이버·Google Books 조회 중...
                   </div>
                 )}
+                {bookSources && (() => {
+                  const sources: { key: "kakao" | "naver" | "google"; label: string }[] = [
+                    { key: "kakao", label: "카카오" },
+                    { key: "naver", label: "네이버" },
+                    { key: "google", label: "Google" },
+                  ];
+                  const getImg = (k: "kakao" | "naver" | "google") =>
+                    k === "kakao" ? bookSources.kakao.thumbnail : bookSources[k]?.hiresUrl ?? null;
+                  const getDesc = (k: "kakao" | "naver" | "google") =>
+                    k === "kakao" ? bookSources.kakao.description : bookSources[k]?.description ?? null;
+                  const applySelection = (coverKey: "kakao" | "naver" | "google", descKey: "kakao" | "naver" | "google") => {
+                    setBookForm((p) => ({
+                      ...p,
+                      cover_url_hires: coverKey === "kakao" ? "" : (getImg(coverKey) ?? ""),
+                      description: getDesc(descKey) ?? "",
+                    }));
+                  };
+                  return (
+                    <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-xs space-y-3">
+                      {/* 표지 선택 */}
+                      <div>
+                        <p className="font-semibold text-neutral-500 mb-1.5">표지 선택</p>
+                        <div className="flex gap-2">
+                          {sources.map(({ key, label }) => {
+                            const url = getImg(key);
+                            const selected = selectedCoverSource === key;
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedCoverSource(key);
+                                  applySelection(key, selectedDescSource);
+                                }}
+                                className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border-2 transition-colors cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent hover:border-neutral-300"}`}
+                              >
+                                {url ? (
+                                  <img src={url} alt={label} className="w-10 h-14 object-cover rounded shadow-sm" />
+                                ) : (
+                                  <div className="w-10 h-14 rounded bg-neutral-200 flex items-center justify-center text-neutral-400">없음</div>
+                                )}
+                                <span className={selected ? "text-[#8B3A2A] font-semibold" : "text-neutral-400"}>{label}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      {/* 소개 선택 */}
+                      <div>
+                        <p className="font-semibold text-neutral-500 mb-1.5">소개 선택</p>
+                        <div className="flex flex-col gap-1.5">
+                          {sources.map(({ key, label }) => {
+                            const desc = getDesc(key);
+                            const selected = selectedDescSource === key;
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedDescSource(key);
+                                  applySelection(selectedCoverSource, key);
+                                }}
+                                className={`text-left px-2.5 py-2 rounded-lg border-2 transition-colors cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent bg-white hover:border-neutral-300"}`}
+                              >
+                                <span className={`font-semibold ${selected ? "text-[#8B3A2A]" : "text-neutral-400"}`}>{label}</span>
+                                {desc
+                                  ? <span className="ml-2 text-neutral-500 line-clamp-1">{desc}</span>
+                                  : <span className="ml-2 text-neutral-300">없음</span>
+                                }
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <Field label="소개">
                   <Textarea value={bookForm.description} onChange={(e) => setBookForm((p) => ({ ...p, description: e.target.value }))} rows={2} className="resize-none" />
@@ -610,8 +674,8 @@ export default function AdminDashboard() {
                 <Field label="카테고리">
                   <CategorySelect categories={categories} value={bookForm.category_id} onChange={(v) => setBookForm((p) => ({ ...p, category_id: v }))} />
                 </Field>
-                <Button type="submit" disabled={bookGoogleFetching} className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                  {bookGoogleFetching ? (
+                <Button type="submit" disabled={bookDetailFetching} className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                  {bookDetailFetching ? (
                     <><span className="w-4 h-4 mr-1.5 inline-block animate-spin rounded-full border-2 border-white border-t-transparent" /> 정보 가져오는 중...</>
                   ) : (
                     <><Plus className="w-4 h-4 mr-1.5" /> 등록</>

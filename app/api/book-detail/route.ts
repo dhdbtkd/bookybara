@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export type BookDetailResult = {
+export type BookSource = {
   hiresUrl: string | null;
   description: string | null;
-  source: "naver" | "google" | null;
 };
 
-async function fetchNaver(isbn: string): Promise<BookDetailResult | null> {
+export type BookDetailResponse = {
+  naver: BookSource | null;
+  google: BookSource | null;
+};
+
+async function fetchNaver(isbn: string): Promise<BookSource | null> {
   const clientId = process.env.NAVER_CLIENT_ID;
   const clientSecret = process.env.NAVER_CLIENT_SECRET;
   if (!clientId || !clientSecret) return null;
@@ -29,14 +33,13 @@ async function fetchNaver(isbn: string): Promise<BookDetailResult | null> {
     return {
       hiresUrl: item.image || null,
       description: item.description || null,
-      source: "naver",
     };
   } catch {
     return null;
   }
 }
 
-async function fetchGoogle(isbn: string): Promise<BookDetailResult | null> {
+async function fetchGoogle(isbn: string): Promise<BookSource | null> {
   try {
     const res = await fetch(
       `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}&fields=items/volumeInfo(description,imageLinks)`,
@@ -52,7 +55,6 @@ async function fetchGoogle(isbn: string): Promise<BookDetailResult | null> {
     return {
       hiresUrl,
       description: info.description || null,
-      source: "google",
     };
   } catch {
     return null;
@@ -63,13 +65,13 @@ export async function GET(req: NextRequest) {
   const isbn = req.nextUrl.searchParams.get("isbn")?.trim();
   if (!isbn) return NextResponse.json({ error: "isbn이 필요합니다." }, { status: 400 });
 
-  // Kakao ISBN은 "ISBN10 ISBN13" 형태일 수 있음 — 13자리 우선 사용
+  // Kakao ISBN은 "ISBN10 ISBN13" 형태 — 13자리 우선 사용
   const cleanIsbn = isbn.split(" ").find((s) => s.length === 13) ?? isbn.split(" ")[0];
 
-  const result =
-    (await fetchNaver(cleanIsbn)) ??
-    (await fetchGoogle(cleanIsbn)) ??
-    ({ hiresUrl: null, description: null, source: null } satisfies BookDetailResult);
+  const [naver, google] = await Promise.all([
+    fetchNaver(cleanIsbn),
+    fetchGoogle(cleanIsbn),
+  ]);
 
-  return NextResponse.json(result);
+  return NextResponse.json({ naver, google } satisfies BookDetailResponse);
 }
