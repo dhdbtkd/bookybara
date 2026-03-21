@@ -267,12 +267,17 @@ export default function AdminDiscussionGenerator({
                       type="button"
                       onClick={() => toggleReview(r.id)}
                       className={cn(
-                        "px-3 py-2.5 rounded-lg border text-sm font-medium text-center transition-all cursor-pointer truncate",
+                        "flex items-center gap-1.5 px-3 py-2.5 rounded-lg border text-sm transition-all cursor-pointer truncate",
                         selected
-                          ? "border-[#1C1A17] bg-[#1C1A17] text-white"
-                          : "border-neutral-200 bg-white text-neutral-500 hover:border-neutral-400"
+                          ? "border-neutral-400 text-[#1C1A17] font-semibold"
+                          : "border-neutral-200 text-neutral-300 font-normal"
                       )}
                     >
+                      <span className={cn("flex-shrink-0 w-3.5 h-3.5 rounded-sm border flex items-center justify-center",
+                        selected ? "border-[#1C1A17] bg-[#1C1A17]" : "border-neutral-200"
+                      )}>
+                        {selected && <svg viewBox="0 0 10 8" className="w-2 h-2 text-white fill-none stroke-current stroke-[1.5]"><polyline points="1,4 4,7 9,1"/></svg>}
+                      </span>
                       {r.author_name}
                     </button>
                   );
