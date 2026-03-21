@@ -25,7 +25,7 @@ export default function RootLayout({
     <html lang="ko" className={`${playfair.variable} h-full antialiased`}>
       <body className="h-full flex flex-col bg-[#F0EAE0] font-sans">
         <Nav />
-        <main className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 py-8">{children}</main>
+        <main className="flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 py-4 md:py-8">{children}</main>
         <Toaster />
       </body>
     </html>

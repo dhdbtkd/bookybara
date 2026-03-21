@@ -126,12 +126,12 @@ function NewReviewForm() {
         </div>
 
         {/* 모임 & 책 컨텍스트 */}
-        <div className="bg-[#F8F5F0] rounded-2xl p-5 flex gap-4 items-start flex-shrink-0">
+        <div className="bg-[#F8F5F0] rounded-2xl p-3 sm:p-5 flex gap-3 sm:gap-4 items-start flex-shrink-0">
           {book?.cover_url ? (
-            <img src={book.cover_url} alt={book.title} className="w-14 h-20 object-cover rounded-md shadow flex-shrink-0" />
+            <img src={book.cover_url} alt={book.title} className="w-10 h-14 sm:w-14 sm:h-20 object-cover rounded-md shadow flex-shrink-0" />
           ) : (
-            <div className="w-14 h-20 rounded-md bg-[#E8DDD0] flex-shrink-0 flex items-center justify-center">
-              <BookOpen className="w-5 h-5 text-[#C8BEB4]" />
+            <div className="w-10 h-14 sm:w-14 sm:h-20 rounded-md bg-[#E8DDD0] flex-shrink-0 flex items-center justify-center">
+              <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-[#C8BEB4]" />
             </div>
           )}
           <div className="flex-1 min-w-0 space-y-1">
@@ -180,15 +180,15 @@ function NewReviewForm() {
               <label className="text-sm font-semibold text-neutral-700">독후감</label>
               <span className="text-xs text-neutral-400">{charCount.toLocaleString()}자</span>
             </div>
-            <div className="rounded-xl border border-neutral-200 overflow-auto bg-white flex-1 min-h-0">
+            <div className="rounded-xl border border-neutral-200 overflow-auto bg-white flex-1 min-h-[40dvh] sm:min-h-0">
               <ReviewEditor onChange={handleEditorChange} />
             </div>
-            <p className="text-xs text-neutral-400 flex-shrink-0">책을 읽고 느낀 점, 인상적인 구절, 생각 등을 자유롭게 써주세요.</p>
+            <p className="text-xs text-neutral-400 flex-shrink-0 hidden sm:block">책을 읽고 느낀 점, 인상적인 구절, 생각 등을 자유롭게 써주세요.</p>
           </div>
 
-          <div className="flex gap-2 justify-end flex-shrink-0 sticky bottom-0 bg-[#F0EAE0] py-3 -mx-4 px-4 border-t border-neutral-200/60">
-            <Button type="button" variant="outline" onClick={() => router.back()} className="cursor-pointer">취소</Button>
-            <Button type="submit" disabled={submitting || !authorName || !content.trim()} className="cursor-pointer">
+          <div className="flex gap-2 flex-shrink-0 sticky bottom-0 bg-[#F0EAE0] py-3 -mx-4 px-4 border-t border-neutral-200/60 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+            <Button type="button" variant="outline" onClick={() => router.back()} className="cursor-pointer flex-1 sm:flex-none">취소</Button>
+            <Button type="submit" disabled={submitting || !authorName || !content.trim()} className="cursor-pointer flex-1 sm:flex-none">
               {submitting ? "등록 중..." : "등록하기"}
             </Button>
           </div>
@@ -300,15 +300,15 @@ function NewReviewForm() {
             <label className="text-sm font-semibold text-neutral-700">독후감</label>
             <span className="text-xs text-neutral-400">{charCount.toLocaleString()}자</span>
           </div>
-          <div className="rounded-xl border border-neutral-200 overflow-auto bg-white flex-1 min-h-0">
+          <div className="rounded-xl border border-neutral-200 overflow-auto bg-white flex-1 min-h-[40dvh] sm:min-h-0">
             <ReviewEditor onChange={handleEditorChange} />
           </div>
-          <p className="text-xs text-neutral-400 flex-shrink-0">책을 읽고 느낀 점, 인상적인 구절, 생각 등을 자유롭게 써주세요.</p>
+          <p className="text-xs text-neutral-400 flex-shrink-0 hidden sm:block">책을 읽고 느낀 점, 인상적인 구절, 생각 등을 자유롭게 써주세요.</p>
         </div>
 
-        <div className="flex gap-2 justify-end flex-shrink-0 sticky bottom-0 bg-[#F0EAE0] py-3 -mx-4 px-4 border-t border-neutral-200/60">
-          <Button type="button" variant="outline" onClick={() => setStep("book")} className="cursor-pointer">이전</Button>
-          <Button type="submit" disabled={submitting || !authorName || !content.trim()} className="cursor-pointer">
+        <div className="flex gap-2 flex-shrink-0 sticky bottom-0 bg-[#F0EAE0] py-3 -mx-4 px-4 border-t border-neutral-200/60 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+          <Button type="button" variant="outline" onClick={() => setStep("book")} className="cursor-pointer flex-1 sm:flex-none">이전</Button>
+          <Button type="submit" disabled={submitting || !authorName || !content.trim()} className="cursor-pointer flex-1 sm:flex-none">
             {submitting ? "등록 중..." : "등록하기"}
           </Button>
         </div>
