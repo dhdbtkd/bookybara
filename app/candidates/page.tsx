@@ -9,7 +9,7 @@ export default async function CandidatesPage() {
   const [{ data: books }, { data: candidates }, { data: members }] = await Promise.all([
     supabase
       .from("books")
-      .select("id, title, author, cover_url, description, meetings(id, date, title)")
+      .select("id, title, author, cover_url, cover_url_hires, description, meeting_books(meetings(id, date, title))")
       .order("created_at", { ascending: false }),
     supabase
       .from("book_candidates")
@@ -22,7 +22,7 @@ export default async function CandidatesPage() {
 
   const allBooks = (books ?? []).map((b) => ({
     ...b,
-    meetings: (Array.isArray(b.meetings) ? b.meetings : b.meetings ? [b.meetings] : []) as {
+    meetings: ((b.meeting_books ?? []) as any[]).map((mb) => mb.meetings).filter(Boolean) as {
       id: number; date: string; title: string;
     }[],
   }));

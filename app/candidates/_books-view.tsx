@@ -29,6 +29,7 @@ type ReadBook = {
   title: string;
   author: string;
   cover_url: string | null;
+  cover_url_hires: string | null;
   description: string | null;
   meetings: { id: number; date: string; title: string }[];
 };
@@ -471,8 +472,8 @@ function BookCard({
   return (
     <div className="group">
       <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-[#E8DDD0] shadow-sm mb-2">
-        {book.cover_url ? (
-          <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
+        {book.cover_url_hires ?? book.cover_url ? (
+          <img src={book.cover_url_hires ?? book.cover_url!} alt={book.title} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <BookOpen className="w-8 h-8 text-[#B8A898]" />
