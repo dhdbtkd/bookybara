@@ -412,7 +412,7 @@ export default function AdminDiscussionGenerator({
 
       {/* ── 모임 선택 모달 ── */}
       <Dialog open={meetingPickerOpen} onOpenChange={setMeetingPickerOpen}>
-        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col p-0 gap-0">
+        <DialogContent className="max-w-3xl w-full max-h-[85vh] flex flex-col p-0 gap-0">
           <DialogHeader className="px-5 pt-5 pb-3 border-b border-neutral-100">
             <DialogTitle className="text-base font-bold">모임 선택</DialogTitle>
           </DialogHeader>
@@ -451,7 +451,7 @@ export default function AdminDiscussionGenerator({
                   )}
                 >
                   {/* 커버 썸네일 */}
-                  <div className="flex-shrink-0 w-10 h-[54px] bg-[#E8DDD0] overflow-hidden rounded-sm">
+                  <div className="flex-shrink-0 w-14 h-[76px] bg-[#E8DDD0] overflow-hidden rounded-sm">
                     {m.books?.cover_url ? (
                       <img src={m.books.cover_url} alt={m.books.title} className="w-full h-full object-cover" />
                     ) : (
