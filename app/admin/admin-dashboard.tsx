@@ -79,9 +79,9 @@ export default function AdminDashboard() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
 
-  const [bookForm, setBookForm] = useState({ title: "", author: "", cover_url: "", description: "", category_id: "" });
+  const [bookForm, setBookForm] = useState({ title: "", author: "", cover_url: "", description: "", category_id: "", isbn: "" });
   const [bookSearch, setBookSearch] = useState("");
-  const [bookSearchResults, setBookSearchResults] = useState<{ title: string; authors: string[]; thumbnail: string | null; description: string | null }[]>([]);
+  const [bookSearchResults, setBookSearchResults] = useState<{ title: string; authors: string[]; thumbnail: string | null; description: string | null; isbn: string }[]>([]);
   const [bookSearching, setBookSearching] = useState(false);
   const [bookSearchOpen, setBookSearchOpen] = useState(false);
   const bookSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -145,13 +145,14 @@ export default function AdminDashboard() {
     }, 400);
   }
 
-  function selectBookFromSearch(book: { title: string; authors: string[]; thumbnail: string | null; description: string | null }) {
+  function selectBookFromSearch(book: { title: string; authors: string[]; thumbnail: string | null; description: string | null; isbn: string }) {
     setBookForm((p) => ({
       ...p,
       title: book.title,
       author: book.authors.join(", "),
       cover_url: book.thumbnail ?? "",
       description: book.description ?? "",
+      isbn: book.isbn ?? "",
     }));
     setBookSearch(book.title);
     setBookSearchOpen(false);
@@ -162,7 +163,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     const body = { ...bookForm, category_id: bookForm.category_id ? Number(bookForm.category_id) : null };
     const res = await fetch("/api/books", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    if (res.ok) { toast.success("책 등록 완료"); setBookForm({ title: "", author: "", cover_url: "", description: "", category_id: "" }); setBookSearch(""); setBookSearchResults([]); loadAll(); }
+    if (res.ok) { toast.success("책 등록 완료"); setBookForm({ title: "", author: "", cover_url: "", description: "", category_id: "", isbn: "" }); setBookSearch(""); setBookSearchResults([]); loadAll(); }
     else { const { error } = await res.json(); toast.error(error); }
   }
   async function deleteBook(id: number) {
