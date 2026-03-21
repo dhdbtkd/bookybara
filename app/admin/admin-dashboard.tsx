@@ -566,7 +566,7 @@ export default function AdminDashboard() {
               }
               setBookModalOpen(open);
             }}>
-              <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+              <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
                 <DialogHeader className="flex-shrink-0">
                   <DialogTitle>새 도서 등록</DialogTitle>
                 </DialogHeader>
@@ -737,22 +737,19 @@ export default function AdminDashboard() {
                   <Field label="소개">
                     <Textarea value={bookForm.description} onChange={(e) => setBookForm((p) => ({ ...p, description: e.target.value }))} rows={3} className="resize-none" />
                   </Field>
-                </div>
-                <DialogFooter className="flex-shrink-0 flex items-end gap-3 pt-4 border-t border-neutral-100 mt-2">
-                  <div className="flex-1 space-y-1.5">
-                    <Label className="text-xs font-semibold text-neutral-500">카테고리</Label>
+                  <Field label="카테고리">
                     <CategorySelect categories={categories} value={bookForm.category_id} onChange={(v) => setBookForm((p) => ({ ...p, category_id: v }))} />
-                  </div>
-                  <div className="flex gap-2 flex-shrink-0">
-                    <Button type="button" variant="outline" onClick={() => setBookModalOpen(false)} className="cursor-pointer">취소</Button>
-                    <Button type="submit" disabled={bookDetailFetching} className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                      {bookDetailFetching ? (
-                        <><span className="w-4 h-4 mr-1.5 inline-block animate-spin rounded-full border-2 border-white border-t-transparent" /> 정보 가져오는 중...</>
-                      ) : (
-                        <><Plus className="w-4 h-4 mr-1.5" /> 등록</>
-                      )}
-                    </Button>
-                  </div>
+                  </Field>
+                </div>
+                <DialogFooter className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t border-neutral-100 mt-2">
+                  <Button type="button" variant="outline" onClick={() => setBookModalOpen(false)} className="cursor-pointer">취소</Button>
+                  <Button type="submit" disabled={bookDetailFetching} className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                    {bookDetailFetching ? (
+                      <><span className="w-4 h-4 mr-1.5 inline-block animate-spin rounded-full border-2 border-white border-t-transparent" /> 정보 가져오는 중...</>
+                    ) : (
+                      <><Plus className="w-4 h-4 mr-1.5" /> 등록</>
+                    )}
+                  </Button>
                 </DialogFooter>
                 </form>
               </DialogContent>
