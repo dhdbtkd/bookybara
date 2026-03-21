@@ -67,27 +67,8 @@ async function fetchGoogle(isbn: string): Promise<BookSource | null> {
   }
 }
 
-async function fetchKyobo(isbn: string): Promise<{ hiresUrl: string | null } | null> {
-  try {
-    const res = await fetch(`https://product.kyobobook.co.kr/detail/${isbn}`, {
-      headers: {
-        // 봇 차단 우회용 일반 브라우저 UA
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
-        "Accept-Language": "ko-KR,ko;q=0.9",
-      },
-      next: { revalidate: 0 },
-    });
-    if (!res.ok) return null;
-    const html = await res.text();
-
-    // <div class="portrait_img_box portrait"> ... <img src="..." ...> 패턴 추출
-    const sectionMatch = html.match(/portrait_img_box[\s\S]{0,300}?<img[^>]+src="([^"]+)"/);
-    const imgUrl = sectionMatch?.[1] ?? null;
-
-    return { hiresUrl: imgUrl };
-  } catch {
-    return null;
-  }
+function fetchKyobo(isbn: string): { hiresUrl: string } {
+  return { hiresUrl: `https://contents.kyobobook.co.kr/sih/fit-in/458x0/pdt/${isbn}.jpg` };
 }
 
 export async function GET(req: NextRequest) {
@@ -98,10 +79,10 @@ export async function GET(req: NextRequest) {
   const cleanIsbn = isbn.includes(" ") ? isbn.split(" ")[1] : isbn;
 
   const naverKeyMissing = !isNaverKeyConfigured();
-  const [naver, google, kyobo] = await Promise.all([
+  const kyobo = fetchKyobo(cleanIsbn);
+  const [naver, google] = await Promise.all([
     naverKeyMissing ? Promise.resolve(null) : fetchNaver(cleanIsbn),
     fetchGoogle(cleanIsbn),
-    fetchKyobo(cleanIsbn),
   ]);
 
   return NextResponse.json({ naver, naverKeyMissing, google, kyobo } satisfies BookDetailResponse);
