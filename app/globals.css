@@ -198,6 +198,18 @@
   line-height: 1.6 !important;
 }
 
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee var(--marquee-duration, 30s) linear infinite;
+  animation-play-state: running;
+}
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
 @layer utilities {
   .scrollbar-none {
     scrollbar-width: none;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   format,
@@ -21,16 +21,23 @@ export default function MeetingsCalendar({
   meetings,
   onMeetingClick,
   initialMonth,
+  focusMonth,
 }: {
   meetings: MeetingBasic[];
   onMeetingClick?: (id: number, date: string) => void;
   initialMonth?: Date;
+  focusMonth?: Date;
 }) {
   const [month, setMonth] = useState(() => {
     if (initialMonth) return new Date(initialMonth.getFullYear(), initialMonth.getMonth(), 1);
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
+
+  useEffect(() => {
+    if (!focusMonth) return;
+    setMonth(new Date(focusMonth.getFullYear(), focusMonth.getMonth(), 1));
+  }, [focusMonth]);
   const router = useRouter();
 
   const meetingMap = new Map<string, { id: number; title: string }>();
