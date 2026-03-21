@@ -91,9 +91,10 @@ export default function AdminDashboard() {
     naver: { hiresUrl: string | null; description: string | null } | null;
     naverKeyMissing: boolean;
     google: { hiresUrl: string | null; description: string | null } | null;
+    kyobo: { hiresUrl: string | null } | null;
   };
   const [bookSources, setBookSources] = useState<BookSources | null>(null);
-  const [selectedCoverSource, setSelectedCoverSource] = useState<SourceKey>("kakao");
+  const [selectedCoverSource, setSelectedCoverSource] = useState<SourceKey | "kyobo">("kakao");
   const [selectedDescSource, setSelectedDescSource] = useState<SourceKey>("kakao");
   const bookSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
@@ -184,21 +185,29 @@ export default function AdminDashboard() {
           naver: data.naver,
           naverKeyMissing: !!data.naverKeyMissing,
           google: data.google,
+          kyobo: data.kyobo,
         });
-        // 자동 선택: 소개는 가장 긴 것, 이미지는 첫 번째로 있는 것
+        // 이미지 기본값: 교보 → 네이버 → 구글 → 카카오
+        const imgPriority: (SourceKey | "kyobo")[] = ["kyobo", "naver", "google", "kakao"];
+        const bestImg = imgPriority.find((s) => {
+          if (s === "kakao") return !!book.thumbnail;
+          if (s === "kyobo") return !!data.kyobo?.hiresUrl;
+          return !!(data[s as "naver" | "google"]?.hiresUrl);
+        }) ?? "kakao";
+        // 소개 기본값: 네이버 → 구글 → 카카오
         const descPriority: SourceKey[] = ["naver", "google", "kakao"];
         const bestDesc = descPriority.find((s) =>
           s === "kakao" ? !!book.description : !!(data[s as "naver" | "google"]?.description)
         ) ?? "kakao";
-        const imgPriority: SourceKey[] = ["naver", "google", "kakao"];
-        const bestImg = imgPriority.find((s) =>
-          s === "kakao" ? !!book.thumbnail : !!(data[s as "naver" | "google"]?.hiresUrl)
-        ) ?? "kakao";
-        setSelectedDescSource(bestDesc);
         setSelectedCoverSource(bestImg);
+        setSelectedDescSource(bestDesc);
+        const hiresUrl =
+          bestImg === "kakao" ? "" :
+          bestImg === "kyobo" ? (data.kyobo?.hiresUrl ?? "") :
+          (data[bestImg as "naver" | "google"]?.hiresUrl ?? "");
         setBookForm((p) => ({
           ...p,
-          cover_url_hires: bestImg === "kakao" ? "" : (data[bestImg]?.hiresUrl ?? ""),
+          cover_url_hires: hiresUrl,
           description:
             bestDesc === "kakao"
               ? (book.description ?? "")
@@ -593,16 +602,25 @@ export default function AdminDashboard() {
                   </div>
                 )}
                 {bookSources && (() => {
-                  const sources: { key: "kakao" | "naver" | "google"; label: string }[] = [
-                    { key: "kakao", label: "카카오" },
+                  const coverSources: { key: SourceKey | "kyobo"; label: string }[] = [
+                    { key: "kyobo", label: "교보" },
                     { key: "naver", label: "네이버" },
                     { key: "google", label: "Google" },
+                    { key: "kakao", label: "카카오" },
                   ];
-                  const getImg = (k: "kakao" | "naver" | "google") =>
-                    k === "kakao" ? bookSources.kakao.thumbnail : bookSources[k]?.hiresUrl ?? null;
-                  const getDesc = (k: "kakao" | "naver" | "google") =>
+                  const descSources: { key: SourceKey; label: string }[] = [
+                    { key: "naver", label: "네이버" },
+                    { key: "google", label: "Google" },
+                    { key: "kakao", label: "카카오" },
+                  ];
+                  const getImg = (k: SourceKey | "kyobo") => {
+                    if (k === "kakao") return bookSources.kakao.thumbnail;
+                    if (k === "kyobo") return bookSources.kyobo?.hiresUrl ?? null;
+                    return bookSources[k]?.hiresUrl ?? null;
+                  };
+                  const getDesc = (k: SourceKey) =>
                     k === "kakao" ? bookSources.kakao.description : bookSources[k]?.description ?? null;
-                  const applySelection = (coverKey: "kakao" | "naver" | "google", descKey: "kakao" | "naver" | "google") => {
+                  const applySelection = (coverKey: SourceKey | "kyobo", descKey: SourceKey) => {
                     setBookForm((p) => ({
                       ...p,
                       cover_url_hires: coverKey === "kakao" ? "" : (getImg(coverKey) ?? ""),
@@ -615,7 +633,7 @@ export default function AdminDashboard() {
                       <div>
                         <p className="font-semibold text-neutral-500 mb-1.5">표지 선택</p>
                         <div className="flex gap-2">
-                          {sources.map(({ key, label }) => {
+                          {coverSources.map(({ key, label }) => {
                             const url = getImg(key);
                             const selected = selectedCoverSource === key;
                             const keyMissing = key === "naver" && bookSources.naverKeyMissing;
@@ -647,7 +665,7 @@ export default function AdminDashboard() {
                       <div>
                         <p className="font-semibold text-neutral-500 mb-1.5">소개 선택</p>
                         <div className="flex flex-col gap-1.5">
-                          {sources.map(({ key, label }) => {
+                          {descSources.map(({ key, label }) => {
                             const desc = getDesc(key);
                             const selected = selectedDescSource === key;
                             const keyMissing = key === "naver" && bookSources.naverKeyMissing;
