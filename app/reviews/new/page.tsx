@@ -116,9 +116,9 @@ function NewReviewForm() {
     const book = bookRaw ? (Array.isArray(bookRaw) ? bookRaw[0] : bookRaw) : null;
 
     return (
-      <div className="max-w-2xl mx-auto space-y-6">
+      <div className="max-w-2xl mx-auto flex flex-col h-full gap-4">
         {/* 헤더 */}
-        <div className="flex items-center gap-2 -mb-2">
+        <div className="flex items-center gap-2">
           <button onClick={() => router.back()} className="p-1 text-neutral-400 hover:text-neutral-700 cursor-pointer transition-colors">
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -126,7 +126,7 @@ function NewReviewForm() {
         </div>
 
         {/* 모임 & 책 컨텍스트 */}
-        <div className="bg-[#F8F5F0] rounded-2xl p-5 flex gap-4 items-start">
+        <div className="bg-[#F8F5F0] rounded-2xl p-5 flex gap-4 items-start flex-shrink-0">
           {book?.cover_url ? (
             <img src={book.cover_url} alt={book.title} className="w-14 h-20 object-cover rounded-md shadow flex-shrink-0" />
           ) : (
@@ -159,9 +159,9 @@ function NewReviewForm() {
         </div>
 
         {/* 작성 폼 */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 gap-4">
           {/* 이름 선택 */}
-          <div className="space-y-2">
+          <div className="space-y-2 flex-shrink-0">
             <label className="text-sm font-semibold text-neutral-700">작성자</label>
             <AuthorPicker
               attendees={attendees}
@@ -175,18 +175,18 @@ function NewReviewForm() {
           </div>
 
           {/* 에디터 */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
+          <div className="flex flex-col flex-1 min-h-0 gap-1">
+            <div className="flex items-center justify-between flex-shrink-0">
               <label className="text-sm font-semibold text-neutral-700">독후감</label>
               <span className="text-xs text-neutral-400">{charCount.toLocaleString()}자</span>
             </div>
-            <div className="rounded-xl border border-neutral-200 overflow-hidden bg-white">
+            <div className="rounded-xl border border-neutral-200 overflow-auto bg-white flex-1 min-h-0">
               <ReviewEditor onChange={handleEditorChange} />
             </div>
-            <p className="text-xs text-neutral-400">책을 읽고 느낀 점, 인상적인 구절, 생각 등을 자유롭게 써주세요.</p>
+            <p className="text-xs text-neutral-400 flex-shrink-0">책을 읽고 느낀 점, 인상적인 구절, 생각 등을 자유롭게 써주세요.</p>
           </div>
 
-          <div className="flex gap-2 justify-end">
+          <div className="flex gap-2 justify-end flex-shrink-0 sticky bottom-0 bg-[#F0EAE0] py-3 -mx-4 px-4 border-t border-neutral-200/60">
             <Button type="button" variant="outline" onClick={() => router.back()} className="cursor-pointer">취소</Button>
             <Button type="submit" disabled={submitting || !authorName || !content.trim()} className="cursor-pointer">
               {submitting ? "등록 중..." : "등록하기"}
@@ -259,9 +259,9 @@ function NewReviewForm() {
   const selectedBook = books.find((b) => String(b.id) === selectedBookId);
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="max-w-2xl mx-auto flex flex-col h-full gap-4">
       {/* 선택 책 헤더 */}
-      <button type="button" onClick={() => setStep("book")} className="w-full text-left cursor-pointer group">
+      <button type="button" onClick={() => setStep("book")} className="w-full text-left cursor-pointer group flex-shrink-0">
         <div className="flex items-center gap-3 p-3 rounded-xl border border-neutral-100 bg-white hover:border-neutral-200 transition-colors">
           {selectedBook?.cover_url ? (
             <img src={selectedBook.cover_url} alt={selectedBook.title} className="w-9 h-[52px] object-cover rounded shadow-sm flex-shrink-0" />
@@ -279,9 +279,9 @@ function NewReviewForm() {
         </div>
       </button>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 gap-4">
         {/* 이름 */}
-        <div className="space-y-2">
+        <div className="space-y-2 flex-shrink-0">
           <label className="text-sm font-semibold text-neutral-700">작성자</label>
           <AuthorPicker
             attendees={attendees}
@@ -295,18 +295,18 @@ function NewReviewForm() {
         </div>
 
         {/* 에디터 */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
+        <div className="flex flex-col flex-1 min-h-0 gap-1">
+          <div className="flex items-center justify-between flex-shrink-0">
             <label className="text-sm font-semibold text-neutral-700">독후감</label>
             <span className="text-xs text-neutral-400">{charCount.toLocaleString()}자</span>
           </div>
-          <div className="rounded-xl border border-neutral-200 overflow-hidden bg-white">
+          <div className="rounded-xl border border-neutral-200 overflow-auto bg-white flex-1 min-h-0">
             <ReviewEditor onChange={handleEditorChange} />
           </div>
-          <p className="text-xs text-neutral-400">책을 읽고 느낀 점, 인상적인 구절, 생각 등을 자유롭게 써주세요.</p>
+          <p className="text-xs text-neutral-400 flex-shrink-0">책을 읽고 느낀 점, 인상적인 구절, 생각 등을 자유롭게 써주세요.</p>
         </div>
 
-        <div className="flex gap-2 justify-end">
+        <div className="flex gap-2 justify-end flex-shrink-0 sticky bottom-0 bg-[#F0EAE0] py-3 -mx-4 px-4 border-t border-neutral-200/60">
           <Button type="button" variant="outline" onClick={() => setStep("book")} className="cursor-pointer">이전</Button>
           <Button type="submit" disabled={submitting || !authorName || !content.trim()} className="cursor-pointer">
             {submitting ? "등록 중..." : "등록하기"}
