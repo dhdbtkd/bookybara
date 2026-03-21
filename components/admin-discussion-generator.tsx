@@ -450,30 +450,30 @@ export default function AdminDiscussionGenerator({
 
       {/* ── 모임 선택 모달 ── */}
       <Dialog open={meetingPickerOpen} onOpenChange={setMeetingPickerOpen}>
-        <DialogContent className="max-w-3xl w-full max-h-[85vh] flex flex-col p-0 gap-0">
-          <DialogHeader className="px-5 pt-5 pb-3 border-b border-neutral-100">
-            <DialogTitle className="text-base font-bold">모임 선택</DialogTitle>
+        <DialogContent className="max-w-5xl w-full max-h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-8 pt-7 pb-4 border-b border-neutral-100">
+            <DialogTitle className="text-xl font-bold">모임 선택</DialogTitle>
           </DialogHeader>
 
           {/* 검색 */}
-          <div className="px-4 py-3 border-b border-neutral-100">
+          <div className="px-8 py-4 border-b border-neutral-100">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 pointer-events-none" />
               <input
                 type="text"
                 placeholder="모임명, 도서명, 날짜로 검색..."
                 value={meetingSearch}
                 onChange={(e) => setMeetingSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:border-[#1C1A17] bg-white"
+                className="w-full pl-12 pr-4 py-3 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:border-[#1C1A17] bg-white"
                 autoFocus
               />
             </div>
           </div>
 
           {/* 목록 */}
-          <div className="flex-1 overflow-y-auto min-h-0 py-2">
+          <div className="flex-1 overflow-y-auto min-h-0 py-3">
             {filteredMeetings.length === 0 ? (
-              <p className="text-sm text-neutral-400 text-center py-8">검색 결과가 없습니다.</p>
+              <p className="text-sm text-neutral-400 text-center py-12">검색 결과가 없습니다.</p>
             ) : (
               filteredMeetings.map((m) => (
                 <button
@@ -484,29 +484,29 @@ export default function AdminDiscussionGenerator({
                     setMeetingPickerOpen(false);
                   }}
                   className={cn(
-                    "w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-neutral-50 transition-colors cursor-pointer",
+                    "w-full flex items-center gap-5 px-8 py-4 text-left hover:bg-neutral-50 transition-colors cursor-pointer",
                     meetingId === String(m.id) && "bg-[#F0EAE0]"
                   )}
                 >
                   {/* 커버 썸네일 */}
-                  <div className="flex-shrink-0 w-14 h-[76px] bg-[#E8DDD0] overflow-hidden rounded-sm">
+                  <div className="flex-shrink-0 w-[52px] h-[72px] bg-[#E8DDD0] overflow-hidden rounded-sm">
                     {m.books?.cover_url ? (
                       <img src={m.books.cover_url} alt={m.books.title} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <BookOpen className="w-4 h-4 text-[#B8A898]" />
+                        <BookOpen className="w-5 h-5 text-[#B8A898]" />
                       </div>
                     )}
                   </div>
 
                   {/* 텍스트 */}
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11px] text-neutral-400 mb-0.5">
+                    <p className="text-xs text-neutral-400 mb-1">
                       {format(new Date(m.date), "yyyy년 M월 d일", { locale: ko })}
                     </p>
-                    <p className="text-sm font-semibold text-[#1C1A17] truncate">{m.title}</p>
+                    <p className="text-base font-semibold text-[#1C1A17] truncate">{m.title}</p>
                     {m.books && (
-                      <p className="text-xs text-neutral-500 truncate mt-0.5">{m.books.title}</p>
+                      <p className="text-sm text-neutral-500 truncate mt-0.5">{m.books.title}</p>
                     )}
                   </div>
 
@@ -518,7 +518,7 @@ export default function AdminDiscussionGenerator({
             )}
           </div>
 
-          <div className="px-4 py-3 border-t border-neutral-100 flex justify-between items-center">
+          <div className="px-8 py-4 border-t border-neutral-100 flex justify-between items-center">
             <span className="text-xs text-neutral-400">전체 {meetings.length}개 모임</span>
             <button
               onClick={() => setMeetingPickerOpen(false)}
