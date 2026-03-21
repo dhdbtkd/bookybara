@@ -54,10 +54,11 @@ export async function POST(req: NextRequest) {
 
   const { data: meeting } = await supabase
     .from("meetings")
-    .select("*, books(title, author)")
+    .select("*, meeting_books(books(id, title, author))")
     .eq("id", meeting_id)
     .single();
   if (!meeting) return NextResponse.json({ error: "일정 없음" }, { status: 404 });
+  const meetingFirstBook = ((meeting.meeting_books ?? []) as any[]).map((mb) => mb.books).filter(Boolean)[0] ?? null;
 
   // 선택된 독후감만 가져오기 (review_ids 없으면 전체)
   let reviewQuery = supabase
@@ -69,13 +70,16 @@ export async function POST(req: NextRequest) {
   }
   const { data: reviews } = await reviewQuery;
 
-  const bookInfo = meeting.books
-    ? `"${meeting.books.title}" (저자: ${meeting.books.author})`
+  const bookInfo = meetingFirstBook
+    ? `"${meetingFirstBook.title}" (저자: ${meetingFirstBook.author})`
     : `"${meeting.title}"`;
 
   const prompt = buildPrompt(bookInfo, reviews ?? []);
 
   let text = "";
+  let inputTokens = 0;
+  let outputTokens = 0;
+  const usedModel = model || (provider === "openai" ? "gpt-4o" : "claude-sonnet-4-6");
 
   if (provider === "openai") {
     const apiKey = process.env.OPENAI_API_KEY;
@@ -84,11 +88,12 @@ export async function POST(req: NextRequest) {
     }
     const openai = new OpenAI({ apiKey });
     const res = await openai.chat.completions.create({
-      model: model || "gpt-4o",
-      max_tokens: 1024,
+      model: usedModel,
       messages: [{ role: "user", content: prompt }],
     });
     text = res.choices[0]?.message?.content ?? "";
+    inputTokens = res.usage?.prompt_tokens ?? 0;
+    outputTokens = res.usage?.completion_tokens ?? 0;
   } else {
     const apiKey = process.env.ANTHROPIC_API_KEY;
     if (!apiKey || apiKey === "your_api_key_here") {
@@ -96,27 +101,40 @@ export async function POST(req: NextRequest) {
     }
     const anthropic = new Anthropic({ apiKey });
     const res = await anthropic.messages.create({
-      model: model || "claude-sonnet-4-6",
+      model: usedModel,
       max_tokens: 1024,
       messages: [{ role: "user", content: prompt }],
     });
     text = res.content[0].type === "text" ? res.content[0].text : "";
+    inputTokens = res.usage.input_tokens;
+    outputTokens = res.usage.output_tokens;
   }
 
   const jsonMatch = text.match(/\[[\s\S]*\]/);
   if (!jsonMatch) return NextResponse.json({ error: "AI 응답 파싱 실패", raw: text }, { status: 500 });
 
   const questionList: string[] = JSON.parse(jsonMatch[0]);
-  const { data, error } = await supabase
-    .from("discussion_questions")
-    .insert({
+
+  const [{ data, error }] = await Promise.all([
+    supabase
+      .from("discussion_questions")
+      .insert({
+        meeting_id,
+        book_id: meetingFirstBook?.id ?? null,
+        questions: JSON.stringify(questionList),
+        is_public: false,
+      })
+      .select()
+      .single(),
+    supabase.from("ai_generation_logs").insert({
       meeting_id,
-      book_id: meeting.book_id,
-      questions: JSON.stringify(questionList),
-      is_public: false,
-    })
-    .select()
-    .single();
+      provider,
+      model: usedModel,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      review_count: (reviews ?? []).length,
+    }),
+  ]);
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json(data, { status: 201 });
