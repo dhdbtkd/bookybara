@@ -40,7 +40,7 @@ export default function ReviewEditor({ onChange }: Props) {
     <BlockNoteView
       editor={editor}
       theme="light"
-      style={{ minHeight: "280px", paddingTop: "0.75rem", paddingBottom: "0.75rem" }}
+      style={{ minHeight: "420px", paddingTop: "0.75rem", paddingBottom: "0.75rem", fontSize: "0.875rem" }}
     />
   );
 }

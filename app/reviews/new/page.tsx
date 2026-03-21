@@ -15,6 +15,7 @@ const ReviewEditor = dynamic(() => import("./_review-editor"), { ssr: false });
 
 type Book = { id: number; title: string; author: string; cover_url: string | null };
 type Attendee = { id: number; name: string };
+type Review = { author_name: string };
 type MeetingDetail = {
   id: number; title: string; date: string; location: string | null;
   book_id: number | null;
@@ -29,6 +30,7 @@ function NewReviewForm() {
   // Context-mode: meetingId provided (from home page)
   const [meeting, setMeeting] = useState<MeetingDetail | null>(null);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
+  const [submittedNames, setSubmittedNames] = useState<Set<string>>(new Set());
 
   // Standalone-mode: no meetingId
   const [books, setBooks] = useState<Book[]>([]);
@@ -47,9 +49,10 @@ function NewReviewForm() {
     if (meetingId) {
       fetch(`/api/meetings/${meetingId}`)
         .then((r) => r.json())
-        .then(({ meeting, attendees }) => {
+        .then(({ meeting, attendees, reviews }) => {
           setMeeting(meeting);
           setAttendees(attendees ?? []);
+          setSubmittedNames(new Set((reviews ?? []).map((r: Review) => r.author_name)));
           setLoading(false);
         });
     } else {
@@ -162,6 +165,7 @@ function NewReviewForm() {
             <label className="text-sm font-semibold text-neutral-700">작성자</label>
             <AuthorPicker
               attendees={attendees}
+              submittedNames={submittedNames}
               authorName={authorName}
               customName={customName}
               onSelect={setAuthorName}
@@ -281,6 +285,7 @@ function NewReviewForm() {
           <label className="text-sm font-semibold text-neutral-700">작성자</label>
           <AuthorPicker
             attendees={attendees}
+            submittedNames={submittedNames}
             authorName={authorName}
             customName={customName}
             onSelect={setAuthorName}
@@ -314,20 +319,23 @@ function NewReviewForm() {
 
 // ── Author picker ──
 function AuthorPicker({
-  attendees, authorName, customName, onSelect, onCustom, onBackToList,
+  attendees, submittedNames, authorName, customName, onSelect, onCustom, onBackToList,
 }: {
   attendees: Attendee[];
+  submittedNames: Set<string>;
   authorName: string;
   customName: boolean;
   onSelect: (name: string) => void;
   onCustom: () => void;
   onBackToList: () => void;
 }) {
+  const available = attendees.filter((a) => !submittedNames.has(a.name));
+
   if (attendees.length > 0 && !customName) {
     return (
       <div className="space-y-2">
         <div className="flex flex-wrap gap-2">
-          {attendees.map((a) => (
+          {available.map((a) => (
             <button
               key={a.id}
               type="button"
@@ -336,12 +344,15 @@ function AuthorPicker({
                 "px-3 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer",
                 authorName === a.name
                   ? "bg-[#1C1A17] text-white border-[#1C1A17]"
-                  : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400"
+                  : "bg-white text-neutral-400 border-neutral-200 hover:border-neutral-400 hover:text-neutral-600"
               )}
             >
               {a.name}
             </button>
           ))}
+          {available.length === 0 && (
+            <p className="text-sm text-neutral-400">참석자 전원이 이미 독후감을 제출했습니다.</p>
+          )}
         </div>
         <button type="button" onClick={onCustom}
           className="text-xs text-neutral-400 hover:text-neutral-600 underline underline-offset-2 cursor-pointer">
