@@ -360,15 +360,16 @@ export default function AdminDiscussionGenerator({
                       )}
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-                      <div className="text-right">
+                      <div className="text-right w-[88px]">
                         <p className={cn("text-[10px]", isSelected ? "text-white/60" : "text-neutral-400")}>
                           입력 {formatInputPrice(m.inputPrice)}
                         </p>
-                        {reviewsText.length > 0 && (
-                          <p className={cn("text-[11px] font-semibold", isSelected ? "text-white" : "text-[#8B3A2A]")}>
-                            ≈ {formatCost(cost)}
-                          </p>
-                        )}
+                        <p className={cn("text-[10px] mt-0.5", isSelected ? "text-white/40" : "text-neutral-300")}>
+                          예상 비용
+                        </p>
+                        <p className={cn("text-[11px] font-semibold", isSelected ? "text-white" : "text-[#8B3A2A]")}>
+                          {reviewsText.length > 0 ? `≈ ${formatCost(cost)}` : "—"}
+                        </p>
                       </div>
                       {isSelected && (
                         <div className="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0" />
