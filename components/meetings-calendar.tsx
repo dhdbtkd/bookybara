@@ -96,11 +96,14 @@ export default function MeetingsCalendar({ meetings }: { meetings: MeetingBasic[
                     key={dateStr}
                     onClick={() => meeting && router.push(`/meetings/${meeting.id}`)}
                     className={cn(
-                      "min-h-[76px] p-2 border-r border-[#DDD5C8] last:border-r-0 transition-colors",
+                      "min-h-[76px] p-2 border-r border-[#DDD5C8] last:border-r-0 transition-colors relative",
                       !isCurrentMonth && "bg-[#F5F0E8]/50",
-                      meeting && "cursor-pointer hover:bg-[#EDE6DA]"
+                      meeting ? "bg-[#FBF6EE] cursor-pointer hover:bg-[#F5ECD8]" : ""
                     )}
                   >
+                    {meeting && (
+                      <div className="absolute inset-0 border-l-[3px] border-[#8B3A2A] rounded-sm pointer-events-none" />
+                    )}
                     <span
                       className={cn(
                         "text-sm inline-flex w-6 h-6 items-center justify-center rounded-full",
