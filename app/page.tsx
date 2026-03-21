@@ -86,7 +86,7 @@ export default async function HomePage() {
     <div>
       {/* ── Hero ── */}
       <section className="-mx-4 -mt-8 bg-[#F0EAE0]">
-        <div className="px-8 py-14 md:py-18">
+        <div className="px-4 sm:px-8 py-12 md:py-18">
           {nextMeeting ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
 

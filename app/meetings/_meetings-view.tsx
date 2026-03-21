@@ -50,7 +50,7 @@ export default function MeetingsView({
   return (
     <div className="px-4 sm:px-8 py-8 grid grid-cols-1 md:grid-cols-[1fr_260px] gap-8 items-start">
       {/* Left: calendar + past meetings */}
-      <div className="space-y-12">
+      <div className="space-y-12 order-2 md:order-1">
         <MeetingsCalendar
           meetings={meetings}
           onMeetingClick={handleMeetingClick}
@@ -108,7 +108,7 @@ export default function MeetingsView({
       </div>
 
       {/* Right: meeting card */}
-      <div className="sticky top-20">
+      <div className="sticky top-20 order-1 md:order-2">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xs font-bold tracking-[0.15em] uppercase text-[#1C1A17]">
             {isSelectedPast ? "지난 모임" : "예정된 모임"}
