@@ -79,11 +79,12 @@ export default function AdminDashboard() {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [discussions, setDiscussions] = useState<Discussion[]>([]);
 
-  const [bookForm, setBookForm] = useState({ title: "", author: "", cover_url: "", description: "", category_id: "", isbn: "" });
+  const [bookForm, setBookForm] = useState({ title: "", author: "", cover_url: "", cover_url_hires: "", description: "", category_id: "", isbn: "" });
   const [bookSearch, setBookSearch] = useState("");
   const [bookSearchResults, setBookSearchResults] = useState<{ title: string; authors: string[]; thumbnail: string | null; description: string | null; isbn: string }[]>([]);
   const [bookSearching, setBookSearching] = useState(false);
   const [bookSearchOpen, setBookSearchOpen] = useState(false);
+  const [bookGoogleFetching, setBookGoogleFetching] = useState(false);
   const bookSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryColor, setNewCategoryColor] = useState("#6B7280");
@@ -145,25 +146,51 @@ export default function AdminDashboard() {
     }, 400);
   }
 
-  function selectBookFromSearch(book: { title: string; authors: string[]; thumbnail: string | null; description: string | null; isbn: string }) {
+  async function selectBookFromSearch(book: { title: string; authors: string[]; thumbnail: string | null; description: string | null; isbn: string }) {
     setBookForm((p) => ({
       ...p,
       title: book.title,
       author: book.authors.join(", "),
       cover_url: book.thumbnail ?? "",
+      cover_url_hires: "",
       description: book.description ?? "",
       isbn: book.isbn ?? "",
     }));
     setBookSearch(book.title);
     setBookSearchOpen(false);
     setBookSearchResults([]);
+
+    const cleanIsbn = book.isbn?.split(" ")[0];
+    if (!cleanIsbn) return;
+    setBookGoogleFetching(true);
+    try {
+      const res = await fetch(
+        `https://www.googleapis.com/books/v1/volumes?q=isbn:${cleanIsbn}&fields=items/volumeInfo(description,imageLinks)`
+      );
+      if (res.ok) {
+        const json = await res.json();
+        const info = json.items?.[0]?.volumeInfo;
+        const hiresUrl = info?.imageLinks?.thumbnail
+          ? info.imageLinks.thumbnail.replace("zoom=1", "zoom=0").replace("http://", "https://")
+          : "";
+        setBookForm((p) => ({
+          ...p,
+          cover_url_hires: hiresUrl,
+          description: info?.description || p.description,
+        }));
+      }
+    } catch {
+      // Google Books 실패 시 기존 값 유지
+    } finally {
+      setBookGoogleFetching(false);
+    }
   }
 
   async function addBook(e: React.FormEvent) {
     e.preventDefault();
     const body = { ...bookForm, category_id: bookForm.category_id ? Number(bookForm.category_id) : null };
     const res = await fetch("/api/books", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-    if (res.ok) { toast.success("책 등록 완료"); setBookForm({ title: "", author: "", cover_url: "", description: "", category_id: "", isbn: "" }); setBookSearch(""); setBookSearchResults([]); loadAll(); }
+    if (res.ok) { toast.success("책 등록 완료"); setBookForm({ title: "", author: "", cover_url: "", cover_url_hires: "", description: "", category_id: "", isbn: "" }); setBookSearch(""); setBookSearchResults([]); loadAll(); }
     else { const { error } = await res.json(); toast.error(error); }
   }
   async function deleteBook(id: number) {
@@ -537,8 +564,12 @@ export default function AdminDashboard() {
                 <Field label="카테고리">
                   <CategorySelect categories={categories} value={bookForm.category_id} onChange={(v) => setBookForm((p) => ({ ...p, category_id: v }))} />
                 </Field>
-                <Button type="submit" className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer">
-                  <Plus className="w-4 h-4 mr-1.5" /> 등록
+                <Button type="submit" disabled={bookGoogleFetching} className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                  {bookGoogleFetching ? (
+                    <><span className="w-4 h-4 mr-1.5 inline-block animate-spin rounded-full border-2 border-white border-t-transparent" /> 정보 가져오는 중...</>
+                  ) : (
+                    <><Plus className="w-4 h-4 mr-1.5" /> 등록</>
+                  )}
                 </Button>
               </form>
             </FormCard>
