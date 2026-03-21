@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { BookOpen, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
+import { BookOpen, Plus, ChevronDown, ChevronUp, Link2, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,8 +44,30 @@ export default function BooksView({
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [kyoboUrl, setKyoboUrl] = useState("");
   const [list, setList] = useState<Candidate[]>(candidates);
   const [showRejected, setShowRejected] = useState(false);
+
+  async function handleParseUrl() {
+    if (!kyoboUrl.trim()) return;
+    setParsing(true);
+    try {
+      const res = await fetch(`/api/parse-book?url=${encodeURIComponent(kyoboUrl.trim())}`);
+      const data = await res.json();
+      if (!res.ok) { toast.error(data.error ?? "파싱 실패"); return; }
+      setForm((p) => ({
+        ...p,
+        title: data.title ?? p.title,
+        author: data.author ?? p.author,
+      }));
+      toast.success("책 정보를 가져왔습니다!");
+    } catch {
+      toast.error("파싱 중 오류가 발생했습니다.");
+    } finally {
+      setParsing(false);
+    }
+  }
 
   const pending = list.filter((c) => c.status === "pending");
   const rejected = list.filter((c) => c.status === "rejected");
@@ -68,6 +90,7 @@ export default function BooksView({
       setForm(EMPTY_FORM);
       setModalOpen(false);
       setTab("candidates");
+      setKyoboUrl("");
       toast.success("책이 제안되었습니다!");
     } else {
       const { error } = await res.json();
@@ -174,12 +197,36 @@ export default function BooksView({
       )}
 
       {/* ── 제안 모달 ── */}
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+      <Dialog open={modalOpen} onOpenChange={(o) => { setModalOpen(o); if (!o) { setForm(EMPTY_FORM); setKyoboUrl(""); } }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-base font-bold">책 제안하기</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+            {/* 교보문고 URL 파싱 */}
+            <div className="space-y-1.5">
+              <Label className="text-xs flex items-center gap-1"><Link2 className="w-3 h-3" /> 교보문고 링크로 자동 입력 (선택)</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={kyoboUrl}
+                  onChange={(e) => setKyoboUrl(e.target.value)}
+                  placeholder="https://product.kyobobook.co.kr/detail/..."
+                  className="text-xs"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleParseUrl}
+                  disabled={parsing || !kyoboUrl.trim()}
+                  className="flex-shrink-0 cursor-pointer"
+                >
+                  {parsing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "불러오기"}
+                </Button>
+              </div>
+              <p className="text-[10px] text-neutral-400">링크를 입력하면 제목·저자를 자동으로 채워드려요.</p>
+            </div>
+            <div className="h-px bg-neutral-100" />
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">책 제목 *</Label>
