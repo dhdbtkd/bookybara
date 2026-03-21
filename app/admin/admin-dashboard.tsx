@@ -12,6 +12,7 @@ import AdminDiscussionGenerator from "@/components/admin-discussion-generator";
 import MemberMultiSelect from "@/components/member-multi-select";
 import DatePicker from "@/components/date-picker";
 import CategorySelect from "@/components/category-select";
+import ConfirmModal from "@/components/confirm-modal";
 import {
   LayoutDashboard, CalendarDays, BookOpen, Users, BookMarked,
   FileText, Megaphone, Sparkles, LogOut, Plus, Trash2,
@@ -87,6 +88,10 @@ export default function AdminDashboard() {
   const [bookDetailFetching, setBookDetailFetching] = useState(false);
   const [bookModalOpen, setBookModalOpen] = useState(false);
   const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{ title: string; description?: string; onConfirm: () => void } | null>(null);
+  function openConfirm(title: string, description: string, onConfirm: () => void) {
+    setConfirmModal({ title, description, onConfirm });
+  }
   type SourceKey = "kakao" | "naver" | "google";
   type BookSources = {
     kakao: { thumbnail: string | null; description: string | null };
@@ -139,9 +144,10 @@ export default function AdminDashboard() {
     else { const { error } = await res.json(); toast.error(error); }
   }
   async function deleteCategory(id: number) {
-    if (!confirm("카테고리를 삭제할까요?")) return;
-    await fetch(`/api/categories/${id}`, { method: "DELETE" });
-    toast.success("삭제 완료"); loadAll();
+    openConfirm("카테고리 삭제", "카테고리를 삭제할까요?", async () => {
+      await fetch(`/api/categories/${id}`, { method: "DELETE" });
+      toast.success("삭제 완료"); loadAll();
+    });
   }
 
   // ── Books ──
@@ -231,9 +237,10 @@ export default function AdminDashboard() {
     else { const { error } = await res.json(); toast.error(error); }
   }
   async function deleteBook(id: number) {
-    if (!confirm("책을 삭제하면 관련 독후감도 삭제됩니다.")) return;
-    await fetch(`/api/books/${id}`, { method: "DELETE" });
-    toast.success("삭제 완료"); loadAll();
+    openConfirm("도서 삭제", "책을 삭제하면 관련 독후감도 삭제됩니다.", async () => {
+      await fetch(`/api/books/${id}`, { method: "DELETE" });
+      toast.success("삭제 완료"); loadAll();
+    });
   }
 
   // ── Members ──
@@ -245,9 +252,10 @@ export default function AdminDashboard() {
     else { const { error } = await res.json(); toast.error(error); }
   }
   async function deleteMember(id: number) {
-    if (!confirm("멤버를 삭제할까요?")) return;
-    await fetch(`/api/members/${id}`, { method: "DELETE" });
-    toast.success("삭제 완료"); loadAll();
+    openConfirm("멤버 삭제", "멤버를 삭제할까요?", async () => {
+      await fetch(`/api/members/${id}`, { method: "DELETE" });
+      toast.success("삭제 완료"); loadAll();
+    });
   }
 
   // ── Meetings ──
@@ -266,9 +274,10 @@ export default function AdminDashboard() {
     loadAll();
   }
   async function deleteMeeting(id: number) {
-    if (!confirm("모임을 삭제할까요?")) return;
-    await fetch(`/api/meetings/${id}`, { method: "DELETE" });
-    toast.success("삭제 완료"); loadAll();
+    openConfirm("모임 삭제", "모임을 삭제할까요?", async () => {
+      await fetch(`/api/meetings/${id}`, { method: "DELETE" });
+      toast.success("삭제 완료"); loadAll();
+    });
   }
   async function saveMeetingSummary(id: number, summary: string) {
     await fetch(`/api/meetings/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ summary }) });
@@ -302,9 +311,10 @@ export default function AdminDashboard() {
 
   // ── Reviews ──
   async function deleteReview(id: number) {
-    if (!confirm("독후감을 삭제할까요?")) return;
-    await fetch(`/api/reviews/${id}`, { method: "DELETE" });
-    toast.success("삭제 완료"); loadAll();
+    openConfirm("독후감 삭제", "독후감을 삭제할까요?", async () => {
+      await fetch(`/api/reviews/${id}`, { method: "DELETE" });
+      toast.success("삭제 완료"); loadAll();
+    });
   }
 
   // ── Discussion ──
@@ -325,7 +335,17 @@ export default function AdminDashboard() {
   const selectedNewMeetingBook = books.find((b) => String(b.id) === meetingForm.book_id);
 
   return (
-    // 뷰포트 전체 너비로 탈출 (max-w-4xl 컨테이너 이탈)
+    <>
+    <ConfirmModal
+      open={!!confirmModal}
+      title={confirmModal?.title ?? ""}
+      description={confirmModal?.description}
+      confirmLabel="삭제"
+      destructive
+      onConfirm={async () => { await confirmModal?.onConfirm(); setConfirmModal(null); }}
+      onCancel={() => setConfirmModal(null)}
+    />
+    {/* 뷰포트 전체 너비로 탈출 (max-w-4xl 컨테이너 이탈) */}
     <div
       className="flex items-start -mt-8"
       style={{ width: "100vw", marginLeft: "calc(50% - 50vw)", minHeight: "calc(100vh - 3.5rem)" }}
@@ -985,6 +1005,7 @@ export default function AdminDashboard() {
         onClose={() => setNewMeetingBookModalOpen(false)}
       />
     </div>
+    </>
   );
 }
 
