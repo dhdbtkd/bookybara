@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ["@blocknote/core", "@blocknote/react", "@blocknote/mantine"],
 };
 
 export default nextConfig;
