@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Sparkles, Eye, EyeOff, ChevronDown, FileText, Trash2 } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { Sparkles, Eye, EyeOff, ChevronDown, FileText, Search, BookOpen } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
@@ -10,7 +11,7 @@ import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 
 // ── 타입 ──
-type Meeting = { id: number; title: string; date: string; books: { title: string; author: string } | null };
+type Meeting = { id: number; title: string; date: string; books: { title: string; author: string; cover_url?: string | null } | null };
 type Review = { id: number; author_name: string; content: string };
 type Discussion = {
   id: number; questions: string; is_public: boolean;
@@ -18,19 +19,37 @@ type Discussion = {
   meetings: { title: string } | null;
 };
 
-// ── 모델 목록 ──
-const MODELS = {
+// ── 모델 목록 (input 가격 기준: $/MTok) ──
+type ModelInfo = {
+  value: string;
+  label: string;
+  badge?: string;
+  inputPrice: number;   // $ per 1M tokens
+  outputPrice: number;
+};
+
+const MODELS: Record<"claude" | "openai", ModelInfo[]> = {
   claude: [
-    { value: "claude-opus-4-6", label: "Claude Opus 4.6" },
-    { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6 (권장)" },
-    { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5 (빠름)" },
+    { value: "claude-opus-4-6",            label: "Claude Opus 4.6",          inputPrice: 5,   outputPrice: 25  },
+    { value: "claude-opus-4-5",            label: "Claude Opus 4.5",          inputPrice: 5,   outputPrice: 25  },
+    { value: "claude-sonnet-4-6",          label: "Claude Sonnet 4.6",        badge: "권장",   inputPrice: 3,   outputPrice: 15  },
+    { value: "claude-sonnet-4-5",          label: "Claude Sonnet 4.5",        inputPrice: 3,   outputPrice: 15  },
+    { value: "claude-haiku-4-5-20251001",  label: "Claude Haiku 4.5",         badge: "빠름",   inputPrice: 1,   outputPrice: 5   },
   ],
   openai: [
-    { value: "gpt-4o", label: "GPT-4o (권장)" },
-    { value: "gpt-4o-mini", label: "GPT-4o mini (빠름)" },
-    { value: "gpt-4-turbo", label: "GPT-4 Turbo" },
+    { value: "gpt-5.4",      label: "GPT-5.4",       inputPrice: 2.50,  outputPrice: 15.00 },
+    { value: "gpt-5.4-mini", label: "GPT-5.4 mini",  badge: "권장",  inputPrice: 0.75,  outputPrice: 4.50  },
+    { value: "gpt-5.4-nano", label: "GPT-5.4 nano",  badge: "빠름",  inputPrice: 0.20,  outputPrice: 1.25  },
+    { value: "gpt-4o",       label: "GPT-4o",        inputPrice: 5.00,  outputPrice: 22.50 },
+    { value: "gpt-4o-mini",  label: "GPT-4o mini",   inputPrice: 0.075, outputPrice: 0.30  },
   ],
 };
+
+// 한국어 1글자 ≈ 1.5 토큰, 영어는 ≈ 0.25토큰. 독후감은 주로 한국어이므로 1.5 사용
+function estimateCost(text: string, modelInfo: ModelInfo): number {
+  const tokens = text.length * 1.5;
+  return (tokens / 1_000_000) * modelInfo.inputPrice;
+}
 
 function buildPromptPreview(
   meeting: Meeting | null,
@@ -77,8 +96,22 @@ export default function AdminDiscussionGenerator({
   const [model, setModel] = useState("claude-sonnet-4-6");
   const [generating, setGenerating] = useState(false);
 
+  // 모임 선택 모달
+  const [meetingPickerOpen, setMeetingPickerOpen] = useState(false);
+  const [meetingSearch, setMeetingSearch] = useState("");
+
   // 프롬프트 미리보기 모달
   const [previewOpen, setPreviewOpen] = useState(false);
+
+  const filteredMeetings = useMemo(() => {
+    const q = meetingSearch.trim().toLowerCase();
+    if (!q) return meetings;
+    return meetings.filter((m) =>
+      m.title.toLowerCase().includes(q) ||
+      m.books?.title.toLowerCase().includes(q) ||
+      format(new Date(m.date), "yyyy.M.d").includes(q)
+    );
+  }, [meetings, meetingSearch]);
 
   const selectedMeeting = meetings.find((m) => String(m.id) === meetingId) ?? null;
 
@@ -160,22 +193,21 @@ export default function AdminDiscussionGenerator({
         {/* 1. 모임 선택 */}
         <div className="p-5 border-b border-[#F0EAE0]">
           <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-400 mb-3">1. 모임 선택</p>
-          <div className="relative">
-            <select
-              value={meetingId}
-              onChange={(e) => setMeetingId(e.target.value)}
-              className="w-full appearance-none border border-neutral-200 rounded-lg px-3 py-2.5 text-sm bg-white cursor-pointer pr-8 focus:outline-none focus:border-[#1C1A17]"
-            >
-              <option value="">모임을 선택하세요</option>
-              {meetings.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {format(new Date(m.date), "yyyy.M.d", { locale: ko })} — {m.title}
-                  {m.books ? ` (${m.books.title})` : ""}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
-          </div>
+          <button
+            type="button"
+            onClick={() => { setMeetingSearch(""); setMeetingPickerOpen(true); }}
+            className="w-full flex items-center justify-between border border-neutral-200 rounded-lg px-3 py-2.5 text-sm bg-white hover:border-neutral-400 transition-colors cursor-pointer text-left"
+          >
+            {selectedMeeting ? (
+              <span className="text-[#1C1A17] font-medium truncate">
+                {format(new Date(selectedMeeting.date), "yyyy.M.d", { locale: ko })} — {selectedMeeting.title}
+                {selectedMeeting.books ? ` · ${selectedMeeting.books.title}` : ""}
+              </span>
+            ) : (
+              <span className="text-neutral-400">모임을 선택하세요</span>
+            )}
+            <ChevronDown className="w-4 h-4 text-neutral-400 flex-shrink-0 ml-2" />
+          </button>
         </div>
 
         {/* 2. 독후감 선택 */}
@@ -226,7 +258,7 @@ export default function AdminDiscussionGenerator({
         {/* 3. Provider + Model */}
         <div className="p-5 border-b border-[#F0EAE0]">
           <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-400 mb-3">3. AI 설정</p>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {/* Provider 탭 */}
             <div className="flex gap-1 bg-neutral-100 rounded-lg p-1 w-fit">
               {(["claude", "openai"] as const).map((p) => (
@@ -235,29 +267,73 @@ export default function AdminDiscussionGenerator({
                   type="button"
                   onClick={() => setProvider(p)}
                   className={cn(
-                    "px-4 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer",
-                    provider === p
-                      ? "bg-white text-[#1C1A17] shadow-sm"
-                      : "text-neutral-500 hover:text-neutral-700"
+                    "flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-all cursor-pointer",
+                    provider === p ? "bg-white text-[#1C1A17] shadow-sm" : "text-neutral-500 hover:text-neutral-700"
                   )}
                 >
+                  <Icon
+                    icon={p === "claude" ? "simple-icons:anthropic" : "simple-icons:openai"}
+                    className="w-3.5 h-3.5"
+                  />
                   {p === "claude" ? "Claude" : "OpenAI"}
                 </button>
               ))}
             </div>
 
-            {/* 모델 선택 */}
-            <div className="relative">
-              <select
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="w-full appearance-none border border-neutral-200 rounded-lg px-3 py-2 text-sm bg-white cursor-pointer pr-8 focus:outline-none focus:border-[#1C1A17]"
-              >
-                {MODELS[provider].map((m) => (
-                  <option key={m.value} value={m.value}>{m.label}</option>
-                ))}
-              </select>
-              <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+            {/* 모델 카드 목록 */}
+            <div className="space-y-1.5">
+              {MODELS[provider].map((m) => {
+                const reviewsText = reviews
+                  .filter((r) => selectedIds.has(r.id))
+                  .map((r) => r.content)
+                  .join(" ");
+                const cost = estimateCost(reviewsText, m);
+                const isSelected = model === m.value;
+                return (
+                  <button
+                    key={m.value}
+                    type="button"
+                    onClick={() => setModel(m.value)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg border text-left transition-all cursor-pointer",
+                      isSelected
+                        ? "border-[#1C1A17] bg-[#1C1A17] text-white"
+                        : "border-neutral-200 bg-white hover:border-neutral-400 text-[#1C1A17]"
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Icon
+                        icon={provider === "claude" ? "simple-icons:anthropic" : "simple-icons:openai"}
+                        className={cn("w-4 h-4 flex-shrink-0", isSelected ? "text-white/70" : "text-neutral-400")}
+                      />
+                      <span className="text-sm font-medium truncate">{m.label}</span>
+                      {m.badge && (
+                        <span className={cn(
+                          "text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full flex-shrink-0",
+                          isSelected ? "bg-white/20 text-white" : "bg-neutral-100 text-neutral-500"
+                        )}>
+                          {m.badge}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                      <div className="text-right">
+                        <p className={cn("text-[10px]", isSelected ? "text-white/60" : "text-neutral-400")}>
+                          입력 ${m.inputPrice}/MTok
+                        </p>
+                        {reviewsText.length > 0 && (
+                          <p className={cn("text-[11px] font-semibold", isSelected ? "text-white" : "text-[#8B3A2A]")}>
+                            ≈ ${cost < 0.001 ? "<0.001" : cost.toFixed(4)}
+                          </p>
+                        )}
+                      </div>
+                      {isSelected && (
+                        <div className="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0" />
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
 
             {/* API 키 안내 */}
@@ -333,6 +409,88 @@ export default function AdminDiscussionGenerator({
           </div>
         )}
       </div>
+
+      {/* ── 모임 선택 모달 ── */}
+      <Dialog open={meetingPickerOpen} onOpenChange={setMeetingPickerOpen}>
+        <DialogContent className="max-w-lg max-h-[80vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="px-5 pt-5 pb-3 border-b border-neutral-100">
+            <DialogTitle className="text-base font-bold">모임 선택</DialogTitle>
+          </DialogHeader>
+
+          {/* 검색 */}
+          <div className="px-4 py-3 border-b border-neutral-100">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="모임명, 도서명, 날짜로 검색..."
+                value={meetingSearch}
+                onChange={(e) => setMeetingSearch(e.target.value)}
+                className="w-full pl-9 pr-3 py-2 text-sm border border-neutral-200 rounded-lg focus:outline-none focus:border-[#1C1A17] bg-white"
+                autoFocus
+              />
+            </div>
+          </div>
+
+          {/* 목록 */}
+          <div className="flex-1 overflow-y-auto min-h-0 py-2">
+            {filteredMeetings.length === 0 ? (
+              <p className="text-sm text-neutral-400 text-center py-8">검색 결과가 없습니다.</p>
+            ) : (
+              filteredMeetings.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => {
+                    setMeetingId(String(m.id));
+                    setMeetingPickerOpen(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-neutral-50 transition-colors cursor-pointer",
+                    meetingId === String(m.id) && "bg-[#F0EAE0]"
+                  )}
+                >
+                  {/* 커버 썸네일 */}
+                  <div className="flex-shrink-0 w-10 h-[54px] bg-[#E8DDD0] overflow-hidden rounded-sm">
+                    {m.books?.cover_url ? (
+                      <img src={m.books.cover_url} alt={m.books.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen className="w-4 h-4 text-[#B8A898]" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 텍스트 */}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[11px] text-neutral-400 mb-0.5">
+                      {format(new Date(m.date), "yyyy년 M월 d일", { locale: ko })}
+                    </p>
+                    <p className="text-sm font-semibold text-[#1C1A17] truncate">{m.title}</p>
+                    {m.books && (
+                      <p className="text-xs text-neutral-500 truncate mt-0.5">{m.books.title}</p>
+                    )}
+                  </div>
+
+                  {meetingId === String(m.id) && (
+                    <div className="w-2 h-2 rounded-full bg-[#8B3A2A] flex-shrink-0" />
+                  )}
+                </button>
+              ))
+            )}
+          </div>
+
+          <div className="px-4 py-3 border-t border-neutral-100 flex justify-between items-center">
+            <span className="text-xs text-neutral-400">전체 {meetings.length}개 모임</span>
+            <button
+              onClick={() => setMeetingPickerOpen(false)}
+              className="text-sm text-neutral-500 hover:text-neutral-800 cursor-pointer"
+            >
+              닫기
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── 프롬프트 미리보기 모달 ── */}
       <Dialog open={previewOpen} onOpenChange={setPreviewOpen}>
