@@ -740,13 +740,13 @@ export default function AdminDashboard() {
                   <Field label="소개">
                     <Textarea value={bookForm.description} onChange={(e) => setBookForm((p) => ({ ...p, description: e.target.value }))} rows={3} className="resize-none" />
                   </Field>
-                  <Field label="카테고리">
+                  <Field label="카테고리 *">
                     <CategorySelect categories={categories} value={bookForm.category_id} onChange={(v) => setBookForm((p) => ({ ...p, category_id: v }))} />
                   </Field>
                 </div>
                 <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t border-neutral-100 mt-2">
                   <Button type="button" variant="outline" onClick={() => setBookModalOpen(false)} className="cursor-pointer">취소</Button>
-                  <Button type="submit" disabled={bookDetailFetching} className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                  <Button type="submit" disabled={bookDetailFetching || !bookForm.title || !bookForm.author || !bookForm.category_id} className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                     {bookDetailFetching ? (
                       <><span className="w-4 h-4 mr-1.5 inline-block animate-spin rounded-full border-2 border-white border-t-transparent" /> 정보 가져오는 중...</>
                     ) : (
