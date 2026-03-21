@@ -211,6 +211,13 @@ export default function AdminDiscussionGenerator({
 
   const promptPreview = buildPromptPreview(selectedMeeting, reviews, selectedIds);
 
+  // 생성 버튼 활성화 조건
+  const canGenerate =
+    !!meetingId &&
+    !loadingReviews &&
+    (reviews.length === 0 || selectedIds.size > 0) &&
+    !!model;
+
   return (
     <div className="space-y-6">
       {/* ── 생성 폼 ── */}
@@ -396,7 +403,7 @@ export default function AdminDiscussionGenerator({
         <div className="p-5 flex items-center gap-3">
           <Button
             onClick={generate}
-            disabled={generating || !meetingId}
+            disabled={generating || !canGenerate}
             className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer gap-1.5"
           >
             <Sparkles className="w-4 h-4" />
@@ -405,7 +412,7 @@ export default function AdminDiscussionGenerator({
           <button
             type="button"
             onClick={() => setPreviewOpen(true)}
-            disabled={!meetingId}
+            disabled={!canGenerate}
             className="flex items-center gap-1.5 px-4 py-2 text-sm border border-neutral-200 rounded-lg text-neutral-500 hover:border-neutral-400 hover:text-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             <Eye className="w-4 h-4" />
