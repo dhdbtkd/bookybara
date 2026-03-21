@@ -31,6 +31,7 @@ export default function MeetingsView({
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   const nextMeeting = upcoming[0] ?? null;
+  const initialMonth = nextMeeting ? new Date(nextMeeting.date + "T00:00:00") : undefined;
   const displayMeeting: Meeting | null =
     selectedId != null
       ? ([...upcoming, ...past].find((m) => m.id === selectedId) ?? null)
@@ -53,6 +54,7 @@ export default function MeetingsView({
         <MeetingsCalendar
           meetings={meetings}
           onMeetingClick={handleMeetingClick}
+          initialMonth={initialMonth}
         />
 
         {/* Past meetings */}

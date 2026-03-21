@@ -20,11 +20,14 @@ const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 export default function MeetingsCalendar({
   meetings,
   onMeetingClick,
+  initialMonth,
 }: {
   meetings: MeetingBasic[];
   onMeetingClick?: (id: number, date: string) => void;
+  initialMonth?: Date;
 }) {
   const [month, setMonth] = useState(() => {
+    if (initialMonth) return new Date(initialMonth.getFullYear(), initialMonth.getMonth(), 1);
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
   });
