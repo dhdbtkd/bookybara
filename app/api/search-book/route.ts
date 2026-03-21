@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     publisher: d.publisher,
     published_at: d.datetime ? d.datetime.slice(0, 10) : null,
     thumbnail: d.thumbnail || null,
-    isbn: d.isbn,
+    isbn: d.isbn ? (d.isbn.includes(" ") ? d.isbn.split(" ")[1] : d.isbn) : null,
     description: d.contents || null,
     price: d.price,
   }));

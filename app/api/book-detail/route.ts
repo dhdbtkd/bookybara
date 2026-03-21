@@ -94,8 +94,8 @@ export async function GET(req: NextRequest) {
   const isbn = req.nextUrl.searchParams.get("isbn")?.trim();
   if (!isbn) return NextResponse.json({ error: "isbn이 필요합니다." }, { status: 400 });
 
-  // Kakao ISBN은 "ISBN10 ISBN13" 형태 — 13자리 우선 사용
-  const cleanIsbn = isbn.split(" ").find((s) => s.length === 13) ?? isbn.split(" ")[0];
+  // search-book에서 이미 ISBN13으로 정제해서 넘어오지만, 혹시 공백 포함 시 방어 처리
+  const cleanIsbn = isbn.includes(" ") ? isbn.split(" ")[1] : isbn;
 
   const naverKeyMissing = !isNaverKeyConfigured();
   const [naver, google, kyobo] = await Promise.all([
