@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import AdminDiscussionGenerator from "@/components/admin-discussion-generator";
 import MemberMultiSelect from "@/components/member-multi-select";
@@ -566,11 +566,12 @@ export default function AdminDashboard() {
               }
               setBookModalOpen(open);
             }}>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
+              <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+                <DialogHeader className="flex-shrink-0">
                   <DialogTitle>새 도서 등록</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={addBook} className="space-y-3">
+                <form onSubmit={addBook} className="flex flex-col flex-1 min-h-0">
+                <div className="flex-1 overflow-y-auto space-y-3 pr-1">
                   {/* Kakao search */}
                   <Field label="도서 검색">
                     <div className="relative">
@@ -736,10 +737,13 @@ export default function AdminDashboard() {
                   <Field label="소개">
                     <Textarea value={bookForm.description} onChange={(e) => setBookForm((p) => ({ ...p, description: e.target.value }))} rows={3} className="resize-none" />
                   </Field>
-                  <Field label="카테고리">
+                </div>
+                <DialogFooter className="flex-shrink-0 flex items-end gap-3 pt-4 border-t border-neutral-100 mt-2">
+                  <div className="flex-1 space-y-1.5">
+                    <Label className="text-xs font-semibold text-neutral-500">카테고리</Label>
                     <CategorySelect categories={categories} value={bookForm.category_id} onChange={(v) => setBookForm((p) => ({ ...p, category_id: v }))} />
-                  </Field>
-                  <div className="flex justify-end gap-2 pt-1">
+                  </div>
+                  <div className="flex gap-2 flex-shrink-0">
                     <Button type="button" variant="outline" onClick={() => setBookModalOpen(false)} className="cursor-pointer">취소</Button>
                     <Button type="submit" disabled={bookDetailFetching} className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                       {bookDetailFetching ? (
@@ -749,6 +753,7 @@ export default function AdminDashboard() {
                       )}
                     </Button>
                   </div>
+                </DialogFooter>
                 </form>
               </DialogContent>
             </Dialog>
