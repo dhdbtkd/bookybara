@@ -192,6 +192,12 @@
   }
 }
 
+.bn-editor .bn-block-content,
+.bn-editor [data-content-type] {
+  font-size: 0.8rem !important;
+  line-height: 1.6 !important;
+}
+
 @layer utilities {
   .scrollbar-none {
     scrollbar-width: none;
