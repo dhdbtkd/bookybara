@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { BookOpen, Plus, ChevronDown, ChevronUp, Link2, Loader2 } from "lucide-react";
+import { BookOpen, Plus, ChevronDown, ChevronUp, Search, Loader2, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,18 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+
+type BookResult = {
+  title: string;
+  authors: string[];
+  translators: string[];
+  publisher: string;
+  published_at: string | null;
+  thumbnail: string | null;
+  isbn: string;
+  description: string | null;
+  price: number;
+};
 
 type ReadBook = {
   id: number;
@@ -44,29 +56,49 @@ export default function BooksView({
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
-  const [parsing, setParsing] = useState(false);
-  const [kyoboUrl, setKyoboUrl] = useState("");
   const [list, setList] = useState<Candidate[]>(candidates);
   const [showRejected, setShowRejected] = useState(false);
 
-  async function handleParseUrl() {
-    if (!kyoboUrl.trim()) return;
-    setParsing(true);
-    try {
-      const res = await fetch(`/api/parse-book?url=${encodeURIComponent(kyoboUrl.trim())}`);
-      const data = await res.json();
-      if (!res.ok) { toast.error(data.error ?? "파싱 실패"); return; }
-      setForm((p) => ({
-        ...p,
-        title: data.title ?? p.title,
-        author: data.author ?? p.author,
-      }));
-      toast.success("책 정보를 가져왔습니다!");
-    } catch {
-      toast.error("파싱 중 오류가 발생했습니다.");
-    } finally {
-      setParsing(false);
-    }
+  // 책 검색
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<BookResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<BookResult | null>(null);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleSearchChange(q: string) {
+    setSearchQuery(q);
+    setSelectedBook(null);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
+    if (!q.trim()) { setSearchResults([]); return; }
+    searchTimer.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/search-book?query=${encodeURIComponent(q)}`);
+        const data = await res.json();
+        setSearchResults(Array.isArray(data) ? data : []);
+      } catch { setSearchResults([]); }
+      finally { setSearching(false); }
+    }, 400);
+  }
+
+  function selectBook(book: BookResult) {
+    setSelectedBook(book);
+    setSearchResults([]);
+    setSearchQuery(book.title);
+    setForm((p) => ({
+      ...p,
+      title: book.title,
+      author: book.authors.join(", "),
+      notes: p.notes, // 추천 이유는 유지
+    }));
+  }
+
+  function resetModal() {
+    setForm(EMPTY_FORM);
+    setSearchQuery("");
+    setSearchResults([]);
+    setSelectedBook(null);
   }
 
   const pending = list.filter((c) => c.status === "pending");
@@ -87,10 +119,9 @@ export default function BooksView({
     if (res.ok) {
       const created = await res.json();
       setList((prev) => [created, ...prev]);
-      setForm(EMPTY_FORM);
+      resetModal();
       setModalOpen(false);
       setTab("candidates");
-      setKyoboUrl("");
       toast.success("책이 제안되었습니다!");
     } else {
       const { error } = await res.json();
@@ -197,36 +228,83 @@ export default function BooksView({
       )}
 
       {/* ── 제안 모달 ── */}
-      <Dialog open={modalOpen} onOpenChange={(o) => { setModalOpen(o); if (!o) { setForm(EMPTY_FORM); setKyoboUrl(""); } }}>
+      <Dialog open={modalOpen} onOpenChange={(o) => { setModalOpen(o); if (!o) resetModal(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="text-base font-bold">책 제안하기</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-            {/* 교보문고 URL 파싱 */}
+
+            {/* 책 검색 */}
             <div className="space-y-1.5">
-              <Label className="text-xs flex items-center gap-1"><Link2 className="w-3 h-3" /> 교보문고 링크로 자동 입력 (선택)</Label>
-              <div className="flex gap-2">
+              <Label className="text-xs flex items-center gap-1.5">
+                <Search className="w-3 h-3" /> 책 검색
+              </Label>
+              <div className="relative">
                 <Input
-                  value={kyoboUrl}
-                  onChange={(e) => setKyoboUrl(e.target.value)}
-                  placeholder="https://product.kyobobook.co.kr/detail/..."
-                  className="text-xs"
+                  value={searchQuery}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  placeholder="제목 또는 저자로 검색..."
+                  className="pr-8"
+                  autoComplete="off"
                 />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleParseUrl}
-                  disabled={parsing || !kyoboUrl.trim()}
-                  className="flex-shrink-0 cursor-pointer"
-                >
-                  {parsing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : "불러오기"}
-                </Button>
+                {searching && (
+                  <Loader2 className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 animate-spin text-neutral-400" />
+                )}
+                {searchQuery && !searching && (
+                  <button type="button" onClick={() => { setSearchQuery(""); setSearchResults([]); setSelectedBook(null); }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
-              <p className="text-[10px] text-neutral-400">링크를 입력하면 제목·저자를 자동으로 채워드려요.</p>
+
+              {/* 검색 결과 드롭다운 */}
+              {searchResults.length > 0 && (
+                <div className="border border-neutral-200 rounded-xl overflow-hidden shadow-lg bg-white max-h-72 overflow-y-auto">
+                  {searchResults.map((book, i) => (
+                    <button
+                      key={`${book.isbn}-${i}`}
+                      type="button"
+                      onClick={() => selectBook(book)}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-neutral-50 text-left cursor-pointer border-b border-neutral-100 last:border-b-0 transition-colors"
+                    >
+                      {book.thumbnail ? (
+                        <img src={book.thumbnail} alt={book.title} className="w-8 h-11 object-cover rounded flex-shrink-0" />
+                      ) : (
+                        <div className="w-8 h-11 rounded bg-[#E8DDD0] flex-shrink-0 flex items-center justify-center">
+                          <BookOpen className="w-3.5 h-3.5 text-[#B8A898]" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-[#1C1A17] leading-snug truncate">{book.title}</p>
+                        <p className="text-xs text-neutral-400 truncate">{book.authors.join(", ")} · {book.publisher}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* 선택된 책 미리보기 */}
+              {selectedBook && (
+                <div className="flex items-center gap-3 p-2.5 bg-[#F8F5F0] rounded-lg border border-[#E8DDD0]">
+                  {selectedBook.thumbnail && (
+                    <img src={selectedBook.thumbnail} alt={selectedBook.title} className="w-8 h-11 object-cover rounded flex-shrink-0" />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold text-[#1C1A17] truncate">{selectedBook.title}</p>
+                    <p className="text-[10px] text-neutral-400">{selectedBook.authors.join(", ")} · {selectedBook.publisher}</p>
+                    {selectedBook.published_at && (
+                      <p className="text-[10px] text-neutral-400">{selectedBook.published_at.slice(0, 7)} 출판</p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
+
             <div className="h-px bg-neutral-100" />
+
+            {/* 제목·저자 (자동입력 or 수동) */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">책 제목 *</Label>
@@ -245,6 +323,7 @@ export default function BooksView({
                 />
               </div>
             </div>
+
             <div className="space-y-1.5">
               <Label className="text-xs">제안자 이름 *</Label>
               <Input
@@ -265,9 +344,7 @@ export default function BooksView({
               />
             </div>
             <div className="flex gap-2 justify-end pt-1">
-              <Button type="button" variant="outline" onClick={() => setModalOpen(false)} className="cursor-pointer">
-                취소
-              </Button>
+              <Button type="button" variant="outline" onClick={() => setModalOpen(false)} className="cursor-pointer">취소</Button>
               <Button type="submit" disabled={submitting} className="cursor-pointer">
                 {submitting ? "등록 중..." : "제안하기"}
               </Button>
