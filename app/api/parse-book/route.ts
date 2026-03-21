@@ -33,25 +33,49 @@ export async function GET(req: NextRequest) {
   const image = getMeta("og:image") || getMeta("twitter:image");
   const description = getMeta("og:description") || getMeta("twitter:description");
 
-  // 저자: "저자명 저" 패턴 파싱
-  const authorMatch = html.match(/class="[^"]*author[^"]*"[^>]*>([^<]{2,30})<\//) ||
-    html.match(/"author"\s*:\s*"([^"]{2,50})"/) ||
-    html.match(/저자[^>]*>([^<]{2,30})<\//) ||
-    html.match(/지은이[^>]*>([^<]{2,30})</);
-  let author = authorMatch?.[1]?.replace(/\s*저$/, "").replace(/\s*글$/, "").trim() ?? "";
+  // 저자 역할 분류
+  const AUTHOR_ROLES = /^(저|글|지음|엮음|원작|글·그림)$/;
+  const SKIP_ROLES = /^(역|번역|옮김|편역|그림|사진|감수|편집|해설|구성)$/;
 
-  // JSON-LD 파싱 시도
+  function extractAuthors(raw: string): string {
+    // "모건 하우절 저 · 이지연 역" 형태 파싱
+    const parts = raw.split(/[·,·]/).map((s) => s.trim()).filter(Boolean);
+    const authors: string[] = [];
+    for (const part of parts) {
+      // 마지막 토큰이 역할어인지 확인
+      const tokens = part.split(/\s+/);
+      const role = tokens[tokens.length - 1];
+      if (SKIP_ROLES.test(role)) continue;
+      const name = AUTHOR_ROLES.test(role) ? tokens.slice(0, -1).join(" ") : part;
+      if (name) authors.push(name.trim());
+    }
+    return authors.join(", ");
+  }
+
+  let author = "";
+
+  // JSON-LD 우선 파싱
   const jsonLdMatch = html.match(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i);
   if (jsonLdMatch) {
     try {
       const ld = JSON.parse(jsonLdMatch[1]);
       const data = Array.isArray(ld) ? ld[0] : ld;
-      if (!author && data.author) {
-        author = Array.isArray(data.author)
-          ? data.author.map((a: { name?: string } | string) => (typeof a === "string" ? a : a.name ?? "")).join(", ")
+      if (data.author) {
+        const raw = Array.isArray(data.author)
+          ? data.author.map((a: { name?: string } | string) => (typeof a === "string" ? a : a.name ?? "")).join(" · ")
           : typeof data.author === "string" ? data.author : data.author?.name ?? "";
+        author = extractAuthors(raw);
       }
     } catch { /* ignore */ }
+  }
+
+  // HTML 패턴 폴백
+  if (!author) {
+    const rawMatch =
+      html.match(/class="[^"]*author[^"]*"[^>]*>([^<]{2,80})<\//) ||
+      html.match(/저자[^>]*>([^<]{2,80})<\//) ||
+      html.match(/지은이[^>]*>([^<]{2,80})</);
+    if (rawMatch) author = extractAuthors(rawMatch[1]);
   }
 
   if (!title) return NextResponse.json({ error: "책 정보를 파싱할 수 없습니다." }, { status: 422 });
