@@ -43,7 +43,7 @@ type Candidate = {
   created_at: string;
 };
 
-const EMPTY_FORM = { title: "", author: "", proposed_by: "", notes: "" };
+const EMPTY_FORM = { title: "", author: "", proposed_by: "", notes: "", cover_url: "" };
 
 export default function BooksView({
   readBooks,
@@ -92,7 +92,8 @@ export default function BooksView({
       ...p,
       title: book.title,
       author: book.authors.join(", "),
-      notes: p.notes, // 추천 이유는 유지
+      cover_url: book.thumbnail ?? "",
+      notes: p.notes,
     }));
   }
 
