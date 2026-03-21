@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
+import { ko } from "@blocknote/core/locales";
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 
@@ -26,7 +27,7 @@ interface Props {
 }
 
 export default function ReviewEditor({ onChange }: Props) {
-  const editor = useCreateBlockNote();
+  const editor = useCreateBlockNote({ dictionary: ko });
 
   useEffect(() => {
     const unsubscribe = editor.onChange(() => {
@@ -39,7 +40,7 @@ export default function ReviewEditor({ onChange }: Props) {
     <BlockNoteView
       editor={editor}
       theme="light"
-      style={{ minHeight: "280px" }}
+      style={{ minHeight: "280px", paddingTop: "0.75rem", paddingBottom: "0.75rem" }}
     />
   );
 }
