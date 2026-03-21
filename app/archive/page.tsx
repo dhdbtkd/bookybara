@@ -11,11 +11,17 @@ export default async function ArchivePage() {
   const supabase = await createClient();
   const today = new Date().toISOString().split("T")[0];
 
-  const { data: meetings } = await supabase
+  const { data: rawMeetings } = await supabase
     .from("meetings")
-    .select("*, books(id, title, author, cover_url)")
+    .select("*, meeting_books(books(id, title, author, cover_url, cover_url_hires))")
     .lt("date", today)
     .order("date", { ascending: false });
+
+  type BookInfo = { id: number; title: string; author: string; cover_url: string | null; cover_url_hires: string | null };
+  const meetings = (rawMeetings ?? []).map((m) => ({
+    ...m,
+    books: ((m.meeting_books ?? []) as any[]).map((mb) => mb.books).filter(Boolean) as BookInfo[],
+  }));
 
   return (
     <div className="space-y-6">
@@ -29,13 +35,13 @@ export default async function ArchivePage() {
       ) : (
         <div className="space-y-4">
           {meetings.map((m) => {
-            const book = m.books as { id: number; title: string; author: string; cover_url: string | null } | null;
+            const book = m.books[0] ?? null;
             return (
               <Card key={m.id}>
                 <CardContent className="p-5">
                   <div className="flex gap-4">
-                    {book?.cover_url && (
-                      <img src={book.cover_url} alt={book.title} className="w-16 h-24 object-cover rounded shadow-sm flex-shrink-0" />
+                    {(book?.cover_url_hires ?? book?.cover_url) && (
+                      <img src={book.cover_url_hires ?? book.cover_url!} alt={book.title} className="w-16 h-24 object-cover rounded shadow-sm flex-shrink-0" />
                     )}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">

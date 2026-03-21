@@ -37,10 +37,15 @@ export default function ReviewEditor({ onChange }: Props) {
   }, [editor, onChange]);
 
   return (
-    <BlockNoteView
-      editor={editor}
-      theme="light"
-      style={{ minHeight: "40dvh", paddingTop: "0.75rem", paddingBottom: "0.75rem", fontSize: "0.875rem" }}
-    />
+    <div
+      style={{ minHeight: "40dvh", cursor: "text" }}
+      onClick={() => editor.focus()}
+    >
+      <BlockNoteView
+        editor={editor}
+        theme="light"
+        style={{ minHeight: "40dvh", paddingTop: "0.75rem", paddingBottom: "0.75rem", fontSize: "0.875rem" }}
+      />
+    </div>
   );
 }

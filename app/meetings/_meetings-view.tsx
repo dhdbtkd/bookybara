@@ -8,13 +8,13 @@ import { CalendarDays, BookOpen, MapPin } from "lucide-react";
 import Link from "next/link";
 import MeetingsCalendar from "@/components/meetings-calendar";
 
-type BookBasic = { title: string; author: string; cover_url: string | null };
+type BookBasic = { title: string; author: string; cover_url: string | null; cover_url_hires: string | null };
 type Meeting = {
   id: number;
   title: string;
   date: string;
   location: string | null;
-  books: BookBasic | null;
+  books: BookBasic[];
 };
 
 export default function MeetingsView({
@@ -29,6 +29,7 @@ export default function MeetingsView({
   const router = useRouter();
   const today = new Date().toISOString().split("T")[0];
   const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [focusMonth, setFocusMonth] = useState<Date | undefined>(undefined);
 
   const nextMeeting = upcoming[0] ?? null;
   const initialMonth = nextMeeting ? new Date(nextMeeting.date + "T00:00:00") : undefined;
@@ -36,7 +37,7 @@ export default function MeetingsView({
     selectedId != null
       ? ([...upcoming, ...past].find((m) => m.id === selectedId) ?? null)
       : nextMeeting;
-  const displayBook = displayMeeting?.books ?? null;
+  const displayBook = displayMeeting?.books?.[0] ?? null;
   const isSelectedPast = selectedId != null && displayMeeting != null && displayMeeting.date < today;
 
   function handleMeetingClick(id: number, date: string) {
@@ -44,6 +45,7 @@ export default function MeetingsView({
       router.push(`/meetings/${id}`);
     } else {
       setSelectedId((prev) => (prev === id ? null : id));
+      setFocusMonth(new Date(date + "T00:00:00"));
     }
   }
 
@@ -55,6 +57,7 @@ export default function MeetingsView({
           meetings={meetings}
           onMeetingClick={handleMeetingClick}
           initialMonth={initialMonth}
+          focusMonth={focusMonth}
         />
 
         {/* Past meetings */}
@@ -63,7 +66,7 @@ export default function MeetingsView({
           {past.length > 0 ? (
             <div className="divide-y divide-[#E8E0D8]">
               {past.map((m) => {
-                const book = m.books;
+                const book = m.books[0] ?? null;
                 const isSelected = selectedId === m.id;
                 return (
                   <button
@@ -73,8 +76,8 @@ export default function MeetingsView({
                     className={`w-full text-left flex gap-4 py-5 group cursor-pointer transition-colors ${isSelected ? "opacity-100" : ""}`}
                   >
                     <div className="w-12 h-[68px] flex-shrink-0 rounded-md overflow-hidden bg-[#E8DDD0] shadow-sm">
-                      {book?.cover_url ? (
-                        <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
+                      {book?.cover_url_hires ?? book?.cover_url ? (
+                        <img src={book.cover_url_hires ?? book.cover_url!} alt={book.title} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <BookOpen className="w-4 h-4 text-[#B8A898]" />
@@ -128,9 +131,9 @@ export default function MeetingsView({
           <div className="bg-white rounded-2xl overflow-hidden border border-[#E8DDD0] shadow-sm">
             {/* Book cover */}
             <div className="bg-[#F5F0E8] flex items-center justify-center py-8 px-6 min-h-[220px]">
-              {displayBook?.cover_url ? (
+              {displayBook?.cover_url_hires ?? displayBook?.cover_url ? (
                 <img
-                  src={displayBook.cover_url}
+                  src={displayBook.cover_url_hires ?? displayBook.cover_url!}
                   alt={displayBook.title}
                   className="max-h-44 object-contain"
                   style={{ filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.18))" }}

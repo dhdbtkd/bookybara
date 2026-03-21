@@ -17,6 +17,7 @@ type BookInfo = {
   title: string;
   author: string;
   cover_url: string | null;
+  cover_url_hires: string | null;
   description: string | null;
   book_categories: CategoryInfo | CategoryInfo[] | null;
 };
@@ -37,7 +38,7 @@ export default async function HomePage() {
 
   const { data: nextMeeting } = await supabase
     .from("meetings")
-    .select("id, title, date, location, book_id, books(id, title, author, cover_url, description, category_id, book_categories(name, color))")
+    .select("id, title, date, location, meeting_books(books(id, title, author, cover_url, cover_url_hires, description, category_id, book_categories(name, color)))")
     .gte("date", today)
     .order("date", { ascending: true })
     .limit(1)
@@ -59,7 +60,7 @@ export default async function HomePage() {
         .limit(5),
       supabase
         .from("books")
-        .select("id, title, author, cover_url, meetings(id, date)")
+        .select("id, title, author, cover_url, cover_url_hires, meeting_books(meetings(id, date))")
         .order("created_at", { ascending: false }),
       supabase
         .from("book_candidates")
@@ -70,7 +71,7 @@ export default async function HomePage() {
 
   // 완독된 책 (과거 모임만 있는 책)
   const readBooks = (allBooks ?? [])
-    .map((b) => ({ ...b, meetings: (Array.isArray(b.meetings) ? b.meetings : b.meetings ? [b.meetings] : []) as { id: number; date: string }[] }))
+    .map((b) => ({ ...b, meetings: ((b.meeting_books ?? []) as any[]).map((mb) => mb.meetings).filter(Boolean) as { id: number; date: string }[] }))
     .filter((b) => b.meetings.length > 0 && b.meetings.every((m) => m.date < today))
     .sort((a, b) => {
       const aMax = Math.max(...a.meetings.map((m) => new Date(m.date).getTime()));
@@ -78,8 +79,7 @@ export default async function HomePage() {
       return bMax - aMax;
     });
 
-  const book = nextMeeting?.books as BookInfo | BookInfo[] | null;
-  const bookInfo = Array.isArray(book) ? (book[0] ?? null) : book;
+  const bookInfo = ((nextMeeting?.meeting_books ?? []) as any[]).map((mb) => mb.books).filter(Boolean)[0] as BookInfo | null ?? null;
   const rawCat = bookInfo?.book_categories;
   const category = rawCat ? (Array.isArray(rawCat) ? rawCat[0] ?? null : rawCat) : null;
   const dday = nextMeeting ? getDday(nextMeeting.date) : null;
@@ -157,7 +157,7 @@ export default async function HomePage() {
               {/* Right: 3D book + meeting card */}
               <div className="relative flex justify-center md:justify-end">
                 <BookCover3D
-                  coverUrl={bookInfo?.cover_url ?? null}
+                  coverUrl={bookInfo?.cover_url_hires ?? bookInfo?.cover_url ?? null}
                   title={bookInfo?.title ?? nextMeeting.title}
                 />
 

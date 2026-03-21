@@ -3,7 +3,7 @@ import MeetingsView from "./_meetings-view";
 
 export const dynamic = "force-dynamic";
 
-type BookBasic = { title: string; author: string; cover_url: string | null };
+type BookBasic = { title: string; author: string; cover_url: string | null; cover_url_hires: string | null };
 
 export default async function MeetingsPage() {
   const supabase = await createClient();
@@ -11,17 +11,21 @@ export default async function MeetingsPage() {
 
   const { data: meetings } = await supabase
     .from("meetings")
-    .select("*, books(title, author, cover_url)")
+    .select("*, meeting_books(books(title, author, cover_url, cover_url_hires))")
     .order("date", { ascending: false });
+
+  function toBooks(m: any): BookBasic[] {
+    return (m.meeting_books ?? []).map((mb: any) => mb.books).filter(Boolean);
+  }
 
   const upcoming = [...(meetings?.filter((m) => m.date >= today) ?? [])].reverse().map((m) => ({
     ...m,
-    books: m.books as BookBasic | null,
+    books: toBooks(m),
     location: m.location ?? null,
   }));
   const past = (meetings?.filter((m) => m.date < today) ?? []).map((m) => ({
     ...m,
-    books: m.books as BookBasic | null,
+    books: toBooks(m),
     location: m.location ?? null,
   }));
   const calendarMeetings = (meetings ?? []).map((m) => ({ id: m.id, date: m.date, title: m.title }));

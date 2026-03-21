@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -13,11 +15,11 @@ import { ko } from "date-fns/locale";
 
 const ReviewEditor = dynamic(() => import("./_review-editor"), { ssr: false });
 
-type Book = { id: number; title: string; author: string; cover_url: string | null };
+type Book = { id: number; title: string; author: string; cover_url: string | null; cover_url_hires: string | null };
 type Attendee = { id: number; name: string };
 type MeetingItem = {
   id: number; title: string; date: string; location: string | null;
-  books: Book | null;
+  books: Book[];
   attendees: Attendee[];
 };
 
@@ -87,16 +89,27 @@ function MeetingSelector({ meetings, selectedId, onChange, compact }: {
 
 // ── Author picker ──
 function AuthorPicker({
-  attendees, submittedNames, authorName, customName, onSelect, onCustom, onBackToList,
+  attendees, submittedNames, authorName, customName, loading, onSelect, onCustom, onBackToList,
 }: {
   attendees: Attendee[];
   submittedNames: Set<string>;
   authorName: string;
   customName: boolean;
+  loading: boolean;
   onSelect: (name: string) => void;
   onCustom: () => void;
   onBackToList: () => void;
 }) {
+  if (loading) {
+    return (
+      <div className="flex flex-wrap gap-2">
+        {[80, 60, 72, 56].map((w) => (
+          <Skeleton key={w} width={w} height={32} borderRadius={9999} />
+        ))}
+      </div>
+    );
+  }
+
   const available = attendees.filter((a) => !submittedNames.has(a.name));
 
   if (attendees.length > 0 && !customName) {
@@ -152,6 +165,7 @@ function NewReviewForm() {
   const [charCount, setCharCount] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingAttendees, setLoadingAttendees] = useState(false);
 
   // Initial load: all meetings + all books (fallback)
   useEffect(() => {
@@ -181,10 +195,11 @@ function NewReviewForm() {
     const m = meetings.find((x) => String(x.id) === selectedMeetingId);
     setAuthorName("");
     setCustomName(false);
+    setLoadingAttendees(true);
 
-    if (m?.books) {
-      setSelectedBookId(String(m.books.id));
-      setStep("write");
+    if (m?.books && m.books.length > 0) {
+      setSelectedBookId(String(m.books[0].id));
+      setStep(m.books.length === 1 ? "write" : "book");
     } else {
       setSelectedBookId("");
       setStep("book");
@@ -194,6 +209,7 @@ function NewReviewForm() {
       .then((r) => r.json())
       .then(({ reviews }) => {
         setSubmittedNames(new Set((reviews ?? []).map((r: { author_name: string }) => r.author_name)));
+        setLoadingAttendees(false);
       });
   }, [selectedMeetingId, meetings]);
 
@@ -234,7 +250,7 @@ function NewReviewForm() {
 
   const selectedMeeting = meetings.find((m) => String(m.id) === selectedMeetingId) ?? null;
   // Books available for this meeting: meeting's book if set, else all books
-  const meetingBooks: Book[] = selectedMeeting?.books ? [selectedMeeting.books] : [];
+  const meetingBooks: Book[] = selectedMeeting?.books ?? [];
   const booksForPicker = meetingBooks.length > 0 ? meetingBooks : allBooks;
   const selectedBook = booksForPicker.find((b) => String(b.id) === selectedBookId) ?? null;
   const attendees = selectedMeeting?.attendees ?? [];
@@ -267,8 +283,8 @@ function NewReviewForm() {
             {booksForPicker.map((b) => (
               <button key={b.id} type="button" onClick={() => { setSelectedBookId(String(b.id)); setStep("write"); }} className="w-full text-left cursor-pointer">
                 <div className="flex items-center gap-4 p-4 rounded-xl border-2 border-neutral-100 bg-white hover:border-neutral-300 hover:shadow-sm transition-all">
-                  {b.cover_url ? (
-                    <img src={b.cover_url} alt={b.title} className="w-14 h-20 object-cover rounded-md shadow-sm flex-shrink-0" />
+                  {b.cover_url_hires ?? b.cover_url ? (
+                    <img src={b.cover_url_hires ?? b.cover_url!} alt={b.title} className="w-14 h-20 object-cover rounded-md shadow-sm flex-shrink-0" />
                   ) : (
                     <div className="w-14 h-20 rounded-md bg-neutral-100 flex-shrink-0 flex items-center justify-center">
                       <BookOpen className="w-5 h-5 text-neutral-300" />
@@ -299,8 +315,8 @@ function NewReviewForm() {
 
       {/* 컨텍스트 카드: 책 + 모임 (둘 다 변경 가능) */}
       <div className="bg-[#F8F5F0] rounded-2xl p-3 sm:p-4 flex gap-3 sm:gap-4 items-start flex-shrink-0">
-        {selectedBook?.cover_url ? (
-          <img src={selectedBook.cover_url} alt={selectedBook.title} className="w-10 h-14 sm:w-12 sm:h-[68px] object-cover rounded-md shadow flex-shrink-0" />
+        {selectedBook?.cover_url_hires ?? selectedBook?.cover_url ? (
+          <img src={selectedBook.cover_url_hires ?? selectedBook.cover_url!} alt={selectedBook.title} className="w-10 h-14 sm:w-12 sm:h-[68px] object-cover rounded-md shadow flex-shrink-0" />
         ) : (
           <div className="w-10 h-14 sm:w-12 sm:h-[68px] rounded-md bg-[#E8DDD0] flex-shrink-0 flex items-center justify-center">
             <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-[#C8BEB4]" />
@@ -346,6 +362,7 @@ function NewReviewForm() {
             submittedNames={submittedNames}
             authorName={authorName}
             customName={customName}
+            loading={loadingAttendees}
             onSelect={setAuthorName}
             onCustom={() => { setAuthorName(""); setCustomName(true); }}
             onBackToList={() => { setAuthorName(""); setCustomName(false); }}

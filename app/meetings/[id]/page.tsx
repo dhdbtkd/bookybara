@@ -9,14 +9,60 @@ import { ko } from "date-fns/locale";
 import Link from "next/link";
 import { ChevronLeft, Plus, X, PenLine, CalendarDays, MapPin, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { PieChart, Pie, Cell } from "recharts";
 
+type Book = { title: string; author: string; cover_url: string | null; cover_url_hires: string | null };
 type Meeting = {
   id: number; title: string; date: string; location: string | null; summary: string | null;
-  books: { title: string; author: string; cover_url: string | null } | null;
+  books: Book[];
 };
 type Attendee = { id: number; name: string; member_id: number | null; created_at: string };
 type Review = { id: number; author_name: string; content: string; created_at: string };
 type Member = { id: number; name: string };
+
+function ReviewPieChart({ submitted, total }: { submitted: number; total: number }) {
+  const filled = Math.min(submitted, total);
+  const empty = Math.max(0, total - filled);
+  const data = total === 0
+    ? [{ value: 1, empty: true }]
+    : [
+        { value: filled, empty: false },
+        { value: empty, empty: true },
+      ];
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="relative" style={{ width: 72, height: 72 }}>
+        <PieChart width={72} height={72}>
+          <Pie
+            data={data}
+            cx={31}
+            cy={31}
+            innerRadius={24}
+            outerRadius={34}
+            startAngle={90}
+            endAngle={-270}
+            dataKey="value"
+            strokeWidth={0}
+          >
+            {data.map((entry, i) => (
+              <Cell
+                key={i}
+                fill={entry.empty ? "#E8DDD0" : "#1C1A17"}
+              />
+            ))}
+          </Pie>
+        </PieChart>
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <span className="text-[10px] font-bold text-[#1C1A17] leading-none">
+            {total === 0 ? submitted : `${submitted}/${total}`}
+          </span>
+        </div>
+      </div>
+      <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-neutral-400">독후감</p>
+    </div>
+  );
+}
 
 export default function MeetingDetailPage() {
   const { id } = useParams();
@@ -68,7 +114,7 @@ export default function MeetingDetailPage() {
   if (loading) return <div className="text-sm text-neutral-400 pt-10 text-center">불러오는 중...</div>;
   if (!meeting) return <div className="text-sm text-neutral-400 pt-10 text-center">모임을 찾을 수 없습니다.</div>;
 
-  const book = meeting.books;
+  const book = meeting.books[0] ?? null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const meetingDate = new Date(meeting.date + "T00:00:00");
@@ -90,6 +136,12 @@ export default function MeetingDetailPage() {
 
         {/* 왼쪽: 타이틀 + 메타 + 통계 */}
         <div>
+          <span className={cn(
+            "inline-block text-[9px] font-bold tracking-[0.18em] uppercase px-2.5 py-1 rounded-full mb-4",
+            isPast ? "bg-neutral-100 text-neutral-400" : "bg-[#C8956C]/15 text-[#C8956C]"
+          )}>
+            {isPast ? "지난 모임" : "예정된 모임"}
+          </span>
           <h1
             className="text-4xl sm:text-5xl font-bold text-[#1C1A17] leading-[1.1] mb-8"
             style={{ fontFamily: "var(--font-playfair)" }}
@@ -131,26 +183,15 @@ export default function MeetingDetailPage() {
               <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-neutral-400 mt-1">참석</p>
             </div>
             <div className="w-px h-10 bg-neutral-200" />
-            <div>
-              <p className="text-4xl font-bold text-[#1C1A17]">{reviews.length}</p>
-              <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-neutral-400 mt-1">독후감</p>
-            </div>
-            <div className="ml-2">
-              <span className={cn(
-                "text-[9px] font-bold tracking-[0.18em] uppercase px-2.5 py-1 rounded-full",
-                isPast ? "bg-neutral-100 text-neutral-400" : "bg-[#C8956C]/15 text-[#C8956C]"
-              )}>
-                {isPast ? "지난 모임" : "예정된 모임"}
-              </span>
-            </div>
+            <ReviewPieChart submitted={reviews.length} total={attendees.length} />
           </div>
         </div>
 
         {/* 오른쪽: 북커버 (책 비율 2:3) */}
         <div className="flex-shrink-0 mx-auto md:mx-0" style={{ width: "clamp(140px, 22vw, 220px)" }}>
           <div className="relative rounded-2xl overflow-hidden shadow-xl" style={{ aspectRatio: "2 / 3" }}>
-            {book?.cover_url ? (
-              <img src={book.cover_url} alt={book.title} className="absolute inset-0 w-full h-full object-cover" />
+            {book?.cover_url_hires ?? book?.cover_url ? (
+              <img src={book.cover_url_hires ?? book.cover_url!} alt={book.title} className="absolute inset-0 w-full h-full object-cover" />
             ) : (
               <div className="absolute inset-0 bg-[#2C2926] flex items-center justify-center">
                 <BookOpen className="w-10 h-10 text-white/20" />
