@@ -17,7 +17,13 @@ type MeetingBasic = { id: number; date: string; title: string };
 
 const WEEKDAYS = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
 
-export default function MeetingsCalendar({ meetings }: { meetings: MeetingBasic[] }) {
+export default function MeetingsCalendar({
+  meetings,
+  onMeetingClick,
+}: {
+  meetings: MeetingBasic[];
+  onMeetingClick?: (id: number, date: string) => void;
+}) {
   const [month, setMonth] = useState(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), 1);
@@ -94,7 +100,11 @@ export default function MeetingsCalendar({ meetings }: { meetings: MeetingBasic[
                 return (
                   <div
                     key={dateStr}
-                    onClick={() => meeting && router.push(`/meetings/${meeting.id}`)}
+                    onClick={() => {
+                      if (!meeting) return;
+                      if (onMeetingClick) onMeetingClick(meeting.id, dateStr);
+                      else router.push(`/meetings/${meeting.id}`);
+                    }}
                     className={cn(
                       "min-h-[76px] p-2 border-r border-[#DDD5C8] last:border-r-0 transition-colors relative",
                       !isCurrentMonth && "bg-[#F5F0E8]/50",
