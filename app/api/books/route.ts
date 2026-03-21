@@ -12,13 +12,13 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   if (!(await isAdminAuthenticated())) return NextResponse.json({ error: "권한 없음" }, { status: 401 });
   const body = await req.json();
-  const { title, author, cover_url, cover_url_hires, description, isbn } = body;
+  const { title, author, cover_url, cover_url_hires, description, isbn, category_id } = body;
   if (!title || !author) return NextResponse.json({ error: "제목과 저자는 필수입니다." }, { status: 400 });
 
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("books")
-    .insert({ title, author, cover_url, cover_url_hires: cover_url_hires || null, isbn: isbn || null, description })
+    .insert({ title, author, cover_url: cover_url || null, cover_url_hires: cover_url_hires || null, isbn: isbn || null, description: description || null, category_id: category_id || null })
     .select()
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
