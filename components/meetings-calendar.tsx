@@ -35,10 +35,7 @@ export default function MeetingsCalendar({ meetings }: { meetings: MeetingBasic[
     <div>
       {/* Month header */}
       <div className="flex items-center justify-between mb-5">
-        <h2
-          className="text-3xl text-[#1C1A17]"
-          style={{ fontFamily: "var(--font-playfair)", fontStyle: "italic" }}
-        >
+        <h2 className="text-3xl font-bold text-[#1C1A17]">
           {format(month, "yyyy년 M월")}
         </h2>
         <div className="flex items-center gap-0.5">

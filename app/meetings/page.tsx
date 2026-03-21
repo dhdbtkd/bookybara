@@ -30,10 +30,7 @@ export default async function MeetingsPage() {
         <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-[#8B3A2A] mb-3">
           독서 모임 스케줄
         </p>
-        <h1
-          className="text-[2.8rem] leading-tight text-[#1C1A17]"
-          style={{ fontFamily: "var(--font-playfair)", fontStyle: "italic" }}
-        >
+        <h1 className="text-[2.8rem] leading-tight text-[#1C1A17] font-bold">
           모임 일정
         </h1>
         <p className="text-sm text-[#6B5E52] mt-3 max-w-md leading-relaxed">
@@ -42,7 +39,7 @@ export default async function MeetingsPage() {
       </div>
 
       {/* ── Body ── */}
-      <div className="px-8 py-8 grid grid-cols-1 md:grid-cols-[1fr_288px] gap-10 items-start">
+      <div className="px-8 py-8 grid grid-cols-1 md:grid-cols-[1fr_260px] gap-8 items-start">
 
         {/* Left: calendar + past meetings */}
         <div className="space-y-12">
@@ -52,10 +49,7 @@ export default async function MeetingsPage() {
 
           {/* Past meetings */}
           <div>
-            <h2
-              className="text-2xl text-[#1C1A17] mb-6"
-              style={{ fontFamily: "var(--font-playfair)", fontStyle: "italic" }}
-            >
+            <h2 className="text-2xl font-bold text-[#1C1A17] mb-6">
               지난 모임
             </h2>
             {past.length > 0 ? (
@@ -134,10 +128,7 @@ export default async function MeetingsPage() {
                     <CalendarDays className="w-3 h-3" />
                     Next Meeting
                   </p>
-                  <h3
-                    className="text-[1.4rem] leading-tight text-[#1C1A17]"
-                    style={{ fontFamily: "var(--font-playfair)" }}
-                  >
+                  <h3 className="text-[1.4rem] leading-tight text-[#1C1A17] font-bold">
                     {nextBook?.title ?? nextMeeting.title}
                   </h3>
                   {nextBook?.author && (
