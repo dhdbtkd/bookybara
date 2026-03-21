@@ -13,6 +13,8 @@ import MemberMultiSelect from "@/components/member-multi-select";
 import DatePicker from "@/components/date-picker";
 import CategorySelect from "@/components/category-select";
 import ConfirmModal from "@/components/confirm-modal";
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 import {
   LayoutDashboard, CalendarDays, BookOpen, Users, BookMarked,
   FileText, Megaphone, Sparkles, LogOut, Plus, Trash2,
@@ -112,6 +114,7 @@ export default function AdminDashboard() {
   const [annForm, setAnnForm] = useState({ title: "", content: "", is_pinned: false });
   const [selectedMeetingId, setSelectedMeetingId] = useState("");
   const [newMeetingBookModalOpen, setNewMeetingBookModalOpen] = useState(false);
+  const [booksLoading, setBooksLoading] = useState(true);
 
   async function loadAll() {
     const [b, cat, mem, m, r, a, c, d] = await Promise.all([
@@ -126,6 +129,7 @@ export default function AdminDashboard() {
     ]);
     setBooks(b); setCategories(cat); setMembers(mem); setMeetings(m);
     setReviews(r); setAnnouncements(a); setCandidates(c); setDiscussions(d);
+    setBooksLoading(false);
   }
 
   useEffect(() => { loadAll(); }, []);
@@ -781,7 +785,19 @@ export default function AdminDashboard() {
             <div>
               <p className="text-xs font-bold tracking-widest uppercase text-neutral-400 mb-3">등록된 도서 ({books.length})</p>
               <div className="space-y-2">
-                {books.map((b) => (
+                {booksLoading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl border border-[#E8DDD0] bg-white">
+                      <Skeleton width={36} height={52} borderRadius={6} />
+                      <div className="flex-1">
+                        <Skeleton width="50%" height={14} />
+                        <Skeleton width="30%" height={12} style={{ marginTop: 6 }} />
+                      </div>
+                    </div>
+                  ))
+                ) : books.length === 0 ? (
+                  <EmptyState text="등록된 도서가 없습니다." />
+                ) : books.map((b) => (
                   <BookAdminRow
                     key={b.id}
                     book={b}
@@ -793,7 +809,6 @@ export default function AdminDashboard() {
                     }}
                   />
                 ))}
-                {books.length === 0 && <EmptyState text="등록된 도서가 없습니다." />}
               </div>
             </div>
           </div>
