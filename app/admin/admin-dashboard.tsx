@@ -526,7 +526,7 @@ export default function AdminDashboard() {
               </Button>
 
             <Dialog open={categoryModalOpen} onOpenChange={setCategoryModalOpen}>
-              <DialogContent className="max-w-sm">
+              <DialogContent className="max-w-md">
                 <DialogHeader>
                   <DialogTitle>카테고리 관리</DialogTitle>
                 </DialogHeader>
@@ -566,7 +566,7 @@ export default function AdminDashboard() {
               }
               setBookModalOpen(open);
             }}>
-              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>새 도서 등록</DialogTitle>
                 </DialogHeader>
