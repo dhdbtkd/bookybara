@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default async function CandidatesPage() {
   const supabase = await createClient();
 
-  const [{ data: books }, { data: candidates }] = await Promise.all([
+  const [{ data: books }, { data: candidates }, { data: members }] = await Promise.all([
     supabase
       .from("books")
       .select("id, title, author, cover_url, description, meetings(id, date, title)")
@@ -15,6 +15,7 @@ export default async function CandidatesPage() {
       .from("book_candidates")
       .select("*")
       .order("created_at", { ascending: false }),
+    supabase.from("members").select("id, name").order("name"),
   ]);
 
   const today = new Date().toISOString().split("T")[0];
@@ -46,6 +47,7 @@ export default async function CandidatesPage() {
         <BooksView
           readBooks={readBooks}
           candidates={(candidates ?? []) as any}
+          members={(members ?? []) as { id: number; name: string }[]}
         />
       </div>
     </div>

@@ -48,9 +48,11 @@ const EMPTY_FORM = { title: "", author: "", proposed_by: "", notes: "" };
 export default function BooksView({
   readBooks,
   candidates,
+  members,
 }: {
   readBooks: ReadBook[];
   candidates: Candidate[];
+  members: { id: number; name: string }[];
 }) {
   const [tab, setTab] = useState<"read" | "candidates">("read");
   const [modalOpen, setModalOpen] = useState(false);
@@ -325,12 +327,11 @@ export default function BooksView({
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs">제안자 이름 *</Label>
-              <Input
+              <Label className="text-xs">제안자 *</Label>
+              <ProposerPicker
+                members={members}
                 value={form.proposed_by}
-                onChange={(e) => setForm((p) => ({ ...p, proposed_by: e.target.value }))}
-                placeholder="이름"
-                maxLength={20}
+                onChange={(v) => setForm((p) => ({ ...p, proposed_by: v }))}
               />
             </div>
             <div className="space-y-1.5">
@@ -385,6 +386,71 @@ function CandidateRow({ candidate: c }: { candidate: Candidate }) {
           {c.proposed_by} · {format(new Date(c.created_at), "M월 d일", { locale: ko })}
         </p>
       </div>
+    </div>
+  );
+}
+
+function ProposerPicker({
+  members,
+  value,
+  onChange,
+}: {
+  members: { id: number; name: string }[];
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [custom, setCustom] = useState(false);
+
+  if (members.length > 0 && !custom) {
+    return (
+      <div className="space-y-2">
+        <div className="flex flex-wrap gap-2">
+          {members.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => onChange(m.name)}
+              className={cn(
+                "px-3 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer",
+                value === m.name
+                  ? "bg-[#1C1A17] text-white border-[#1C1A17]"
+                  : "bg-white text-neutral-400 border-neutral-200 hover:border-neutral-400 hover:text-neutral-600"
+              )}
+            >
+              {m.name}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() => { onChange(""); setCustom(true); }}
+          className="text-xs text-neutral-400 hover:text-neutral-600 underline underline-offset-2 cursor-pointer"
+        >
+          목록에 없어요 (직접 입력)
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <Input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="이름 입력"
+        maxLength={20}
+        autoFocus
+        className="focus-visible:ring-neutral-900"
+      />
+      {members.length > 0 && (
+        <button
+          type="button"
+          onClick={() => { onChange(""); setCustom(false); }}
+          className="text-xs text-neutral-400 hover:text-neutral-600 underline underline-offset-2 cursor-pointer"
+        >
+          멤버 목록에서 선택
+        </button>
+      )}
     </div>
   );
 }
