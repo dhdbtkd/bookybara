@@ -628,6 +628,9 @@ export default function AdminDashboard() {
                       <Input value={bookForm.author} onChange={(e) => setBookForm((p) => ({ ...p, author: e.target.value }))} placeholder="저자" />
                     </Field>
                   </div>
+                  {bookForm.isbn && (
+                    <p className="text-xs text-neutral-400">ISBN: <span className="font-mono">{bookForm.isbn}</span></p>
+                  )}
                   <Field label="표지 URL">
                     <Input value={bookForm.cover_url} onChange={(e) => setBookForm((p) => ({ ...p, cover_url: e.target.value }))} placeholder="https://..." />
                   </Field>
