@@ -24,12 +24,13 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 
-type Book = { id: number; title: string; author: string; cover_url: string | null; category_id: number | null };
+type Book = { id: number; title: string; author: string; cover_url: string | null; cover_url_hires: string | null; description: string | null; category_id: number | null };
 type Category = { id: number; name: string; color: string };
 type Member = { id: number; name: string };
+type BookBasic = { id: number; title: string; author: string; cover_url: string | null; cover_url_hires: string | null };
 type Meeting = {
   id: number; title: string; date: string; location: string | null;
-  book_id: number | null; books: { title: string } | null;
+  books: BookBasic[];
   attendees?: { id: number; name: string; member_id: number | null }[];
 };
 type Review = { id: number; author_name: string; content: string; books: { title: string } | null };
@@ -99,6 +100,7 @@ export default function AdminDashboard() {
     kakao: { thumbnail: string | null; description: string | null };
     naver: { hiresUrl: string | null; description: string | null } | null;
     naverKeyMissing: boolean;
+    naverError?: string;
     google: { hiresUrl: string | null; description: string | null } | null;
     kyobo: { hiresUrl: string | null } | null;
   };
@@ -108,8 +110,10 @@ export default function AdminDashboard() {
   const bookSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [newCategoryName, setNewCategoryName] = useState("");
   const [newCategoryColor, setNewCategoryColor] = useState("#6B7280");
+  const [editingCategoryId, setEditingCategoryId] = useState<number | null>(null);
+  const [editCategoryForm, setEditCategoryForm] = useState({ name: "", color: "#6B7280" });
   const [newMemberName, setNewMemberName] = useState("");
-  const [meetingForm, setMeetingForm] = useState({ title: "", date: "", location: "", book_id: "" });
+  const [meetingForm, setMeetingForm] = useState({ title: "", date: "", location: "", book_ids: [] as number[] });
   const [meetingAttendees, setMeetingAttendees] = useState<number[]>([]);
   const [annForm, setAnnForm] = useState({ title: "", content: "", is_pinned: false });
   const [selectedMeetingId, setSelectedMeetingId] = useState("");
@@ -152,6 +156,12 @@ export default function AdminDashboard() {
       await fetch(`/api/categories/${id}`, { method: "DELETE" });
       toast.success("삭제 완료"); loadAll();
     });
+  }
+  async function updateCategory(id: number) {
+    if (!editCategoryForm.name.trim()) return;
+    const res = await fetch(`/api/categories/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: editCategoryForm.name, color: editCategoryForm.color }) });
+    if (res.ok) { toast.success("수정 완료"); setEditingCategoryId(null); loadAll(); }
+    else { const { error } = await res.json(); toast.error(error); }
   }
 
   // ── Books ──
@@ -196,6 +206,7 @@ export default function AdminDashboard() {
           kakao: { thumbnail: book.thumbnail, description: book.description },
           naver: data.naver,
           naverKeyMissing: !!data.naverKeyMissing,
+          naverError: data.naverError,
           google: data.google,
           kyobo: data.kyobo,
         });
@@ -265,7 +276,7 @@ export default function AdminDashboard() {
   // ── Meetings ──
   async function addMeeting(e: React.FormEvent) {
     e.preventDefault();
-    const body = { ...meetingForm, book_id: meetingForm.book_id ? Number(meetingForm.book_id) : null };
+    const body = { title: meetingForm.title, date: meetingForm.date, location: meetingForm.location || null, book_ids: meetingForm.book_ids };
     const res = await fetch("/api/meetings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     if (!res.ok) { const { error } = await res.json(); toast.error(error); return; }
     const meeting = await res.json();
@@ -273,7 +284,7 @@ export default function AdminDashboard() {
       await fetch(`/api/meetings/${meeting.id}/attendees`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ member_ids: meetingAttendees }) });
     }
     toast.success("일정 등록 완료");
-    setMeetingForm({ title: "", date: "", location: "", book_id: "" });
+    setMeetingForm({ title: "", date: "", location: "", book_ids: [] });
     setMeetingAttendees([]);
     loadAll();
   }
@@ -283,12 +294,16 @@ export default function AdminDashboard() {
       toast.success("삭제 완료"); loadAll();
     });
   }
+  async function saveMeetingInfo(id: number, fields: { title?: string; date?: string }) {
+    await fetch(`/api/meetings/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(fields) });
+    loadAll();
+  }
   async function saveMeetingSummary(id: number, summary: string) {
     await fetch(`/api/meetings/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ summary }) });
     loadAll();
   }
-  async function saveMeetingBook(meetingId: number, bookId: number | null) {
-    await fetch(`/api/meetings/${meetingId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ book_id: bookId }) });
+  async function saveMeetingBooks(meetingId: number, bookIds: number[]) {
+    await fetch(`/api/meetings/${meetingId}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ book_ids: bookIds }) });
     loadAll();
   }
   async function saveMeetingAttendees(meetingId: number, memberIds: number[]) {
@@ -336,7 +351,7 @@ export default function AdminDashboard() {
 
   const today = new Date().toISOString().split("T")[0];
   const upcomingMeetings = meetings.filter((m) => m.date >= today);
-  const selectedNewMeetingBook = books.find((b) => String(b.id) === meetingForm.book_id);
+  const selectedNewMeetingBooks = books.filter((b) => meetingForm.book_ids.includes(b.id));
 
   return (
     <>
@@ -478,27 +493,27 @@ export default function AdminDashboard() {
                   </Field>
                 </div>
                 <Field label="읽는 책">
-                  <button
-                    type="button"
-                    onClick={() => setNewMeetingBookModalOpen(true)}
-                    className="w-full flex items-center gap-2 border rounded-md px-3 py-2 text-sm text-left hover:bg-neutral-50 transition-colors cursor-pointer"
-                  >
-                    {selectedNewMeetingBook ? (
-                      <>
-                        {selectedNewMeetingBook.cover_url && (
-                          <img src={selectedNewMeetingBook.cover_url} className="w-6 h-8 object-cover rounded-sm flex-shrink-0" alt="" />
-                        )}
-                        <span className="flex-1 truncate">{selectedNewMeetingBook.title}</span>
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); setMeetingForm((p) => ({ ...p, book_id: "" })); }}
-                          className="text-neutral-400 hover:text-neutral-600 flex-shrink-0 text-xs"
-                        >✕</button>
-                      </>
-                    ) : (
-                      <span className="text-neutral-400">책 선택 (선택사항)</span>
+                  <div className="space-y-1.5">
+                    {selectedNewMeetingBooks.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {selectedNewMeetingBooks.map((b) => (
+                          <span key={b.id} className="flex items-center gap-1 text-xs bg-[#F0EAE0] text-[#1C1A17] rounded-full px-2.5 py-1">
+                            {b.title}
+                            <button type="button" onClick={() => setMeetingForm((p) => ({ ...p, book_ids: p.book_ids.filter((id) => id !== b.id) }))} className="text-neutral-400 hover:text-neutral-700 cursor-pointer ml-0.5">✕</button>
+                          </span>
+                        ))}
+                      </div>
                     )}
-                  </button>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setNewMeetingBookModalOpen(true)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setNewMeetingBookModalOpen(true); }}
+                      className="w-full flex items-center gap-2 border rounded-md px-3 py-2 text-sm text-left hover:bg-neutral-50 transition-colors cursor-pointer"
+                    >
+                      <span className="text-neutral-400">{selectedNewMeetingBooks.length > 0 ? "책 추가..." : "책 선택 (선택사항)"}</span>
+                    </div>
+                  </div>
                 </Field>
                 <Field label="참석자">
                   <MemberMultiSelect members={members} selected={meetingAttendees} onChange={setMeetingAttendees} />
@@ -519,9 +534,10 @@ export default function AdminDashboard() {
                     members={members}
                     books={books}
                     onDelete={() => deleteMeeting(m.id)}
+                    onSaveInfo={(fields) => saveMeetingInfo(m.id, fields)}
                     onSaveSummary={(s) => saveMeetingSummary(m.id, s)}
                     onSaveAttendees={(ids) => saveMeetingAttendees(m.id, ids)}
-                    onSaveBook={(bookId) => saveMeetingBook(m.id, bookId)}
+                    onSaveBooks={(bookIds) => saveMeetingBooks(m.id, bookIds)}
                   />
                 ))}
                 {meetings.length === 0 && <EmptyState text="등록된 모임이 없습니다." />}
@@ -550,7 +566,7 @@ export default function AdminDashboard() {
               </Button>
 
             <Dialog open={categoryModalOpen} onOpenChange={setCategoryModalOpen}>
-              <DialogContent className="max-w-md">
+              <DialogContent className="sm:max-w-md">
                 <DialogHeader>
                   <DialogTitle>카테고리 관리</DialogTitle>
                 </DialogHeader>
@@ -560,12 +576,28 @@ export default function AdminDashboard() {
                   <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="카테고리 이름" className="flex-1" maxLength={20} />
                   <Button type="submit" size="sm" className="bg-[#1C1A17] hover:bg-[#8B3A2A] cursor-pointer">추가</Button>
                 </form>
-                <div className="flex flex-wrap gap-2 mt-1">
+                <div className="flex flex-col gap-1.5 mt-1">
                   {categories.map((c) => (
-                    <div key={c.id} className="flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium" style={{ backgroundColor: c.color + "22", color: c.color }}>
-                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
-                      {c.name}
-                      <button onClick={() => deleteCategory(c.id)} className="ml-1 opacity-50 hover:opacity-100 cursor-pointer text-xs leading-none">✕</button>
+                    <div key={c.id}>
+                      {editingCategoryId === c.id ? (
+                        <div className="flex gap-2 items-center">
+                          <input type="color" value={editCategoryForm.color} onChange={(e) => setEditCategoryForm((p) => ({ ...p, color: e.target.value }))}
+                            className="w-8 h-8 rounded border cursor-pointer flex-shrink-0 p-0.5" />
+                          <Input value={editCategoryForm.name} onChange={(e) => setEditCategoryForm((p) => ({ ...p, name: e.target.value }))} className="flex-1 h-8 text-sm" maxLength={20}
+                            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); updateCategory(c.id); } if (e.key === "Escape") setEditingCategoryId(null); }} autoFocus />
+                          <Button type="button" size="sm" onClick={() => updateCategory(c.id)} className="bg-[#1C1A17] hover:bg-[#8B3A2A] cursor-pointer h-8 px-3 text-xs">저장</Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditingCategoryId(null)} className="cursor-pointer h-8 px-2 text-xs">취소</Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 rounded-lg px-3 py-1.5 hover:bg-neutral-50 group">
+                          <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: c.color }} />
+                          <span className="flex-1 text-sm font-medium" style={{ color: c.color }}>{c.name}</span>
+                          <button onClick={() => { setEditingCategoryId(c.id); setEditCategoryForm({ name: c.name, color: c.color }); }}
+                            className="opacity-0 group-hover:opacity-60 hover:!opacity-100 cursor-pointer text-xs text-neutral-500 transition-opacity">수정</button>
+                          <button onClick={() => deleteCategory(c.id)}
+                            className="opacity-0 group-hover:opacity-40 hover:!opacity-100 cursor-pointer text-xs text-neutral-400 transition-opacity">✕</button>
+                        </div>
+                      )}
                     </div>
                   ))}
                   {categories.length === 0 && <p className="text-sm text-neutral-400">등록된 카테고리가 없습니다.</p>}
@@ -750,7 +782,9 @@ export default function AdminDashboard() {
                                     ? <span className="ml-2 text-amber-500">API 키 없음 (NAVER_CLIENT_ID/SECRET)</span>
                                     : desc
                                       ? <span className="ml-2 text-neutral-500 line-clamp-1">{desc}</span>
-                                      : <span className="ml-2 text-neutral-300">없음</span>
+                                      : key === "naver" && bookSources.naverError
+                                        ? <span className="ml-2 text-red-400 line-clamp-1" title={bookSources.naverError}>오류: {bookSources.naverError}</span>
+                                        : <span className="ml-2 text-neutral-300">없음</span>
                                   }
                                 </button>
                               );
@@ -765,7 +799,18 @@ export default function AdminDashboard() {
                     <Textarea value={bookForm.description} onChange={(e) => setBookForm((p) => ({ ...p, description: e.target.value }))} rows={3} className="resize-none" />
                   </Field>
                   <Field label="카테고리 *">
-                    <CategorySelect categories={categories} value={bookForm.category_id} onChange={(v) => setBookForm((p) => ({ ...p, category_id: v }))} />
+                    <CategorySelect
+                      categories={categories}
+                      value={bookForm.category_id}
+                      onChange={(v) => setBookForm((p) => ({ ...p, category_id: v }))}
+                      onAddCategory={async (name, color) => {
+                        const res = await fetch("/api/categories", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, color }) });
+                        if (!res.ok) { const { error } = await res.json(); toast.error(error); return null; }
+                        const created = await res.json();
+                        await loadAll();
+                        return created;
+                      }}
+                    />
                   </Field>
                 </div>
                 <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t border-neutral-100 mt-2">
@@ -806,6 +851,7 @@ export default function AdminDashboard() {
                     onSave={async (updates) => {
                       const res = await fetch(`/api/books/${b.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(updates) });
                       if (!res.ok) { const { error } = await res.json(); toast.error(error); }
+                      else { loadAll(); }
                     }}
                   />
                 ))}
@@ -1015,8 +1061,8 @@ export default function AdminDashboard() {
       <BookPickerModal
         open={newMeetingBookModalOpen}
         books={books}
-        selectedBookId={meetingForm.book_id}
-        onSelect={(id) => { setMeetingForm((p) => ({ ...p, book_id: id ? String(id) : "" })); setNewMeetingBookModalOpen(false); }}
+        selectedBookIds={meetingForm.book_ids}
+        onSelect={(id) => { setMeetingForm((p) => ({ ...p, book_ids: p.book_ids.includes(id) ? p.book_ids.filter((x) => x !== id) : [...p.book_ids, id] })); }}
         onClose={() => setNewMeetingBookModalOpen(false)}
       />
     </div>
@@ -1026,12 +1072,12 @@ export default function AdminDashboard() {
 
 // ── Book picker modal ──
 function BookPickerModal({
-  open, books, selectedBookId, onSelect, onClose,
+  open, books, selectedBookIds, onSelect, onClose,
 }: {
   open: boolean;
   books: Book[];
-  selectedBookId: string;
-  onSelect: (id: number | null) => void;
+  selectedBookIds: number[];
+  onSelect: (id: number) => void;
   onClose: () => void;
 }) {
   const [query, setQuery] = useState("");
@@ -1043,9 +1089,9 @@ function BookPickerModal({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-xl max-h-[80vh] flex flex-col gap-4">
+      <DialogContent className="sm:max-w-xl max-h-[80vh] flex flex-col gap-4">
         <DialogHeader>
-          <DialogTitle>책 선택</DialogTitle>
+          <DialogTitle>책 선택 (복수 선택 가능)</DialogTitle>
         </DialogHeader>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
@@ -1063,7 +1109,7 @@ function BookPickerModal({
           ) : (
             <div className="grid grid-cols-2 gap-2 pb-1">
               {filtered.map((b) => {
-                const isSelected = String(b.id) === selectedBookId;
+                const isSelected = selectedBookIds.includes(b.id);
                 return (
                   <button
                     key={b.id}
@@ -1077,8 +1123,8 @@ function BookPickerModal({
                     )}
                   >
                     <div className="w-10 h-14 flex-shrink-0 rounded overflow-hidden bg-[#F0EAE0] shadow-sm">
-                      {b.cover_url
-                        ? <img src={b.cover_url} alt={b.title} className="w-full h-full object-cover" />
+                      {b.cover_url_hires ?? b.cover_url
+                        ? <img src={b.cover_url_hires ?? b.cover_url!} alt={b.title} className="w-full h-full object-cover" />
                         : <div className="w-full h-full flex items-center justify-center"><BookCopy className="w-4 h-4 text-[#C8BEB4]" /></div>}
                     </div>
                     <div className="flex-1 min-w-0 pr-5">
@@ -1096,15 +1142,8 @@ function BookPickerModal({
             </div>
           )}
         </div>
-        <div className="pt-2 border-t border-[#F0EAE0] flex justify-between items-center">
-          <button
-            type="button"
-            onClick={() => onSelect(null)}
-            className="text-sm text-neutral-400 hover:text-neutral-600 transition-colors cursor-pointer"
-          >
-            선택 해제
-          </button>
-          <Button variant="outline" onClick={onClose} className="cursor-pointer">닫기</Button>
+        <div className="pt-2 border-t border-[#F0EAE0] flex justify-end items-center">
+          <Button variant="outline" onClick={onClose} className="cursor-pointer">확인</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -1167,20 +1206,24 @@ function SavedIndicator({ saved }: { saved: boolean }) {
 
 // ── Meeting row ──
 function MeetingAdminRow({
-  meeting, members, books, onDelete, onSaveSummary, onSaveAttendees, onSaveBook,
+  meeting, members, books, onDelete, onSaveInfo, onSaveSummary, onSaveAttendees, onSaveBooks,
 }: {
   meeting: Meeting; members: Member[]; books: Book[];
   onDelete: () => void;
+  onSaveInfo: (fields: { title?: string; date?: string }) => Promise<void>;
   onSaveSummary: (s: string) => Promise<void>;
   onSaveAttendees: (ids: number[]) => Promise<void>;
-  onSaveBook: (bookId: number | null) => Promise<void>;
+  onSaveBooks: (bookIds: number[]) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [currentTitle, setCurrentTitle] = useState(meeting.title);
+  const [currentDate, setCurrentDate] = useState(meeting.date);
   const [summary, setSummary] = useState("");
   const [currentAttendees, setCurrentAttendees] = useState<number[]>([]);
-  const [currentBookId, setCurrentBookId] = useState<number | null>(meeting.book_id);
+  const [currentBookIds, setCurrentBookIds] = useState<number[]>(meeting.books.map((b) => b.id));
   const [bookModalOpen, setBookModalOpen] = useState(false);
 
+  const [infoSaved, setInfoSaved] = useState(false);
   const [summarySaved, setSummarySaved] = useState(false);
   const [attendeesSaved, setAttendeesSaved] = useState(false);
   const [bookSaved, setBookSaved] = useState(false);
@@ -1188,8 +1231,16 @@ function MeetingAdminRow({
   useEffect(() => {
     const ids = (meeting.attendees ?? []).filter((a) => a.member_id != null).map((a) => a.member_id!);
     setCurrentAttendees(ids);
-    setCurrentBookId(meeting.book_id);
+    setCurrentBookIds(meeting.books.map((b) => b.id));
+    setCurrentTitle(meeting.title);
+    setCurrentDate(meeting.date);
   }, [meeting]);
+
+  const debouncedSaveInfo = useDebouncedCallback(async (title: string, date: string) => {
+    await onSaveInfo({ title, date });
+    setInfoSaved(true);
+    setTimeout(() => setInfoSaved(false), 2000);
+  }, 800);
 
   const debouncedSaveSummary = useDebouncedCallback(async (val: string) => {
     await onSaveSummary(val);
@@ -1208,27 +1259,29 @@ function MeetingAdminRow({
     debouncedSaveAttendees(ids);
   }
 
-  async function handleBookSelect(bookId: number | null) {
-    setCurrentBookId(bookId);
-    setBookModalOpen(false);
-    await onSaveBook(bookId);
+  async function handleBookToggle(bookId: number) {
+    const next = currentBookIds.includes(bookId)
+      ? currentBookIds.filter((id) => id !== bookId)
+      : [...currentBookIds, bookId];
+    setCurrentBookIds(next);
+    await onSaveBooks(next);
     setBookSaved(true);
     setTimeout(() => setBookSaved(false), 2000);
   }
 
-  const currentBook = books.find((b) => b.id === currentBookId);
+  const currentBooks = books.filter((b) => currentBookIds.includes(b.id));
 
   return (
     <div className="bg-white rounded-xl border border-[#E8DDD0] overflow-visible">
       <div className="flex items-center gap-3 px-4 py-3">
         <button className="flex-1 text-left flex items-center gap-3 cursor-pointer min-w-0" onClick={() => setExpanded((p) => !p)}>
           <div className="w-2 h-2 rounded-full bg-[#8B3A2A] flex-shrink-0" />
-          <span className="font-medium text-sm text-[#1C1A17] truncate">{meeting.title}</span>
+          <span className="font-medium text-sm text-[#1C1A17] truncate">{currentTitle}</span>
           <span className="text-xs text-neutral-400 flex-shrink-0">
-            {format(new Date(meeting.date), "M/d (EEE)", { locale: ko })}
+            {format(new Date(currentDate + "T00:00:00"), "yyyy년 M/d (EEE)", { locale: ko })}
           </span>
-          {currentBook
-            ? <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#F0EAE0] text-[#8B7B6B] flex-shrink-0">{currentBook.title}</span>
+          {currentBooks.length > 0
+            ? currentBooks.map((b) => <span key={b.id} className="text-[10px] px-2 py-0.5 rounded-full bg-[#F0EAE0] text-[#8B7B6B] flex-shrink-0">{b.title}</span>)
             : <span className="text-[10px] text-neutral-300 flex-shrink-0">책 미지정</span>}
         </button>
         <div className="flex items-center gap-1 flex-shrink-0">
@@ -1243,31 +1296,48 @@ function MeetingAdminRow({
 
       {expanded && (
         <div className="border-t border-[#F0EAE0] px-4 py-4 bg-[#FDFAF7] space-y-5 rounded-b-xl">
+          {/* 모임명 + 날짜 */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-bold tracking-widest uppercase text-neutral-400">모임 정보</p>
+              <SavedIndicator saved={infoSaved} />
+            </div>
+            <div className="grid grid-cols-[1fr_160px] gap-2">
+              <Input
+                value={currentTitle}
+                onChange={(e) => { setCurrentTitle(e.target.value); debouncedSaveInfo(e.target.value, currentDate); }}
+                placeholder="모임 이름"
+                className="text-sm bg-white"
+              />
+              <DatePicker
+                value={currentDate}
+                onChange={(v) => { setCurrentDate(v); debouncedSaveInfo(currentTitle, v); }}
+              />
+            </div>
+          </div>
+
           {/* 책 선택 */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-bold tracking-widest uppercase text-neutral-400">읽는 책</p>
               <SavedIndicator saved={bookSaved} />
             </div>
+            {currentBooks.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {currentBooks.map((b) => (
+                  <span key={b.id} className="flex items-center gap-1 text-xs bg-[#F0EAE0] text-[#1C1A17] rounded-full px-2.5 py-1">
+                    {b.title}
+                    <button type="button" onClick={() => handleBookToggle(b.id)} className="text-neutral-400 hover:text-neutral-700 cursor-pointer ml-0.5">✕</button>
+                  </span>
+                ))}
+              </div>
+            )}
             <button
               type="button"
               onClick={() => setBookModalOpen(true)}
               className="w-full flex items-center gap-2.5 border rounded-lg px-3 py-2.5 text-sm text-left hover:bg-white transition-colors cursor-pointer bg-white/60"
             >
-              {currentBook ? (
-                <>
-                  {currentBook.cover_url && (
-                    <img src={currentBook.cover_url} className="w-7 h-10 object-cover rounded flex-shrink-0" alt="" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[#1C1A17] text-sm truncate">{currentBook.title}</p>
-                    <p className="text-xs text-neutral-400 truncate">{currentBook.author}</p>
-                  </div>
-                  <span className="text-xs text-[#8B3A2A] flex-shrink-0">변경</span>
-                </>
-              ) : (
-                <span className="text-neutral-400 text-xs">책 선택 (클릭하여 변경)</span>
-              )}
+              <span className="text-neutral-400 text-xs">{currentBooks.length > 0 ? "책 추가..." : "책 선택 (클릭하여 변경)"}</span>
             </button>
           </div>
 
@@ -1300,8 +1370,8 @@ function MeetingAdminRow({
       <BookPickerModal
         open={bookModalOpen}
         books={books}
-        selectedBookId={currentBookId ? String(currentBookId) : ""}
-        onSelect={handleBookSelect}
+        selectedBookIds={currentBookIds}
+        onSelect={handleBookToggle}
         onClose={() => setBookModalOpen(false)}
       />
     </div>
@@ -1319,7 +1389,7 @@ function BookAdminRow({
   const [expanded, setExpanded] = useState(false);
   const [form, setForm] = useState({
     title: book.title, author: book.author,
-    cover_url: book.cover_url ?? "", description: "",
+    cover_url: book.cover_url ?? "", description: book.description ?? "",
     category_id: String(book.category_id ?? ""),
   });
   const [saved, setSaved] = useState(false);
@@ -1348,8 +1418,8 @@ function BookAdminRow({
     <div className="bg-white rounded-xl border border-[#E8DDD0] overflow-visible">
       <div className="flex items-center gap-3 px-4 py-3">
         <div className="w-9 h-[52px] flex-shrink-0 rounded-md overflow-hidden bg-[#F0EAE0] shadow-sm">
-          {book.cover_url
-            ? <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover" />
+          {book.cover_url_hires ?? book.cover_url
+            ? <img src={book.cover_url_hires ?? book.cover_url!} alt={book.title} className="w-full h-full object-cover" />
             : <div className="w-full h-full flex items-center justify-center"><BookCopy className="w-4 h-4 text-[#C8BEB4]" /></div>}
         </div>
         <div className="flex-1 min-w-0">
