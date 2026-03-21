@@ -100,6 +100,31 @@ export default function AdminDiscussionGenerator({
   const [meetingPickerOpen, setMeetingPickerOpen] = useState(false);
   const [meetingSearch, setMeetingSearch] = useState("");
 
+  // 환율
+  const [currencyKRW, setCurrencyKRW] = useState(false);
+  const [usdToKrw, setUsdToKrw] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!currencyKRW || usdToKrw !== null) return;
+    fetch("https://open.er-api.com/v6/latest/USD")
+      .then((r) => r.json())
+      .then((data) => setUsdToKrw(data?.rates?.KRW ?? null))
+      .catch(() => setUsdToKrw(null));
+  }, [currencyKRW, usdToKrw]);
+
+  function formatCost(usd: number): string {
+    if (!currencyKRW || usdToKrw === null) {
+      return usd < 0.001 ? "<$0.001" : `$${usd.toFixed(4)}`;
+    }
+    const krw = usd * usdToKrw;
+    return krw < 1 ? "<₩1" : `₩${Math.round(krw).toLocaleString()}`;
+  }
+
+  function formatInputPrice(usdPerMTok: number): string {
+    if (!currencyKRW || usdToKrw === null) return `$${usdPerMTok}/MTok`;
+    return `₩${Math.round(usdPerMTok * usdToKrw).toLocaleString()}/MTok`;
+  }
+
   // 프롬프트 미리보기 모달
   const [previewOpen, setPreviewOpen] = useState(false);
 
@@ -257,7 +282,20 @@ export default function AdminDiscussionGenerator({
 
         {/* 3. Provider + Model */}
         <div className="p-5 border-b border-[#F0EAE0]">
-          <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-400 mb-3">3. AI 설정</p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-400">3. AI 설정</p>
+            <button
+              type="button"
+              onClick={() => setCurrencyKRW((v) => !v)}
+              className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase px-2 py-1 rounded-md border border-neutral-200 hover:border-neutral-400 transition-colors cursor-pointer text-neutral-500"
+            >
+              {currencyKRW ? "₩ KRW" : "$ USD"}
+              {currencyKRW && usdToKrw === null && <span className="text-neutral-300 ml-1">로딩중</span>}
+              {currencyKRW && usdToKrw !== null && (
+                <span className="text-neutral-300 ml-1 normal-case font-normal">≈{Math.round(usdToKrw).toLocaleString()}원</span>
+              )}
+            </button>
+          </div>
           <div className="space-y-4">
             {/* Provider 탭 */}
             <div className="flex gap-1 bg-neutral-100 rounded-lg p-1 w-fit">
@@ -319,11 +357,11 @@ export default function AdminDiscussionGenerator({
                     <div className="flex items-center gap-3 flex-shrink-0 ml-3">
                       <div className="text-right">
                         <p className={cn("text-[10px]", isSelected ? "text-white/60" : "text-neutral-400")}>
-                          입력 ${m.inputPrice}/MTok
+                          입력 {formatInputPrice(m.inputPrice)}
                         </p>
                         {reviewsText.length > 0 && (
                           <p className={cn("text-[11px] font-semibold", isSelected ? "text-white" : "text-[#8B3A2A]")}>
-                            ≈ ${cost < 0.001 ? "<0.001" : cost.toFixed(4)}
+                            ≈ {formatCost(cost)}
                           </p>
                         )}
                       </div>
