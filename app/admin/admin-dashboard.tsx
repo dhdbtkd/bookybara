@@ -515,14 +515,15 @@ export default function AdminDashboard() {
               description="도서와 카테고리를 등록하고 관리합니다."
             />
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setCategoryModalOpen(true)}
-              className="cursor-pointer"
-            >
-              카테고리 관리
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCategoryModalOpen(true)}
+                className="cursor-pointer"
+              >
+                카테고리 관리
+              </Button>
 
             <Dialog open={categoryModalOpen} onOpenChange={setCategoryModalOpen}>
               <DialogContent className="max-w-sm">
@@ -548,13 +549,14 @@ export default function AdminDashboard() {
               </DialogContent>
             </Dialog>
 
-            <Button
-              type="button"
-              onClick={() => setBookModalOpen(true)}
-              className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer"
-            >
-              <Plus className="w-4 h-4 mr-1.5" /> 새 도서 등록
-            </Button>
+              <Button
+                type="button"
+                onClick={() => setBookModalOpen(true)}
+                className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer"
+              >
+                <Plus className="w-4 h-4 mr-1.5" /> 새 도서 등록
+              </Button>
+            </div>
 
             <Dialog open={bookModalOpen} onOpenChange={(open) => {
               if (!open) {
