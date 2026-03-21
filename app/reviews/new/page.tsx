@@ -116,7 +116,7 @@ function NewReviewForm() {
     const book = bookRaw ? (Array.isArray(bookRaw) ? bookRaw[0] : bookRaw) : null;
 
     return (
-      <div className="max-w-2xl mx-auto flex flex-col flex-1 min-h-0 gap-4">
+      <div className="w-full flex flex-col flex-1 min-h-0 gap-4">
         {/* 헤더 */}
         <div className="flex items-center gap-2">
           <button onClick={() => router.back()} className="p-1 text-neutral-400 hover:text-neutral-700 cursor-pointer transition-colors">
@@ -259,7 +259,7 @@ function NewReviewForm() {
   const selectedBook = books.find((b) => String(b.id) === selectedBookId);
 
   return (
-    <div className="max-w-2xl mx-auto flex flex-col flex-1 min-h-0 gap-4">
+    <div className="w-full flex flex-col flex-1 min-h-0 gap-4">
       {/* 선택 책 헤더 */}
       <button type="button" onClick={() => setStep("book")} className="w-full text-left cursor-pointer group flex-shrink-0">
         <div className="flex items-center gap-3 p-3 rounded-xl border border-neutral-100 bg-white hover:border-neutral-200 transition-colors">
