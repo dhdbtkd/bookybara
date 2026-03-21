@@ -35,7 +35,7 @@ export default async function MeetingsPage() {
         </p>
         <h1 className="text-[2.8rem] leading-tight text-[#1C1A17] font-bold">모임 일정</h1>
         <p className="text-sm text-[#6B5E52] mt-3 max-w-md leading-relaxed">
-          우리의 문학적 여정을 함께 계획하세요. 매월 선정된 도서와 깊이 있는 토론의 시간을 기록합니다.
+          모임 일정과 지난 기록을 확인하세요.
         </p>
       </div>
 
