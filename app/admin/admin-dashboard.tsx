@@ -89,6 +89,7 @@ export default function AdminDashboard() {
   type BookSources = {
     kakao: { thumbnail: string | null; description: string | null };
     naver: { hiresUrl: string | null; description: string | null } | null;
+    naverKeyMissing: boolean;
     google: { hiresUrl: string | null; description: string | null } | null;
   };
   const [bookSources, setBookSources] = useState<BookSources | null>(null);
@@ -181,6 +182,7 @@ export default function AdminDashboard() {
         setBookSources({
           kakao: { thumbnail: book.thumbnail, description: book.description },
           naver: data.naver,
+          naverKeyMissing: !!data.naverKeyMissing,
           google: data.google,
         });
         // 자동 선택: 소개는 가장 긴 것, 이미지는 첫 번째로 있는 것
@@ -616,20 +618,24 @@ export default function AdminDashboard() {
                           {sources.map(({ key, label }) => {
                             const url = getImg(key);
                             const selected = selectedCoverSource === key;
+                            const keyMissing = key === "naver" && bookSources.naverKeyMissing;
                             return (
                               <button
                                 key={key}
                                 type="button"
+                                disabled={keyMissing}
                                 onClick={() => {
                                   setSelectedCoverSource(key);
                                   applySelection(key, selectedDescSource);
                                 }}
-                                className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border-2 transition-colors cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent hover:border-neutral-300"}`}
+                                className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border-2 transition-colors ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent" : `cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent hover:border-neutral-300"}`}`}
                               >
                                 {url ? (
                                   <img src={url} alt={label} className="w-10 h-14 object-cover rounded shadow-sm" />
                                 ) : (
-                                  <div className="w-10 h-14 rounded bg-neutral-200 flex items-center justify-center text-neutral-400">없음</div>
+                                  <div className="w-10 h-14 rounded bg-neutral-200 flex items-center justify-center text-neutral-400 text-center leading-tight px-1">
+                                    {keyMissing ? "키없음" : "없음"}
+                                  </div>
                                 )}
                                 <span className={selected ? "text-[#8B3A2A] font-semibold" : "text-neutral-400"}>{label}</span>
                               </button>
@@ -644,20 +650,24 @@ export default function AdminDashboard() {
                           {sources.map(({ key, label }) => {
                             const desc = getDesc(key);
                             const selected = selectedDescSource === key;
+                            const keyMissing = key === "naver" && bookSources.naverKeyMissing;
                             return (
                               <button
                                 key={key}
                                 type="button"
+                                disabled={keyMissing}
                                 onClick={() => {
                                   setSelectedDescSource(key);
                                   applySelection(selectedCoverSource, key);
                                 }}
-                                className={`text-left px-2.5 py-2 rounded-lg border-2 transition-colors cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent bg-white hover:border-neutral-300"}`}
+                                className={`text-left px-2.5 py-2 rounded-lg border-2 transition-colors ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent bg-white" : `cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent bg-white hover:border-neutral-300"}`}`}
                               >
                                 <span className={`font-semibold ${selected ? "text-[#8B3A2A]" : "text-neutral-400"}`}>{label}</span>
-                                {desc
-                                  ? <span className="ml-2 text-neutral-500 line-clamp-1">{desc}</span>
-                                  : <span className="ml-2 text-neutral-300">없음</span>
+                                {keyMissing
+                                  ? <span className="ml-2 text-amber-500">API 키 없음 (NAVER_CLIENT_ID/SECRET)</span>
+                                  : desc
+                                    ? <span className="ml-2 text-neutral-500 line-clamp-1">{desc}</span>
+                                    : <span className="ml-2 text-neutral-300">없음</span>
                                 }
                               </button>
                             );

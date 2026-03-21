@@ -7,13 +7,18 @@ export type BookSource = {
 
 export type BookDetailResponse = {
   naver: BookSource | null;
+  naverKeyMissing?: boolean;
   google: BookSource | null;
 };
+
+export function isNaverKeyConfigured() {
+  return !!(process.env.NAVER_CLIENT_ID && process.env.NAVER_CLIENT_SECRET);
+}
 
 async function fetchNaver(isbn: string): Promise<BookSource | null> {
   const clientId = process.env.NAVER_CLIENT_ID;
   const clientSecret = process.env.NAVER_CLIENT_SECRET;
-  if (!clientId || !clientSecret) return null;
+  if (!clientId || !clientSecret) return null; // isNaverKeyConfigured()로 이미 분기됨
 
   try {
     const res = await fetch(
@@ -68,10 +73,11 @@ export async function GET(req: NextRequest) {
   // Kakao ISBN은 "ISBN10 ISBN13" 형태 — 13자리 우선 사용
   const cleanIsbn = isbn.split(" ").find((s) => s.length === 13) ?? isbn.split(" ")[0];
 
+  const naverKeyMissing = !isNaverKeyConfigured();
   const [naver, google] = await Promise.all([
-    fetchNaver(cleanIsbn),
+    naverKeyMissing ? Promise.resolve(null) : fetchNaver(cleanIsbn),
     fetchGoogle(cleanIsbn),
   ]);
 
-  return NextResponse.json({ naver, google } satisfies BookDetailResponse);
+  return NextResponse.json({ naver, naverKeyMissing, google } satisfies BookDetailResponse);
 }
