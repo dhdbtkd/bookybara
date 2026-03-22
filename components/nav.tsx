@@ -10,7 +10,7 @@ const links = [
   { href: "/", label: "홈" },
   { href: "/meetings", label: "일정" },
   { href: "/reviews", label: "독후감" },
-  { href: "/candidates", label: "도서 리스트" },
+  { href: "/candidates", label: "책 리스트" },
   { href: "/discussion", label: "토론 질문" },
 ];
 

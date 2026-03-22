@@ -41,7 +41,7 @@ export default function HomeCandidates({ candidates }: { candidates: Candidate[]
         className="flex items-center gap-4 mb-8"
       >
         <h2 className="text-2xl sm:text-3xl font-bold text-[#1C1A17] whitespace-nowrap leading-tight">
-          아직 읽지 않은 후보 도서 리스트
+          아직 읽지 않은 후보 책들
         </h2>
         <div className="flex-1 h-px bg-neutral-200 hidden sm:block" />
         <Link

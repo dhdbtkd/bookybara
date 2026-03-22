@@ -33,9 +33,8 @@ export default function HomeReadBooks({ books }: { books: Book[] }) {
           className="text-2xl sm:text-3xl font-bold text-[#1C1A17] leading-tight mb-1.5"
           style={{ fontFamily: "var(--font-playfair)" }}
         >
-          지금까지 읽은 책 리스트
+          읽은 책들
         </h2>
-        <p className="text-sm text-neutral-400">우리가 함께 읽어온 책들입니다.</p>
       </div>
 
       {/* 마퀴 트랙 */}

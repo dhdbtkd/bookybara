@@ -103,19 +103,19 @@ export default async function HomePage() {
               <HomeHeroLeft>
                 <HomeHeroItem>
                   <p className="text-[10px] font-semibold tracking-[0.22em] uppercase text-[#8B3A2A] mb-5">
-                    이번 선정 도서
+                    이번 모임 책
                   </p>
                   {bookInfo ? (
                     <>
                       <h1
-                        className="leading-[1.12] text-[#1C1A17] mb-3"
+                        className="leading-[1.12] text-[#1C1A17] mb-3 text-2xl font-bold"
                         style={{ fontFamily: "var(--font-playfair)", fontSize: "clamp(2.4rem, 5vw, 3.6rem)" }}
                       >
                         {bookInfo.title}
                       </h1>
                       <p
                         className="text-[#8B3A2A]"
-                        style={{ fontFamily: "var(--font-playfair)", fontStyle: "italic", fontSize: "1.1rem" }}
+                        style={{ fontFamily: "var(--font-playfair)", fontSize: "1.1rem" }}
                       >
                         {bookInfo.author}
                       </p>

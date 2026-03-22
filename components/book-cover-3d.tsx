@@ -45,10 +45,10 @@ function BookMesh({ coverUrl, mouse }: { coverUrl: string; mouse: React.MutableR
   coverTex.colorSpace = THREE.SRGBColorSpace;
 
   const coverMat = useMemo(() => new THREE.MeshStandardMaterial({
-    map: coverTex, roughness: 0.25, metalness: 0.05,
+    map: coverTex, roughness: 0.15, metalness: 0.05,
   }), [coverTex]);
   const backMat  = useMemo(() => new THREE.MeshStandardMaterial({ color: "#1a0e07", roughness: 0.75 }), []);
-  const spineMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#1a0e07", roughness: 0.75, metalness: 0.02 }), []);
+  const spineMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#1a0e07", roughness: 0.15, metalness: 0.02 }), []);
   const pageMat  = useMemo(() => new THREE.MeshStandardMaterial({ color: "#ece7de", roughness: 0.92 }), []);
 
   useFrame(() => {

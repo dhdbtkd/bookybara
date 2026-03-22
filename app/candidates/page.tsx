@@ -49,7 +49,7 @@ export default async function CandidatesPage() {
     <div className="-mx-4 -mt-4 md:-mt-8">
       <div className="px-4 sm:px-8 pt-10 pb-8 border-b border-[#DDD5C8]">
         <p className="text-[10px] font-bold tracking-[0.22em] uppercase text-[#8B3A2A] mb-3">도서</p>
-        <h1 className="text-[2.8rem] leading-tight text-[#1C1A17] font-bold">도서 리스트</h1>
+        <h1 className="text-[2.8rem] leading-tight text-[#1C1A17] font-bold">책 리스트</h1>
         <p className="text-sm text-[#6B5E52] mt-3">읽은 책과 후보 도서를 확인하세요.</p>
       </div>
 
