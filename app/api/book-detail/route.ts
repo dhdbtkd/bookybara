@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
   const naverKeyMissing = !isNaverKeyConfigured();
   const kyobo = fetchKyobo(cleanIsbn);
   const [naverRes, google] = await Promise.all([
-    naverKeyMissing ? Promise.resolve({ result: null }) : fetchNaver(cleanIsbn),
+    naverKeyMissing ? Promise.resolve({ result: null, error: undefined }) : fetchNaver(cleanIsbn),
     fetchGoogle(cleanIsbn),
   ]);
 

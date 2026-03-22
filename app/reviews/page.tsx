@@ -662,7 +662,9 @@ function EmptyState() {
   );
 }
 
-export default function ReviewsPage() {
+import { Suspense } from "react";
+
+function ReviewsInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawView = searchParams.get("view");
@@ -810,5 +812,13 @@ export default function ReviewsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ReviewsPage() {
+  return (
+    <Suspense>
+      <ReviewsInner />
+    </Suspense>
   );
 }

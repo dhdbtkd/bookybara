@@ -330,7 +330,7 @@ export default function AdminDiscussionGenerator({
           <div className="p-5 border-b border-[#F0EAE0]">
             <div className="flex items-center justify-between mb-3">
               <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-400">
-                {selectedMeeting?.books.length >= 2 ? "3." : "2."} 독후감 선택
+                {(selectedMeeting?.books?.length ?? 0) >= 2 ? "3." : "2."} 독후감 선택
               </p>
               {visibleReviews.length > 0 && (
                 <button type="button" onClick={toggleAll} className="text-xs text-[#8B3A2A] hover:underline cursor-pointer">
@@ -383,7 +383,7 @@ export default function AdminDiscussionGenerator({
           <div className="p-5 border-b border-[#F0EAE0]">
             <div className="flex items-center justify-between mb-3">
               <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-400">
-                {selectedMeeting?.books.length >= 2 ? "4." : "3."} AI 설정
+                {(selectedMeeting?.books?.length ?? 0) >= 2 ? "4." : "3."} AI 설정
               </p>
               <button
                 type="button"
