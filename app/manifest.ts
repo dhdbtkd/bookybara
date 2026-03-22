@@ -12,15 +12,13 @@ export default function manifest(): MetadataRoute.Manifest {
     icons: [
       {
         src: "/menifest.png",
-        sizes: "256x256",
+        sizes: "192x192",
         type: "image/png",
       },
       {
         src: "/menifest.png",
-        sizes: "any",
+        sizes: "512x512",
         type: "image/png",
-        // @ts-expect-error purpose is valid per spec
-        purpose: "any maskable",
       },
     ],
   };
