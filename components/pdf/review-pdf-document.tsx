@@ -91,7 +91,7 @@ const s = StyleSheet.create({
   reviewCover: { width: 44, height: 64, objectFit: "cover", borderRadius: 2 },
 
   reviewBody: { fontSize: 11.5, lineHeight: 2.1, color: "#2C2520" },
-  reviewPara: { marginBottom: 6, textIndent: 14 },
+  reviewPara: { marginBottom: 6 },
 
   footer: {
     position: "absolute", bottom: 28, left: 52, right: 52,
