@@ -57,7 +57,7 @@ const s = StyleSheet.create({
   },
   coverPage: {
     paddingTop: 55, paddingBottom: 50, paddingHorizontal: 52,
-    fontFamily: "Eulyoo", fontSize: 11, color: C.brown, backgroundColor: C.cream,
+    fontFamily: "Eulyoo", fontSize: 11, color: C.brown, backgroundColor: "white",
     display: "flex", flexDirection: "column", justifyContent: "space-between",
   },
 
