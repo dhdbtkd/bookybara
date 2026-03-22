@@ -61,46 +61,66 @@ export default function PrintClient({ meeting, reviews, questions, selectedMembe
       <style>{`
         @import url('//fonts.googleapis.com/earlyaccess/nanummyeongjo.css');
 
-        /* ── 화면 모드: nav 숨기고 main 제약 제거 ── */
-        html.pdf-print-mode body { background: #d1d5db !important; }
+        /* ── 화면 공통 ── */
         html.pdf-print-mode nav { display: none !important; }
+        html.pdf-print-mode body { background: #d1d5db !important; }
         html.pdf-print-mode main {
           max-width: none !important;
           margin: 0 !important;
-          padding: 24px !important;
+          padding: 32px !important;
         }
-
         #pdf-root-wrapper * { font-family: 'Nanum Myeongjo', 'NanumMyeongjo', serif !important; }
 
-        .pdf-page {
-          width: 210mm;
-          min-height: 297mm;
-          padding: 22mm 20mm;
-          page-break-after: always;
-          break-after: page;
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          background: white;
-          margin: 0 auto 24px;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.13);
+        /* ── 화면 미리보기: 고정 높이 A4 카드 ── */
+        @media screen {
+          .pdf-page {
+            width: 210mm;
+            min-height: 297mm;
+            padding: 22mm 20mm;
+            background: white;
+            margin: 0 auto 32px;
+            box-shadow: 0 4px 32px rgba(0,0,0,0.15);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+          }
         }
-        .pdf-page:last-child { page-break-after: avoid; break-after: avoid; }
 
-        /* ── 인쇄 모드 ── */
+        /* ── 인쇄: @page로 여백 관리, 고정 높이 제거 ── */
         @media print {
-          @page { size: A4 portrait; margin: 0; }
+          @page { size: A4 portrait; margin: 20mm 18mm; }
+
           html.pdf-print-mode body { background: white !important; }
           html.pdf-print-mode main { padding: 0 !important; }
-          .pdf-page { box-shadow: none !important; margin-bottom: 0 !important; }
-          /* 배경 orb, nav, toaster, scroll-to-top 등 숨김 */
-          nav, [aria-hidden="true"], [data-sonner-toaster], button[aria-label] { display: none !important; }
+          nav, [aria-hidden="true"], [data-sonner-toaster] { display: none !important; }
+
+          #pdf-root-wrapper { background: white; }
+
+          .pdf-page {
+            /* 여백은 @page가 처리 — 고정 높이/패딩 없앰 */
+            padding: 0;
+            margin: 0;
+            box-shadow: none;
+            page-break-after: always;
+            break-after: page;
+            display: flex;
+            flex-direction: column;
+          }
+          .pdf-page:last-child {
+            page-break-after: avoid;
+            break-after: avoid;
+          }
+          /* 표지는 한 페이지에 꽉 채우기 */
+          .pdf-cover {
+            min-height: calc(297mm - 40mm);
+            justify-content: space-between;
+          }
         }
       `}</style>
 
       <div id="pdf-root-wrapper">
         {/* ── 표지 ── */}
-        <div className="pdf-page" style={{ justifyContent: "space-between", background: "#FDFAF7" }}>
+        <div className="pdf-page pdf-cover" style={{ background: "#FDFAF7" }}>
           {/* 상단 클럽명 */}
           <div style={{ textAlign: "center", paddingTop: "8mm" }}>
             <p style={{ fontSize: "11px", letterSpacing: "0.4em", color: "#8B3A2A", fontWeight: "bold", marginBottom: "8px" }}>
@@ -164,7 +184,7 @@ export default function PrintClient({ meeting, reviews, questions, selectedMembe
           const paragraphs = review.content.split("\n").filter((l) => l.trim());
 
           return (
-            <div key={review.id} className="pdf-page" style={{ justifyContent: "flex-start" }}>
+            <div key={review.id} className="pdf-page">
               {/* 헤더 */}
               <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", marginBottom: "10mm", paddingBottom: "6mm", borderBottom: "2px solid #1C1A17" }}>
                 <div style={{ flex: 1 }}>
@@ -208,7 +228,7 @@ export default function PrintClient({ meeting, reviews, questions, selectedMembe
 
         {/* ── AI 토론 질문 페이지 ── */}
         {questions.length > 0 && (
-          <div className="pdf-page" style={{ justifyContent: "flex-start" }}>
+          <div className="pdf-page">
             <div style={{ marginBottom: "10mm", paddingBottom: "6mm", borderBottom: "2px solid #1C1A17" }}>
               <p style={{ fontSize: "9px", letterSpacing: "0.3em", color: "#8B3A2A", marginBottom: "6px" }}>
                 AI 생성 · 책피바라 · {meeting.title}
