@@ -422,7 +422,11 @@ export default function MeetingDetailPage() {
                 animate="show"
                 className="space-y-2.5"
               >
-                {attendees.map((a) => {
+                {[...attendees].sort((a, b) => {
+                  const aHas = reviews.some((r) => r.author_name === a.name) ? 0 : 1;
+                  const bHas = reviews.some((r) => r.author_name === b.name) ? 0 : 1;
+                  return aHas - bHas;
+                }).map((a) => {
                   const hasReview = reviews.some((r) => r.author_name === a.name);
                   return (
                     <motion.div
