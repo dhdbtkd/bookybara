@@ -9,7 +9,26 @@ import { BookOpen } from "lucide-react";
 // 책 치수
 const W = 1.4;   // 너비
 const H = 2.0;   // 높이
-const D = 0.30;  // 두께 (두껍게)
+const D = 0.30;  // 두께
+
+/**
+ * 호의 납작함 제어 헬퍼
+ * R이 클수록 납작 (R = D/2 = 완전 반원, R = ∞ = 평면)
+ * chord = D (앞뒤 표지 사이 거리) 에 맞춰 phiStart/phiLength 자동 계산
+ *
+ * pageR  — 페이지 단면(오른쪽, BackSide 오목)
+ * spineR — 책등(왼쪽, FrontSide 볼록)
+ */
+const pageR  = D * 3;
+const spineR = D * 3;
+
+// 페이지 단면: 호가 +x를 지나도록 (BackSide로 오목하게 보임)
+const pagePhi      = 2 * Math.asin(D / (2 * pageR));
+const pagePhiStart = Math.PI / 2 - pagePhi / 2;
+
+// 책등: 호가 -x를 지나도록 (FrontSide로 볼록하게 보임)
+const spinePhi      = 2 * Math.asin(D / (2 * spineR));
+const spinePhiStart = 3 * Math.PI / 2 - spinePhi / 2;
 
 /* ── 책 메시 ──────────────────────────────────────────────── */
 function BookMesh({ coverUrl, mouse }: { coverUrl: string; mouse: React.MutableRefObject<[number, number]> }) {
@@ -18,12 +37,12 @@ function BookMesh({ coverUrl, mouse }: { coverUrl: string; mouse: React.MutableR
   coverTex.colorSpace = THREE.SRGBColorSpace;
 
   const coverMat = useMemo(() => new THREE.MeshStandardMaterial({
-    map: coverTex, roughness: 0.3, metalness: 0.06,
+    map: coverTex, roughness: 0.2, metalness: 0.06,
   }), [coverTex]);
 
   // 책등: 진한 갈색
   const spineMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#2e1f14", roughness: 0.8, metalness: 0.02,
+    color: "#000000", roughness: 0.3, metalness: 0.03,
   }), []);
 
   // 페이지 단면: 크림 화이트, 약간 거칠게
@@ -57,15 +76,9 @@ function BookMesh({ coverUrl, mouse }: { coverUrl: string; mouse: React.MutableR
         <primitive object={backMat} attach="material" />
       </mesh>
 
-      {/*
-        책등 — 왼쪽, -x 방향으로 살짝 볼록
-        phiStart=π, phiLength=π → 호가 -x를 지남
-        vertex: phi=π→(0,0,-D/2), phi=3π/2→(-D/2,0,0), phi=2π→(0,0,D/2)
-        즉 앞뒤 edge에서 시작해 왼쪽(-x)으로 불룩하게 이어짐
-        법선도 -x를 향해 FrontSide로 정상 렌더링
-      */}
+      {/* 책등 — 왼쪽, -x 방향으로 볼록 */}
       <mesh position={[-W / 2, 0, 0]}>
-        <cylinderGeometry args={[D / 2, D / 2, H, 32, 1, true, Math.PI, Math.PI]} />
+        <cylinderGeometry args={[spineR, spineR, H, 64, 1, true, spinePhiStart, spinePhi]} />
         <primitive object={spineMat} attach="material" />
       </mesh>
 
@@ -81,15 +94,9 @@ function BookMesh({ coverUrl, mouse }: { coverUrl: string; mouse: React.MutableR
         <primitive object={pageMat} attach="material" />
       </mesh>
 
-      {/*
-        페이지 단면 — 오른쪽, 안쪽(-x)으로 살짝 오목
-        phiStart=0, phiLength=π → +x로 볼록한 호이지만
-        BackSide 렌더링으로 안쪽 면(오목한 면)을 보여줌
-        vertex: phi=0→(0,0,D/2), phi=π/2→(D/2,0,0), phi=π→(0,0,-D/2)
-        BackSide이므로 법선이 뒤집혀 -x → 뷰어(+x방향)에서 오목하게 보임
-      */}
+      {/* 페이지 단면 — 오른쪽, BackSide로 오목하게 */}
       <mesh position={[W / 2, 0, 0]}>
-        <cylinderGeometry args={[D / 2, D / 2, H, 32, 1, true, 0, Math.PI]} />
+        <cylinderGeometry args={[pageR, pageR, H, 64, 1, true, pagePhiStart, pagePhi]} />
         <meshStandardMaterial color="#f2ede5" roughness={0.95} metalness={0} side={THREE.BackSide} />
       </mesh>
     </group>
@@ -115,13 +122,13 @@ function PlaceholderMesh({ mouse }: { mouse: React.MutableRefObject<[number, num
       <mesh position={[0, 0, D / 2]}><planeGeometry args={[W, H]} /><primitive object={bodyMat} attach="material" /></mesh>
       <mesh position={[0, 0, -D / 2]} rotation={[0, Math.PI, 0]}><planeGeometry args={[W, H]} /><primitive object={spineMat} attach="material" /></mesh>
       <mesh position={[-W / 2, 0, 0]}>
-        <cylinderGeometry args={[D / 2, D / 2, H, 32, 1, true, Math.PI, Math.PI]} />
+        <cylinderGeometry args={[spineR, spineR, H, 64, 1, true, spinePhiStart, spinePhi]} />
         <primitive object={spineMat} attach="material" />
       </mesh>
       <mesh position={[0, H / 2, 0]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[W, D]} /><primitive object={pageMat} attach="material" /></mesh>
       <mesh position={[0, -H / 2, 0]} rotation={[Math.PI / 2, 0, 0]}><planeGeometry args={[W, D]} /><primitive object={pageMat} attach="material" /></mesh>
       <mesh position={[W / 2, 0, 0]}>
-        <cylinderGeometry args={[D / 2, D / 2, H, 32, 1, true, 0, Math.PI]} />
+        <cylinderGeometry args={[pageR, pageR, H, 64, 1, true, pagePhiStart, pagePhi]} />
         <meshStandardMaterial color="#f2ede5" roughness={0.95} metalness={0} side={THREE.BackSide} />
       </mesh>
     </group>
