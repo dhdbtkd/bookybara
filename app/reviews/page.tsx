@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { BookOpen, BookMarked, Users, PenLine, ChevronRight } from "lucide-react";
+import { BookOpen, BookMarked, Users, PenLine, ChevronRight, MapPin, CalendarDays } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
 type Review = {
@@ -15,8 +15,8 @@ type Review = {
   created_at: string;
   book_id: number;
   meeting_id: number | null;
-  books: { title: string; author: string } | null;
-  meetings: { title: string; date: string } | null;
+  books: { title: string; author: string; cover_url: string | null; cover_url_hires: string | null } | null;
+  meetings: { title: string; date: string; location: string | null } | null;
 };
 
 type Book = {
@@ -25,6 +25,22 @@ type Book = {
   author: string;
   cover_url?: string | null;
   cover_url_hires?: string | null;
+};
+
+type MeetingBook = {
+  id: number;
+  title: string;
+  author: string;
+  cover_url: string | null;
+  cover_url_hires: string | null;
+};
+
+type MeetingData = {
+  id: number;
+  title: string;
+  date: string;
+  location: string | null;
+  books: MeetingBook[];
 };
 
 type ViewMode = "gathering" | "book" | "member";
@@ -36,7 +52,7 @@ const NAV_ITEMS: { mode: ViewMode; label: string; sublabel: string; icon: React.
 ];
 
 const VIEW_TITLES: Record<ViewMode, { title: string; subtitle: string }> = {
-  gathering: { title: "모임별 독후감", subtitle: "각 모임에 제출된 독후감을 모임순으로 봅니다." },
+  gathering: { title: "모임별 독후감", subtitle: "모임을 선택하면 해당 모임의 독후감을 볼 수 있습니다." },
   book: { title: "도서별 독후감", subtitle: "도서별로 모아 읽는 우리들의 시선." },
   member: { title: "참석자별 독후감", subtitle: "참석자가 남긴 독서의 흔적들." },
 };
@@ -93,59 +109,272 @@ function ReviewCard({ review }: { review: Review }) {
 }
 
 // ── BY GATHERING ─────────────────────────────────────────────────
-function GatheringView({ reviews }: { reviews: Review[] }) {
-  const grouped = useMemo(() => {
-    const map = new Map<string, { key: string; title: string; date: string | null; items: Review[] }>();
+function GatheringView({ reviews, meetings }: { reviews: Review[]; meetings: MeetingData[] }) {
+  const [selectedMeetingId, setSelectedMeetingId] = useState<number | null>(null);
+  const [activeBookId, setActiveBookId] = useState<number | null>(null); // null = all
+
+  const reviewsByMeeting = useMemo(() => {
+    const map = new Map<number, Review[]>();
     for (const r of reviews) {
-      const key = r.meeting_id != null ? String(r.meeting_id) : "__none__";
-      if (!map.has(key)) {
-        map.set(key, { key, title: r.meetings?.title ?? "모임 미지정", date: r.meetings?.date ?? null, items: [] });
+      if (r.meeting_id != null) {
+        if (!map.has(r.meeting_id)) map.set(r.meeting_id, []);
+        map.get(r.meeting_id)!.push(r);
       }
-      map.get(key)!.items.push(r);
     }
-    return Array.from(map.values()).sort((a, b) => {
-      if (!a.date) return 1;
-      if (!b.date) return -1;
-      return b.date.localeCompare(a.date);
-    });
+    return map;
   }, [reviews]);
 
-  if (grouped.length === 0) return <EmptyState />;
+  const sortedMeetings = useMemo(
+    () => [...meetings].sort((a, b) => b.date.localeCompare(a.date)),
+    [meetings]
+  );
 
-  return (
-    <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-12">
-      {grouped.map((group, i) => (
-        <motion.section key={group.key} variants={itemVariants}>
-          <div className="flex items-baseline gap-3 mb-6">
-            {i === 0 && group.date && (
-              <span className="text-[10px] font-bold tracking-widest border border-[#1C1A17] text-[#1C1A17] px-2 py-0.5 uppercase">
-                최신
+  const unassigned = useMemo(() => reviews.filter((r) => r.meeting_id == null), [reviews]);
+
+  // ── 모임 상세 뷰 ──────────────────────────────────────────────
+  if (selectedMeetingId !== null) {
+    const meeting = meetings.find((m) => m.id === selectedMeetingId);
+    if (!meeting) return null;
+
+    const meetingReviews = reviewsByMeeting.get(selectedMeetingId) ?? [];
+    const books = meeting.books;
+    const hasMultipleBooks = books.length > 1;
+
+    // reviews grouped by book_id
+    const byBook = new Map<number, Review[]>();
+    for (const r of meetingReviews) {
+      if (!byBook.has(r.book_id)) byBook.set(r.book_id, []);
+      byBook.get(r.book_id)!.push(r);
+    }
+
+    // books to display based on active tab
+    const displayBooks = activeBookId == null ? books : books.filter((b) => b.id === activeBookId);
+
+    return (
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+        {/* 뒤로가기 */}
+        <button
+          onClick={() => { setSelectedMeetingId(null); setActiveBookId(null); }}
+          className="cursor-pointer text-xs text-[#9C8E7E] hover:text-[#1C1A17] tracking-wider uppercase mb-6 flex items-center gap-1.5 transition-colors duration-200 group"
+        >
+          <span className="group-hover:-translate-x-0.5 transition-transform duration-200">←</span> 모임 목록
+        </button>
+
+        {/* 모임 헤더 */}
+        <div className="mb-8">
+          <div className="flex items-center gap-3 flex-wrap mb-3">
+            <span className="flex items-center gap-1 text-[10px] text-[#9C8E7E] tracking-wider">
+              <CalendarDays size={11} />
+              {format(new Date(meeting.date), "yyyy년 M월 d일 (EEE)", { locale: ko })}
+            </span>
+            {meeting.location && (
+              <span className="flex items-center gap-1 text-[10px] text-[#9C8E7E] tracking-wider">
+                <MapPin size={11} />
+                {meeting.location}
               </span>
             )}
-            <h2 className="font-[family-name:var(--font-playfair)] text-2xl italic text-[#1C1A17]">
-              {group.title}
-            </h2>
-            {group.date && (
-              <span className="text-xs text-[#9C8E7E] tracking-wider uppercase">
-                {format(new Date(group.date), "yyyy. MM. dd", { locale: ko })}
-              </span>
-            )}
+            <span className="text-[10px] text-[#9C8E7E]/60">{meetingReviews.length}개의 독후감</span>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8">
-            {group.items[0] && (
-              <div className="md:col-span-2 mb-2">
-                <ReviewCard review={group.items[0]} />
-              </div>
-            )}
-            {group.items.slice(1).map((r) => (
-              <ReviewCard key={r.id} review={r} />
+          <h2 className="font-[family-name:var(--font-playfair)] text-3xl italic text-[#1C1A17] leading-tight">
+            {meeting.title}
+          </h2>
+        </div>
+
+        {/* 도서 탭 (여러 권인 경우만) */}
+        {hasMultipleBooks && (
+          <div className="flex border-b border-[#D4C5B0] mb-8 overflow-x-auto gap-0">
+            <button
+              onClick={() => setActiveBookId(null)}
+              className={`flex-shrink-0 px-4 py-3 text-left border-b-2 transition-all duration-200 cursor-pointer ${
+                activeBookId == null
+                  ? "border-b-[#8B3A2A] text-[#1C1A17]"
+                  : "border-b-transparent text-[#9C8E7E] hover:text-[#1C1A17]"
+              }`}
+            >
+              <p className="text-[9px] tracking-[0.15em] uppercase text-[#9C8E7E]/60 mb-0.5">전체</p>
+              <p className="text-xs font-semibold">모든 도서</p>
+            </button>
+            {books.map((b, i) => (
+              <button
+                key={b.id}
+                onClick={() => setActiveBookId(b.id)}
+                className={`flex-shrink-0 px-4 py-3 text-left border-b-2 transition-all duration-200 cursor-pointer ${
+                  activeBookId === b.id
+                    ? "border-b-[#8B3A2A] text-[#1C1A17]"
+                    : "border-b-transparent text-[#9C8E7E] hover:text-[#1C1A17]"
+                }`}
+              >
+                <p className="text-[9px] tracking-[0.15em] uppercase text-[#9C8E7E]/60 mb-0.5">
+                  {i === 0 ? "주 도서" : `도서 ${i + 1}`}
+                </p>
+                <p className="text-xs font-semibold truncate max-w-[140px]">{b.title}</p>
+              </button>
             ))}
           </div>
-          {group.items.length >= 5 && (
-            <p className="text-[11px] text-[#9C8E7E] mt-4 tracking-wider">{group.items.length}개의 독후감</p>
-          )}
-        </motion.section>
-      ))}
+        )}
+
+        {/* 도서별 독후감 섹션 */}
+        <div className="space-y-12">
+          {displayBooks.map((book) => {
+            const bookReviews = byBook.get(book.id) ?? [];
+            const cover = book.cover_url_hires || book.cover_url;
+            return (
+              <section key={book.id}>
+                {/* 도서 섹션 헤더 */}
+                <div className="flex items-start gap-4 mb-6 pb-5 border-b border-[#D4C5B0]/60">
+                  <div className="flex-shrink-0">
+                    {cover ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={cover}
+                        alt={book.title}
+                        className="w-14 h-20 object-cover rounded-xl shadow-md"
+                      />
+                    ) : (
+                      <div className="w-14 h-20 bg-[#D4C5B0] rounded-xl shadow-md flex items-center justify-center">
+                        <BookOpen size={14} className="text-[#9C8E7E]" />
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[10px] tracking-[0.2em] uppercase text-[#9C8E7E] mb-1">도서</p>
+                    <h3 className="font-[family-name:var(--font-playfair)] text-xl italic text-[#1C1A17] leading-snug">
+                      {book.title}
+                    </h3>
+                    <p className="text-xs text-[#9C8E7E] mt-0.5">{book.author}</p>
+                    <p className="text-[11px] text-[#9C8E7E]/50 mt-1">{bookReviews.length}개 독후감</p>
+                  </div>
+                </div>
+
+                {bookReviews.length === 0 ? (
+                  <p className="text-sm text-[#9C8E7E] italic text-center py-6">이 도서에 대한 독후감이 없습니다.</p>
+                ) : (
+                  <motion.div
+                    variants={containerVariants}
+                    initial="hidden"
+                    animate="show"
+                    className="grid grid-cols-1 md:grid-cols-2 gap-x-8"
+                  >
+                    {bookReviews.map((r) => (
+                      <motion.div key={r.id} variants={itemVariants}>
+                        <ReviewCard review={r} />
+                      </motion.div>
+                    ))}
+                  </motion.div>
+                )}
+              </section>
+            );
+          })}
+        </div>
+      </motion.div>
+    );
+  }
+
+  // ── 모임 목록 뷰 ─────────────────────────────────────────────
+  if (sortedMeetings.length === 0 && unassigned.length === 0) return <EmptyState />;
+
+  const today = new Date().toISOString().split("T")[0];
+
+  return (
+    <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-2.5">
+      {sortedMeetings.map((meeting, i) => {
+        const meetingReviews = reviewsByMeeting.get(meeting.id) ?? [];
+        const covers = meeting.books
+          .map((b) => b.cover_url_hires || b.cover_url)
+          .filter(Boolean) as string[];
+        const isLatest = i === 0;
+
+        return (
+          <motion.button
+            key={meeting.id}
+            variants={itemVariants}
+            whileHover={{ x: 3 }}
+            transition={{ duration: 0.18 }}
+            onClick={() => setSelectedMeetingId(meeting.id)}
+            className="w-full text-left group cursor-pointer"
+          >
+            <div className="flex items-center gap-4 px-4 py-4 rounded-2xl border border-[#D4C5B0]/50 bg-white/40 hover:bg-white/70 hover:border-[#C8956C]/50 hover:shadow-md transition-all duration-200">
+              {/* 커버 스택 */}
+              <div className="relative flex-shrink-0" style={{ width: covers.length > 1 ? 58 : 44, height: 64 }}>
+                {covers.length === 0 ? (
+                  <div className="w-11 h-16 bg-[#D4C5B0] rounded-lg shadow-sm flex items-center justify-center">
+                    <BookOpen size={13} className="text-[#9C8E7E]" />
+                  </div>
+                ) : (
+                  covers.slice(0, 3).map((cover, ci) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={ci}
+                      src={cover}
+                      alt=""
+                      className="absolute object-cover rounded-lg shadow-sm"
+                      style={{
+                        width: 44,
+                        height: 64,
+                        left: ci * 7,
+                        top: ci * -2,
+                        zIndex: covers.length - ci,
+                      }}
+                    />
+                  ))
+                )}
+              </div>
+
+              {/* 모임 정보 */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  {isLatest && (
+                    <span className="text-[9px] font-bold tracking-widest bg-[#C8956C]/15 text-[#C8956C] px-2 py-0.5 rounded-full uppercase">
+                      최신
+                    </span>
+                  )}
+                  <span className="text-[10px] text-[#9C8E7E] tracking-wide flex items-center gap-1">
+                    <CalendarDays size={9} />
+                    {format(new Date(meeting.date), "yyyy. MM. dd", { locale: ko })}
+                  </span>
+                  {meeting.location && (
+                    <span className="text-[10px] text-[#9C8E7E]/60 flex items-center gap-1">
+                      <MapPin size={9} />
+                      {meeting.location}
+                    </span>
+                  )}
+                </div>
+                <h3 className="font-[family-name:var(--font-playfair)] text-lg italic text-[#1C1A17] leading-snug group-hover:text-[#8B3A2A] transition-colors duration-200 truncate">
+                  {meeting.title}
+                </h3>
+                {meeting.books.length > 0 && (
+                  <p className="text-xs text-[#9C8E7E] mt-0.5 truncate">
+                    {meeting.books.map((b) => b.title).join(" · ")}
+                  </p>
+                )}
+              </div>
+
+              {/* 독후감 수 */}
+              <div className="flex-shrink-0 text-right pr-1">
+                <p className="font-[family-name:var(--font-playfair)] text-2xl italic text-[#1C1A17] leading-none">
+                  {meetingReviews.length}
+                </p>
+                <p className="text-[9px] tracking-widest uppercase text-[#9C8E7E] mt-0.5">독후감</p>
+              </div>
+
+              <ChevronRight
+                size={14}
+                className="flex-shrink-0 text-[#9C8E7E] group-hover:translate-x-0.5 group-hover:text-[#8B3A2A] transition-all duration-200"
+              />
+            </div>
+          </motion.button>
+        );
+      })}
+
+      {/* 미지정 독후감 */}
+      {unassigned.length > 0 && (
+        <motion.div
+          variants={itemVariants}
+          className="px-4 py-3 rounded-2xl border border-dashed border-[#D4C5B0] text-xs text-[#9C8E7E]"
+        >
+          모임 미지정 독후감 {unassigned.length}개
+        </motion.div>
+      )}
     </motion.div>
   );
 }
@@ -393,6 +622,7 @@ export default function ReviewsPage() {
 
   const [reviews, setReviews] = useState<Review[]>([]);
   const [books, setBooks] = useState<Book[]>([]);
+  const [meetings, setMeetings] = useState<MeetingData[]>([]);
   const [loading, setLoading] = useState(true);
 
   function setView(v: ViewMode) {
@@ -405,9 +635,11 @@ export default function ReviewsPage() {
     Promise.all([
       fetch("/api/reviews").then((r) => r.json()),
       fetch("/api/books").then((r) => r.json()),
-    ]).then(([rv, bk]) => {
+      fetch("/api/meetings").then((r) => r.json()),
+    ]).then(([rv, bk, mt]) => {
       setReviews(rv);
       setBooks(bk);
+      setMeetings(mt);
       setLoading(false);
     });
   }, []);
@@ -522,7 +754,7 @@ export default function ReviewsPage() {
         ) : (
           <AnimatePresence mode="wait">
             <motion.div key={view} variants={pageVariants} initial="hidden" animate="show" exit="exit">
-              {view === "gathering" && <GatheringView reviews={reviews} />}
+              {view === "gathering" && <GatheringView reviews={reviews} meetings={meetings} />}
               {view === "book" && <BookView reviews={reviews} books={books} />}
               {view === "member" && <MemberView reviews={reviews} />}
             </motion.div>

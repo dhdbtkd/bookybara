@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabase
     .from("reviews")
-    .select("*, books(title, author), meetings(title, date)")
+    .select("*, books(title, author, cover_url, cover_url_hires), meetings(title, date, location)")
     .order("created_at", { ascending: false });
 
   if (bookId) query = query.eq("book_id", bookId);
