@@ -18,7 +18,7 @@ export default function HomeInstallBanner() {
   };
 
   return (
-    <section className="mt-10">
+    <section className="mt-10 sm:hidden">
       <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">
         앱으로 사용하기
       </h2>
