@@ -14,7 +14,7 @@ export default function HomeInstallBanner() {
 
   const handleClick = () => {
     const el = document.querySelector("pwa-install") as any;
-    el?.showDialog(true);
+    el?.showDialog(true); // pwa-install 라이브러리의 네이티브 다이얼로그 트리거
   };
 
   return (
