@@ -1644,6 +1644,7 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
   const [attendees, setAttendees] = useState<{ name: string }[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loadingAttendees, setLoadingAttendees] = useState(false);
+  const [includeQuestions, setIncludeQuestions] = useState(true);
 
   useEffect(() => {
     if (!selectedMeetingId) { setAttendees([]); setSelected(new Set()); return; }
@@ -1751,10 +1752,20 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
       )}
 
       {selectedMeetingId && selected.size > 0 && (
-        <div className="flex justify-end">
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-neutral-600">
+            <input
+              type="checkbox"
+              checked={includeQuestions}
+              onChange={(e) => setIncludeQuestions(e.target.checked)}
+              className="w-4 h-4 accent-[#8B3A2A] cursor-pointer"
+            />
+            AI 토론 질문 포함
+          </label>
           <PdfDownloadButton
             meetingId={selectedMeetingId}
             selectedMembers={[...selected]}
+            includeQuestions={includeQuestions}
             disabled={false}
           />
         </div>

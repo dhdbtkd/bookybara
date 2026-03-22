@@ -103,7 +103,7 @@ const s = StyleSheet.create({
   // ── 토론 질문 ──
   questionItem: { flexDirection: "row", gap: 10, marginBottom: 18 },
   questionNum: { fontSize: 11, fontWeight: "bold", color: C.terracotta, width: 18, flexShrink: 0 },
-  questionText: { fontSize: 11.5, lineHeight: 1.9, color: "#2C2520", flex: 1 },
+  questionText: { fontSize: 10, lineHeight: 2.0, color: "#2C2520", flex: 1 },
   bookGroupTitle: { fontSize: 11, fontWeight: "bold", color: C.warm, marginBottom: 14, letterSpacing: 2 },
 });
 
@@ -124,9 +124,10 @@ interface Props {
   reviews: PdfReview[];
   questions: PdfQuestion[];
   selectedMembers: string[];
+  includeQuestions?: boolean;
 }
 
-export default function ReviewPdfDocument({ meeting, reviews, questions, selectedMembers }: Props) {
+export default function ReviewPdfDocument({ meeting, reviews, questions, selectedMembers, includeQuestions = true }: Props) {
   const selectedReviews = reviews.filter((r) => selectedMembers.includes(r.author_name));
 
   const questionsByBook = new Map<number, string[]>();
@@ -218,7 +219,7 @@ export default function ReviewPdfDocument({ meeting, reviews, questions, selecte
       })}
 
       {/* ── AI 토론 질문 ── */}
-      {questions.length > 0 && (
+      {includeQuestions && questions.length > 0 && (
         <Page size="A4" style={s.page}>
           {/* 헤더 */}
           <View style={[s.reviewHeader, { marginBottom: 26 }]}>

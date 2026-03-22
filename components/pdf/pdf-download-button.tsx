@@ -6,10 +6,11 @@ import type { PdfMeeting, PdfReview, PdfQuestion } from "./review-pdf-document";
 interface Props {
   meetingId: string;
   selectedMembers: string[];
+  includeQuestions: boolean;
   disabled?: boolean;
 }
 
-export default function PdfDownloadButton({ meetingId, selectedMembers, disabled }: Props) {
+export default function PdfDownloadButton({ meetingId, selectedMembers, includeQuestions, disabled }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -47,6 +48,7 @@ export default function PdfDownloadButton({ meetingId, selectedMembers, disabled
           reviews={reviews}
           questions={questions}
           selectedMembers={selectedMembers}
+          includeQuestions={includeQuestions}
         />
       ).toBlob();
 
