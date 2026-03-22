@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
 import Link from "next/link";
-import { ChevronLeft, Plus, X, PenLine, CalendarDays, MapPin, BookOpen } from "lucide-react";
+import { ChevronLeft, Plus, X, PenLine, CalendarDays, MapPin, BookOpen, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PieChart, Pie, Cell } from "recharts";
 import { motion, AnimatePresence, useMotionValue, useTransform } from "motion/react";
@@ -422,16 +422,25 @@ export default function MeetingDetailPage() {
                 animate="show"
                 className="space-y-2.5"
               >
-                {attendees.map((a) => (
-                  <motion.div
-                    key={a.id}
-                    variants={{ hidden: { opacity: 0, x: -8 }, show: { opacity: 1, x: 0, transition: { duration: 0.25 } } }}
-                    className="flex items-center gap-2.5"
-                  >
-                    <div className="w-1.5 h-1.5 rounded-full bg-[#C8956C] flex-shrink-0" />
-                    <span className="text-sm text-[#1C1A17]">{a.name}</span>
-                  </motion.div>
-                ))}
+                {attendees.map((a) => {
+                  const hasReview = reviews.some((r) => r.author_name === a.name);
+                  return (
+                    <motion.div
+                      key={a.id}
+                      variants={{ hidden: { opacity: 0, x: -8 }, show: { opacity: 1, x: 0, transition: { duration: 0.25 } } }}
+                      className="flex items-center gap-2.5"
+                    >
+                      <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${hasReview ? "bg-emerald-500" : "bg-[#C8956C]"}`} />
+                      <span className="text-sm text-[#1C1A17] flex-1">{a.name}</span>
+                      {hasReview && (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                          <CheckCircle2 className="w-3 h-3" />
+                          제출완료
+                        </span>
+                      )}
+                    </motion.div>
+                  );
+                })}
               </motion.div>
             )}
           </div>
