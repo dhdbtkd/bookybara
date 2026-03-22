@@ -14,8 +14,19 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "독서모임",
+  title: "책피바라",
   description: "우리들의 독서모임",
+  openGraph: {
+    title: "책피바라",
+    description: "우리들의 독서모임",
+    images: [{ url: "/og.png" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "책피바라",
+    description: "우리들의 독서모임",
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({
