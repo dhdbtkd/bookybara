@@ -20,8 +20,7 @@ import {
   FileText, Megaphone, Sparkles, LogOut, Plus, Trash2,
   ChevronDown, ChevronUp, BookCopy, Eye, EyeOff, Check, Search, CheckCircle2, Loader2, X,
 } from "lucide-react";
-import dynamic from "next/dynamic";
-const PdfDownloadButton = dynamic(() => import("@/components/pdf/pdf-download-button"), { ssr: false });
+import PdfDownloadButton from "@/components/pdf/pdf-download-button";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
