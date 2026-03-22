@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { X, Zap, Bell, WifiOff, ArrowUpFromLine } from "lucide-react";
+import { X, ArrowUpFromLine, SquareArrowOutUpRight } from "lucide-react";
 
 const DISMISSED_KEY = "pwa_prompt_dismissed_until";
 const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
@@ -12,56 +12,110 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
+// 환경별 설정
+type Env = "ios-safari" | "ios-other" | "android" | null;
+
+function detectEnv(ua: string): Env {
+  const isIos = /iphone|ipad|ipod/i.test(ua);
+  if (isIos) {
+    // CriOS = Chrome on iOS, FxiOS = Firefox on iOS
+    const isSafari = /safari/i.test(ua) && !/chrome|crios|fxios|edgios|opios/i.test(ua);
+    return isSafari ? "ios-safari" : "ios-other";
+  }
+  if (/android/i.test(ua)) return "android";
+  return null;
+}
+
+const ENV_COPY: Record<
+  Exclude<Env, null>,
+  { subtitle: string; hint: React.ReactNode; ctaLabel: string; ctaDisabled?: boolean }
+> = {
+  "ios-safari": {
+    subtitle: "홈 화면에서 바로 책피바라를 열어보세요",
+    hint: (
+      <p className="text-center text-xs text-[#9B948D] mb-4">
+        하단{" "}
+        <span className="inline-flex items-center gap-0.5 text-[#5A8A5A] font-medium">
+          <ArrowUpFromLine size={12} />
+          공유
+        </span>{" "}
+        버튼 →{" "}
+        <span className="font-medium text-[#1C1A17]">홈 화면에 추가</span>
+        를 탭하세요
+      </p>
+    ),
+    ctaLabel: "홈 화면에 추가하기",
+    ctaDisabled: true, // iOS Safari는 직접 prompt 불가
+  },
+  "ios-other": {
+    subtitle: "Safari에서 홈 화면에 추가할 수 있어요",
+    hint: (
+      <p className="text-center text-xs text-[#9B948D] mb-4">
+        iPhone에서는{" "}
+        <span className="font-medium text-[#1C1A17]">Safari 브라우저</span>로 열어야
+        홈 화면에 추가할 수 있어요
+      </p>
+    ),
+    ctaLabel: "Safari로 열기",
+    ctaDisabled: false,
+  },
+  android: {
+    subtitle: "더 편리한 독서 경험을 시작하세요",
+    hint: (
+      <p className="text-center text-xs text-[#9B948D] mb-4">
+        3초 만에 간편 추가, 언제든 삭제 가능
+      </p>
+    ),
+    ctaLabel: "홈 화면에 추가하기",
+    ctaDisabled: false,
+  },
+};
+
 export default function PwaInstallPrompt() {
   const [show, setShow] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [isIos, setIsIos] = useState(false);
+  const [env, setEnv] = useState<Env>(null);
 
   useEffect(() => {
-    // Register service worker
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
 
-    // Already running as PWA
     if (window.matchMedia("(display-mode: standalone)").matches) return;
 
-    // Already dismissed recently
     const dismissedUntil = localStorage.getItem(DISMISSED_KEY);
     if (dismissedUntil && Date.now() < Number(dismissedUntil)) return;
 
-    // iOS detection
-    const ua = navigator.userAgent;
-    const iosDevice = /iphone|ipad|ipod/i.test(ua);
-    const isSafari = /safari/i.test(ua) && !/chrome|crios|fxios/i.test(ua);
-    setIsIos(iosDevice && isSafari);
+    const detected = detectEnv(navigator.userAgent);
+    setEnv(detected);
 
-    if (iosDevice && isSafari) {
+    if (detected === "ios-safari" || detected === "ios-other") {
       setShow(true);
       return;
     }
 
-    // Android / Chrome: wait for beforeinstallprompt
-    const handler = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
-      setShow(true);
-    };
-    window.addEventListener("beforeinstallprompt", handler);
-    return () => window.removeEventListener("beforeinstallprompt", handler);
+    if (detected === "android") {
+      const handler = (e: Event) => {
+        e.preventDefault();
+        setDeferredPrompt(e as BeforeInstallPromptEvent);
+        setShow(true);
+      };
+      window.addEventListener("beforeinstallprompt", handler);
+      return () => window.removeEventListener("beforeinstallprompt", handler);
+    }
   }, []);
 
   const handleInstall = async () => {
-    if (isIos) {
-      // iOS: can't trigger programmatically, just dismiss and user reads the hint
+    if (env === "ios-safari") return; // 버튼이 안내용이라 동작 없음
+    if (env === "ios-other") {
+      // Safari로 현재 URL 열기
+      window.location.href = `safari://${window.location.host}${window.location.pathname}`;
       return;
     }
     if (!deferredPrompt) return;
     await deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") {
-      setShow(false);
-    }
+    if (outcome === "accepted") setShow(false);
     setDeferredPrompt(null);
   };
 
@@ -69,6 +123,9 @@ export default function PwaInstallPrompt() {
     localStorage.setItem(DISMISSED_KEY, String(Date.now() + ONE_MONTH_MS));
     setShow(false);
   };
+
+  if (!env) return null;
+  const copy = ENV_COPY[env];
 
   return (
     <AnimatePresence>
@@ -96,14 +153,13 @@ export default function PwaInstallPrompt() {
 
             {/* Header */}
             <div className="flex items-start gap-4 mb-6">
-              {/* App icon */}
               <div className="w-16 h-16 rounded-2xl bg-[#F0EAE0] flex items-center justify-center flex-shrink-0 shadow-sm">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/logo.png" alt="책피바라" className="w-10 h-10 object-contain" />
               </div>
               <div className="flex-1 pt-1">
                 <p className="text-lg font-semibold text-[#1C1A17] leading-snug">책피바라를 앱으로</p>
-                <p className="text-sm text-[#6B6560] mt-0.5">더 편리한 독서 경험을 시작하세요</p>
+                <p className="text-sm text-[#6B6560] mt-0.5">{copy.subtitle}</p>
               </div>
               <button
                 onClick={handleDismiss}
@@ -114,48 +170,20 @@ export default function PwaInstallPrompt() {
               </button>
             </div>
 
-            {/* Features */}
-            <div className="grid grid-cols-3 gap-3 mb-6">
-              {[
-                { icon: Zap, label: "빠른 접속" },
-                { icon: Bell, label: "실시간 알림" },
-                { icon: WifiOff, label: "오프라인" },
-              ].map(({ icon: Icon, label }) => (
-                <div
-                  key={label}
-                  className="flex flex-col items-center gap-2 bg-[#EEF4EE] rounded-2xl py-4"
-                >
-                  <div className="w-10 h-10 rounded-full bg-[#5A8A5A] flex items-center justify-center">
-                    <Icon size={18} className="text-white" />
-                  </div>
-                  <span className="text-xs text-[#3A5A3A] font-medium">{label}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* iOS hint */}
-            {isIos && (
-              <p className="text-center text-xs text-[#9B948D] mb-4">
-                Safari 하단의{" "}
-                <span className="inline-flex items-center gap-0.5 text-[#5A8A5A] font-medium">
-                  <ArrowUpFromLine size={12} />
-                  공유
-                </span>{" "}
-                버튼을 눌러 <span className="font-medium text-[#1C1A17]">홈 화면에 추가</span>하세요
-              </p>
-            )}
-
-            {!isIos && (
-              <p className="text-center text-xs text-[#9B948D] mb-4">3초 만에 간편 추가, 언제든 삭제 가능</p>
-            )}
+            {/* Environment-specific hint */}
+            {copy.hint}
 
             {/* CTA */}
             <button
-              onClick={handleInstall}
-              className="w-full flex items-center justify-center gap-2 bg-[#1C1A17] text-white rounded-2xl py-4 font-semibold text-base active:opacity-80 transition-opacity"
+              onClick={copy.ctaDisabled ? undefined : handleInstall}
+              className={`w-full flex items-center justify-center gap-2 rounded-2xl py-4 font-semibold text-base transition-opacity ${
+                copy.ctaDisabled
+                  ? "bg-[#D0C8BC] text-[#9B948D] cursor-default"
+                  : "bg-[#1C1A17] text-white active:opacity-80"
+              }`}
             >
-              <ArrowUpFromLine size={18} />
-              홈 화면에 추가하기
+              {env === "ios-other" ? <SquareArrowOutUpRight size={18} /> : <ArrowUpFromLine size={18} />}
+              {copy.ctaLabel}
             </button>
 
             {/* Later */}
