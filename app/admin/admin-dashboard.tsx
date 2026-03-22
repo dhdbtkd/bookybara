@@ -1649,12 +1649,11 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
     setLoadingAttendees(true);
     fetch(`/api/meetings/${selectedMeetingId}`)
       .then((r) => r.json())
-      .then(({ attendees: list, reviews }) => {
-        // attendees from meeting + anyone who wrote a review (might not be registered attendee)
-        const names = new Set<string>([
-          ...(list ?? []).map((a: { name: string }) => a.name),
-          ...(reviews ?? []).map((r: { author_name: string }) => r.author_name),
-        ]);
+      .then(({ reviews }) => {
+        // 독후감 제출한 참석자만
+        const names = new Set<string>(
+          (reviews ?? []).map((r: { author_name: string }) => r.author_name)
+        );
         const sorted = [...names].sort();
         setAttendees(sorted.map((name) => ({ name })));
         setSelected(new Set(sorted));
