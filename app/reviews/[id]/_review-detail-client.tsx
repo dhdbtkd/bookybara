@@ -96,15 +96,6 @@ export default function ReviewDetailClient({ review }: { review: Review }) {
               className="w-14 h-20 object-cover rounded-xl shadow-md"
             />
           )}
-          {!editing && (
-            <button
-              onClick={() => setEditing(true)}
-              className="p-2 rounded-full text-[#9C8E7E] hover:text-[#1C1A17] hover:bg-[#F0EAE0] transition-colors cursor-pointer"
-              title="수정"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
-          )}
         </div>
       </div>
 
@@ -149,12 +140,12 @@ export default function ReviewDetailClient({ review }: { review: Review }) {
             </button>
           </div>
         ) : (
-          <Link
-            href="/reviews/new"
-            className="flex items-center gap-2 text-sm font-medium text-[#F0EAE0] bg-[#1C1A17] px-4 py-2 rounded-full hover:bg-[#8B3A2A] transition-colors duration-200 cursor-pointer"
+          <button
+            onClick={() => setEditing(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#1C1A17] text-sm font-medium text-[#F0EAE0] hover:bg-[#8B3A2A] transition-colors cursor-pointer"
           >
-            내 독후감 쓰기
-          </Link>
+            <Pencil className="w-3.5 h-3.5" />수정
+          </button>
         )}
       </div>
     </div>
