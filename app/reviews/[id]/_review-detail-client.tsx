@@ -28,15 +28,15 @@ export default function ReviewDetailClient({ review }: { review: Review }) {
   const meeting = review.meetings;
 
   async function handleSave() {
-    if (!authorName.trim() || !content.trim()) {
-      toast.error("작성자와 내용을 모두 입력해주세요.");
+    if (!content.trim()) {
+      toast.error("내용을 입력해주세요.");
       return;
     }
     setSaving(true);
     const res = await fetch(`/api/reviews/${review.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ author_name: authorName.trim(), content: content.trim() }),
+      body: JSON.stringify({ content: content.trim() }),
     });
     if (res.ok) {
       toast.success("수정되었습니다.");
@@ -50,7 +50,7 @@ export default function ReviewDetailClient({ review }: { review: Review }) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto flex flex-col" style={{ minHeight: "calc(100dvh - 120px)" }}>
       {/* 브레드크럼 */}
       <Link
         href="/reviews"
@@ -82,16 +82,7 @@ export default function ReviewDetailClient({ review }: { review: Review }) {
           </span>
         </div>
         <div className="flex-1 min-w-0">
-          {editing ? (
-            <input
-              value={authorName}
-              onChange={(e) => setAuthorName(e.target.value)}
-              maxLength={20}
-              className="text-xl font-bold text-[#1C1A17] border-b border-[#C8956C] bg-transparent w-full outline-none pb-0.5"
-            />
-          ) : (
-            <h1 className="text-xl font-bold text-[#1C1A17]">{authorName}</h1>
-          )}
+          <h1 className="text-xl font-bold text-[#1C1A17]">{authorName}</h1>
           <p className="text-xs text-[#9C8E7E] mt-1 tracking-wide">
             {format(new Date(review.created_at), "yyyy년 M월 d일 HH:mm", { locale: ko })}
           </p>
@@ -125,8 +116,7 @@ export default function ReviewDetailClient({ review }: { review: Review }) {
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          rows={16}
-          className="w-full text-sm leading-[1.85] text-[#2C2520] border border-[#D4C5B0] rounded-xl p-4 bg-[#FDFAF7] outline-none focus:border-[#C8956C] resize-none mb-6"
+          className="flex-1 w-full text-sm leading-[1.85] text-[#2C2520] border border-[#D4C5B0] rounded-xl p-4 bg-[#FDFAF7] outline-none focus:border-[#C8956C] resize-none mb-6"
         />
       ) : (
         <div className="text-sm leading-[1.85] text-[#2C2520] whitespace-pre-wrap mb-10">
