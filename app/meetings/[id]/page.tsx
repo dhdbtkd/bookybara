@@ -10,7 +10,7 @@ import Link from "next/link";
 import { ChevronLeft, Plus, X, PenLine, CalendarDays, MapPin, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PieChart, Pie, Cell } from "recharts";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence, useMotionValue, useTransform } from "motion/react";
 
 type Book = { title: string; author: string; cover_url: string | null; cover_url_hires: string | null };
 type Meeting = {
@@ -92,6 +92,13 @@ export default function MeetingDetailPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [adding, setAdding] = useState(false);
+  const [activeBookIdx, setActiveBookIdx] = useState(0);
+  const dragX = useMotionValue(0);
+  const BACK_OFFSET_X = 22;
+  const BACK_OFFSET_Y = -14;
+  const backScale = useTransform(dragX, [-120, 0, 120], [1, 0.92, 1]);
+  const backMotionX = useTransform(dragX, [-120, 0, 120], [0, BACK_OFFSET_X, 0]);
+  const backMotionY = useTransform(dragX, [-120, 0, 120], [0, BACK_OFFSET_Y, 0]);
 
   async function load() {
     const [res, membersRes] = await Promise.all([
@@ -140,7 +147,6 @@ export default function MeetingDetailPage() {
   );
   if (!meeting) return <div className="text-sm text-neutral-400 pt-10 text-center">모임을 찾을 수 없습니다.</div>;
 
-  const book = meeting.books[0] ?? null;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const meetingDate = new Date(meeting.date + "T00:00:00");
@@ -224,39 +230,111 @@ export default function MeetingDetailPage() {
           </motion.div>
         </motion.div>
 
-        {/* 오른쪽: 북커버 */}
-        <motion.div
-          initial={{ opacity: 0, scale: 0.96, y: 10 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
-          className="flex-shrink-0 mx-auto md:mx-0"
-          style={{ width: "clamp(140px, 22vw, 220px)" }}
-        >
-          <div className="relative rounded-2xl overflow-hidden shadow-xl" style={{ aspectRatio: "2 / 3" }}>
-            {book?.cover_url_hires ?? book?.cover_url ? (
+        {/* 오른쪽: 북커버 카드 스택 */}
+        {(() => {
+          const books = meeting.books;
+          const CARD_W = 180;
+          const CARD_H = 270;
+          const CONTAINER_W = CARD_W + BACK_OFFSET_X + 8;
+          const CONTAINER_H = CARD_H + Math.abs(BACK_OFFSET_Y) + 8;
+
+          const frontBook = books[activeBookIdx] ?? null;
+          const backBook = books.length > 1 ? books[(activeBookIdx + 1) % books.length] : null;
+
+          function advance() {
+            dragX.set(0);
+            setActiveBookIdx((i) => (i + 1) % books.length);
+          }
+
+          function renderCover(b: Book | null) {
+            const src = b?.cover_url_hires ?? b?.cover_url;
+            return src ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={book.cover_url_hires ?? book.cover_url!} alt={book.title} className="absolute inset-0 w-full h-full object-cover" />
+              <img src={src} alt={b!.title} className="absolute inset-0 w-full h-full object-cover" />
             ) : (
               <div className="absolute inset-0 bg-[#2C2926] flex items-center justify-center">
                 <BookOpen className="w-10 h-10 text-white/20" />
               </div>
-            )}
-            {book && (
-              <>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <p
-                    className="text-white font-semibold text-sm leading-snug"
-                    style={{ fontFamily: "var(--font-playfair)", fontStyle: "italic" }}
+            );
+          }
+
+          return (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
+              className="flex-shrink-0 mx-auto md:mx-0 flex flex-col items-center gap-4"
+            >
+              {/* 카드 스택 */}
+              <div className="relative" style={{ width: CONTAINER_W, height: CONTAINER_H }}>
+
+                {/* 뒷 카드 */}
+                {backBook && (
+                  <motion.div
+                    className="absolute rounded-2xl overflow-hidden shadow-lg cursor-pointer"
+                    style={{ width: CARD_W, height: CARD_H, x: backMotionX, y: backMotionY, scale: backScale, zIndex: 1, top: Math.abs(BACK_OFFSET_Y), left: 0 }}
+                    onClick={advance}
                   >
-                    {book.title}
-                  </p>
-                  <p className="text-white/60 text-[9px] tracking-[0.15em] uppercase mt-1">{book.author}</p>
+                    {renderCover(backBook)}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-3">
+                      <p className="text-white/80 font-medium text-xs leading-snug" style={{ fontFamily: "var(--font-playfair)", fontStyle: "italic" }}>
+                        {backBook.title}
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* 앞 카드 (드래그 가능) */}
+                <AnimatePresence mode="popLayout">
+                  <motion.div
+                    key={activeBookIdx}
+                    className="absolute rounded-2xl overflow-hidden shadow-xl cursor-grab active:cursor-grabbing"
+                    style={{ width: CARD_W, height: CARD_H, x: dragX, zIndex: 2, top: Math.abs(BACK_OFFSET_Y), left: 0 }}
+                    initial={{ scale: 0.88, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                    exit={{ x: -260, opacity: 0, rotate: -8, transition: { duration: 0.3 } }}
+                    transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
+                    drag={books.length > 1 ? "x" : false}
+                    dragElastic={0.18}
+                    dragConstraints={{ left: 0, right: 0 }}
+                    onDragEnd={(_, info) => {
+                      if (Math.abs(info.offset.x) > 60) advance();
+                      else dragX.set(0);
+                    }}
+                  >
+                    {renderCover(frontBook)}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                      <p className="text-white font-semibold text-sm leading-snug" style={{ fontFamily: "var(--font-playfair)", fontStyle: "italic" }}>
+                        {frontBook?.title}
+                      </p>
+                      <p className="text-white/60 text-[9px] tracking-[0.15em] uppercase mt-1">{frontBook?.author}</p>
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {/* 도트 인디케이터 */}
+              {books.length > 1 && (
+                <div className="flex gap-1.5">
+                  {books.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => { dragX.set(0); setActiveBookIdx(i); }}
+                      className={`rounded-full transition-all cursor-pointer ${i === activeBookIdx ? "w-4 h-1.5 bg-[#8B3A2A]" : "w-1.5 h-1.5 bg-[#D4C5B0] hover:bg-[#B8A898]"}`}
+                      aria-label={`책 ${i + 1}`}
+                    />
+                  ))}
                 </div>
-              </>
-            )}
-          </div>
-        </motion.div>
+              )}
+
+              {books.length > 1 && (
+                <p className="text-[10px] text-neutral-400 tracking-wide">← 드래그하여 다음 책 →</p>
+              )}
+            </motion.div>
+          );
+        })()}
       </div>
 
       {/* ── 구분선 ── */}

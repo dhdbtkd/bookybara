@@ -73,7 +73,7 @@ export default function Nav() {
               className="flex items-center gap-2 flex-shrink-0"
             >
               <img src="/logo.png" alt="책피바라" className="h-7 w-auto" />
-              <span className="text-lg tracking-tight text-[#1C1A17]" style={{ fontFamily: "var(--font-playfair)" }}>
+              <span className="text-lg tracking-tight text-[#1C1A17]" style={{ fontFamily: "Eulyoo, serif" }}>
                 책피바라
               </span>
             </Link>
@@ -93,6 +93,12 @@ export default function Nav() {
                   {link.label}
                 </Link>
               ))}
+              <Link
+                href="/reviews/new"
+                className="ml-2 px-3 py-1.5 rounded-full text-sm whitespace-nowrap bg-[#8B3A2A] text-white hover:bg-[#7A3324] transition-colors cursor-pointer"
+              >
+                독후감 쓰기
+              </Link>
               <Link
                 href="/admin"
                 className="ml-0.5 px-2.5 py-1.5 rounded-md text-sm whitespace-nowrap text-[#8B3A2A]/60 hover:text-[#8B3A2A] transition-colors cursor-pointer"
@@ -139,7 +145,7 @@ export default function Nav() {
               <div className="flex items-center justify-between px-5 h-14 border-b border-white/10 flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <img src="/logo.png" alt="책피바라" className="h-6 w-auto brightness-0 invert" />
-                  <span className="text-white text-base" style={{ fontFamily: "var(--font-playfair)" }}>
+                  <span className="text-white text-base" style={{ fontFamily: "Eulyoo, serif" }}>
                     책피바라
                   </span>
                 </div>
@@ -175,8 +181,14 @@ export default function Nav() {
                 ))}
               </nav>
 
-              {/* 관리자 링크 */}
-              <div className="p-3 border-t border-white/10">
+              {/* 독후감 쓰기 + 관리자 링크 */}
+              <div className="p-3 border-t border-white/10 flex flex-col gap-1">
+                <Link
+                  href="/reviews/new"
+                  className="flex items-center justify-center px-3 py-2.5 rounded-lg text-sm font-medium bg-[#8B3A2A] text-white hover:bg-[#7A3324] transition-colors"
+                >
+                  독후감 쓰기
+                </Link>
                 <Link
                   href="/admin"
                   className="flex items-center px-3 py-2.5 rounded-lg text-sm text-[#8B3A2A]/60 hover:text-[#8B3A2A] transition-colors"

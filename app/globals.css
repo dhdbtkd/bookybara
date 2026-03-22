@@ -3,6 +3,20 @@
 @import "shadcn/tailwind.css";
 
 @font-face {
+    font-family: 'Eulyoo';
+    src: url('/fonts/TTF/Eulyoo1945-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Eulyoo';
+    src: url('/fonts/TTF/Eulyoo1945-SemiBold.ttf') format('truetype');
+    font-weight: 600;
+    font-display: swap;
+}
+
+@font-face {
     font-family: 'Paperozi';
     src: url('https://cdn.jsdelivr.net/gh/projectnoonnu/2408-3@1.0/Paperlogy-1Thin.woff2') format('woff2');
     font-weight: 100;

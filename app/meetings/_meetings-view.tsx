@@ -48,8 +48,7 @@ export default function MeetingsView({
     selectedId != null
       ? ([...upcoming, ...past].find((m) => m.id === selectedId) ?? null)
       : nextMeeting;
-  const displayBook = displayMeeting?.books?.[0] ?? null;
-  const isSelectedPast = selectedId != null && displayMeeting != null && displayMeeting.date < today;
+const isSelectedPast = selectedId != null && displayMeeting != null && displayMeeting.date < today;
 
   function handleMeetingClick(id: number, date: string) {
     if (date >= today) {
@@ -91,7 +90,7 @@ export default function MeetingsView({
               className="divide-y divide-[#E8E0D8]"
             >
               {past.map((m) => {
-                const book = m.books[0] ?? null;
+                const covers = m.books.map((b) => b.cover_url_hires || b.cover_url).filter(Boolean) as string[];
                 const isSelected = selectedId === m.id;
                 return (
                   <motion.button
@@ -103,14 +102,32 @@ export default function MeetingsView({
                     onClick={() => handleMeetingClick(m.id, m.date)}
                     className={`w-full text-left flex gap-4 py-5 group cursor-pointer transition-colors ${isSelected ? "opacity-100" : ""}`}
                   >
-                    <div className="w-12 h-[68px] flex-shrink-0 rounded-xl overflow-hidden bg-[#E8DDD0] shadow-sm">
-                      {book?.cover_url_hires ?? book?.cover_url ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={book.cover_url_hires ?? book.cover_url!} alt={book.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
+                    {/* 커버 스택 */}
+                    <div className="relative flex-shrink-0" style={{ width: 56, height: 68 }}>
+                      {covers.length === 0 ? (
+                        <div className="absolute rounded-xl overflow-hidden bg-[#E8DDD0] shadow-sm flex items-center justify-center" style={{ width: 44, height: 64, left: 6, top: 2 }}>
                           <BookOpen className="w-4 h-4 text-[#B8A898]" />
                         </div>
+                      ) : covers.length === 1 ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={covers[0]} alt="" className="absolute object-cover rounded-xl shadow-sm" style={{ width: 44, height: 64, left: 6, top: 2 }} />
+                      ) : (
+                        covers.slice(0, 2).map((cover, ci) => (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            key={ci}
+                            src={cover}
+                            alt=""
+                            className="absolute object-cover rounded-xl shadow-sm"
+                            style={{
+                              width: 42,
+                              height: 62,
+                              left: ci === 0 ? 0 : 14,
+                              top: ci === 0 ? 3 : 0,
+                              zIndex: 2 - ci,
+                            }}
+                          />
+                        ))
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -120,9 +137,9 @@ export default function MeetingsView({
                       <h3 className={`font-semibold text-sm transition-colors mb-0.5 ${isSelected ? "text-[#8B3A2A]" : "text-[#1C1A17] group-hover:text-[#8B3A2A]"}`}>
                         {m.title}
                       </h3>
-                      {book && (
-                        <p className="text-xs text-neutral-400">
-                          {book.title} · {book.author}
+                      {m.books.length > 0 && (
+                        <p className="text-xs text-neutral-400 truncate">
+                          {m.books.map((b) => b.title).join(" · ")}
                         </p>
                       )}
                       <p className={`text-xs mt-2 underline-offset-2 ${isSelected ? "text-[#8B3A2A] underline" : "text-[#8B3A2A] group-hover:underline"}`}>
@@ -166,21 +183,50 @@ export default function MeetingsView({
               transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
               className="bg-white rounded-2xl overflow-hidden border border-[#E8DDD0] shadow-sm"
             >
-              {/* Book cover */}
+              {/* Book cover(s) */}
               <div className="bg-[#F5F0E8] flex items-center justify-center py-8 px-6 min-h-[220px]">
-                {displayBook?.cover_url_hires ?? displayBook?.cover_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={displayBook.cover_url_hires ?? displayBook.cover_url!}
-                    alt={displayBook.title}
-                    className="max-h-44 object-contain"
-                    style={{ filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.18))" }}
-                  />
-                ) : (
-                  <div className="w-28 h-40 bg-[#E8DDD0] rounded-lg flex items-center justify-center shadow-inner">
-                    <BookOpen className="w-8 h-8 text-[#B8A898]" />
-                  </div>
-                )}
+                {(() => {
+                  const cardCovers = displayMeeting.books.map((b) => b.cover_url_hires || b.cover_url).filter(Boolean) as string[];
+                  if (cardCovers.length === 0) {
+                    return (
+                      <div className="w-28 h-40 bg-[#E8DDD0] rounded-lg flex items-center justify-center shadow-inner">
+                        <BookOpen className="w-8 h-8 text-[#B8A898]" />
+                      </div>
+                    );
+                  }
+                  if (cardCovers.length === 1) {
+                    return (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={cardCovers[0]}
+                        alt={displayMeeting.books[0].title}
+                        className="max-h-44 object-contain"
+                        style={{ filter: "drop-shadow(0 8px 24px rgba(0,0,0,0.18))" }}
+                      />
+                    );
+                  }
+                  return (
+                    <div className="relative" style={{ width: 130, height: 176 }}>
+                      {cardCovers.slice(0, 2).map((cover, ci) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={ci}
+                          src={cover}
+                          alt=""
+                          className="absolute object-cover rounded-lg"
+                          style={{
+                            width: 96,
+                            height: 140,
+                            left: ci === 0 ? 0 : 34,
+                            top: ci === 0 ? 18 : 0,
+                            zIndex: 2 - ci,
+                            filter: `drop-shadow(0 ${ci === 0 ? 4 : 8}px ${ci === 0 ? 12 : 24}px rgba(0,0,0,0.18))`,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Info */}
@@ -191,10 +237,10 @@ export default function MeetingsView({
                     {isSelectedPast ? "지난 모임" : "다음 모임"}
                   </p>
                   <h3 className="text-[1.4rem] leading-tight text-[#1C1A17] font-bold">
-                    {displayBook?.title ?? displayMeeting.title}
+                    {displayMeeting.books.length > 0 ? displayMeeting.books.map((b) => b.title).join(" · ") : displayMeeting.title}
                   </h3>
-                  {displayBook?.author && (
-                    <p className="text-sm text-neutral-400 mt-0.5">{displayBook.author}</p>
+                  {displayMeeting.books.length > 0 && (
+                    <p className="text-sm text-neutral-400 mt-0.5">{displayMeeting.books.map((b) => b.author).join(", ")}</p>
                   )}
                 </div>
 
