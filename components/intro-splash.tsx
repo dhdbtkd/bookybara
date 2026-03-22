@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "motion/react";
 
 // 새로고침 시 JS 모듈이 재로드되어 리셋됨 → 다시 표시
@@ -11,10 +12,11 @@ type Phase = "logo" | "circle" | "done";
 type ActivePhase = "logo" | "circle";
 
 export default function IntroSplash() {
+  const pathname = usePathname();
   const [phase, setPhase] = useState<Phase>("logo");
 
   useEffect(() => {
-    if (hasShownIntro) {
+    if (hasShownIntro || pathname !== "/") {
       setPhase("done");
       return;
     }

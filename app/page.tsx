@@ -8,7 +8,6 @@ import Link from "next/link";
 import BookCover3D from "@/components/book-cover-3d";
 import HomeReadBooks from "@/components/home-read-books";
 import HomeCandidates from "@/components/home-candidates";
-import IntroSplash from "@/components/intro-splash";
 import {
   HomeHeroLeft,
   HomeHeroItem,
@@ -94,7 +93,6 @@ export default async function HomePage() {
 
   return (
     <div>
-      <IntroSplash />
       {/* ── Hero ── */}
       <section className="-mx-4 -mt-8 bg-[#F0EAE0]">
         <div className="px-4 sm:px-8 py-12 md:py-18">

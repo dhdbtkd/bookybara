@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/nav";
+import IntroSplash from "@/components/intro-splash";
 import { Toaster } from "@/components/ui/sonner";
 import ScrollToTop from "@/components/scroll-to-top";
 
@@ -33,6 +34,7 @@ export default function RootLayout({
           <div className="absolute bottom-[10%] -left-20 w-[480px] h-[480px] rounded-full bg-[#A0522D] opacity-[0.05] blur-[130px]" />
           <div className="absolute bottom-0 right-[10%] w-[360px] h-[360px] rounded-full bg-[#C8956C] opacity-[0.07] blur-[110px]" />
         </div>
+        <IntroSplash />
         <Nav />
         <main className="relative z-10 flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 py-4 md:py-8">{children}</main>
         <ScrollToTop />
