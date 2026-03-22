@@ -699,7 +699,6 @@ function ReviewsInner() {
       {/* ── 사이드바 ── */}
       <aside className="hidden md:block w-44 flex-shrink-0 pt-1">
         <p className="text-[#1C1A17] text-lg mb-0.5">독후감</p>
-        <p className="text-[9px] tracking-[0.2em] text-[#9C8E7E] uppercase mb-6">Curated Reports</p>
 
         <nav className="space-y-0.5">
           {NAV_ITEMS.map((item) => (
@@ -716,22 +715,11 @@ function ReviewsInner() {
                 {item.icon}
               </span>
               <div>
-                <p className="text-[9px] tracking-[0.15em] uppercase leading-none mb-0.5 opacity-60">{item.sublabel}</p>
                 <p className="text-sm font-medium leading-none">{item.label}</p>
               </div>
             </button>
           ))}
         </nav>
-
-        <div className="mt-8 border-t border-[#D4C5B0]/60 pt-6">
-          <Link
-            href="/reviews/new"
-            className="cursor-pointer flex items-center gap-2 text-xs text-[#8B3A2A] hover:text-[#1C1A17] transition-colors duration-200 group"
-          >
-            <PenLine size={13} className="group-hover:rotate-[-8deg] transition-transform duration-200" />
-            <span className="tracking-wide">독후감 쓰기</span>
-          </Link>
-        </div>
       </aside>
 
       {/* ── 모바일 탭 ── */}

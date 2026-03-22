@@ -20,6 +20,8 @@ import {
   FileText, Megaphone, Sparkles, LogOut, Plus, Trash2,
   ChevronDown, ChevronUp, BookCopy, Eye, EyeOff, Check, Search, CheckCircle2, Loader2, X,
 } from "lucide-react";
+import dynamic from "next/dynamic";
+const PdfDownloadButton = dynamic(() => import("@/components/pdf/pdf-download-button"), { ssr: false });
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -1666,12 +1668,6 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
     else setSelected(new Set(attendees.map((a) => a.name)));
   }
 
-  function openPdf() {
-    if (!selectedMeetingId || selected.size === 0) return;
-    const members = [...selected].map((m) => encodeURIComponent(m)).join(",");
-    window.open(`/admin/pdf-print?meeting=${selectedMeetingId}&members=${members}`, "_blank");
-  }
-
   const sortedMeetings = [...meetings].sort((a, b) => b.date.localeCompare(a.date));
 
   return (
@@ -1755,16 +1751,15 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
         </FormCard>
       )}
 
-      <div className="flex justify-end">
-        <Button
-          onClick={openPdf}
-          disabled={!selectedMeetingId || selected.size === 0}
-          className="cursor-pointer bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors px-6"
-        >
-          <FileText className="w-4 h-4 mr-2" />
-          PDF 생성 (새 탭으로 열기 → 인쇄/저장)
-        </Button>
-      </div>
+      {selectedMeetingId && selected.size > 0 && (
+        <div className="flex justify-end">
+          <PdfDownloadButton
+            meetingId={selectedMeetingId}
+            selectedMembers={[...selected]}
+            disabled={false}
+          />
+        </div>
+      )}
     </div>
   );
 }
