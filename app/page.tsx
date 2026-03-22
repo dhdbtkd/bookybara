@@ -8,6 +8,7 @@ import Link from "next/link";
 import BookCover3D from "@/components/book-cover-3d";
 import HomeReadBooks from "@/components/home-read-books";
 import HomeCandidates from "@/components/home-candidates";
+import HomeInstallBanner from "@/components/home-install-banner";
 import {
   HomeHeroLeft,
   HomeHeroItem,
@@ -249,6 +250,7 @@ export default async function HomePage() {
 
       <HomeReadBooks books={readBooks} />
       <HomeCandidates candidates={(pendingCandidates ?? []) as any} />
+      <HomeInstallBanner />
     </div>
   );
 }
