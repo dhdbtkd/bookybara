@@ -35,6 +35,10 @@ export default function HomeInstallBanner() {
     setEnv(detected);
 
     if (detected === "android") {
+      if ((window as any).__pwaPrompt) {
+        setDeferredPrompt((window as any).__pwaPrompt);
+        return;
+      }
       const handler = (e: Event) => {
         e.preventDefault();
         setDeferredPrompt(e as BeforeInstallPromptEvent);

@@ -95,6 +95,13 @@ export default function PwaInstallPrompt() {
     }
 
     if (detected === "android") {
+      // 인라인 스크립트가 이미 캡처한 경우 즉시 사용
+      if ((window as any).__pwaPrompt) {
+        setDeferredPrompt((window as any).__pwaPrompt);
+        setShow(true);
+        return;
+      }
+      // 아직 이벤트가 안 왔으면 리스너 대기
       const handler = (e: Event) => {
         e.preventDefault();
         setDeferredPrompt(e as BeforeInstallPromptEvent);
