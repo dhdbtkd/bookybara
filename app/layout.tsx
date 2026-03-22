@@ -16,6 +16,7 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: "책피바라",
+  colorScheme: "light",
   description: "우리들의 독서모임",
   openGraph: {
     title: "책피바라",
