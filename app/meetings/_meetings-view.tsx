@@ -60,104 +60,19 @@ const isSelectedPast = selectedId != null && displayMeeting != null && displayMe
   }
 
   return (
-    <div className="px-4 sm:px-8 py-8 grid grid-cols-1 md:grid-cols-[1fr_260px] gap-8 items-start">
-      {/* Left: calendar + past meetings */}
-      <div className="space-y-12 order-2 md:order-1">
+    <div className="px-4 sm:px-8 py-8 grid grid-cols-1 md:grid-cols-[1fr_260px] md:grid-rows-[auto_1fr] gap-8 items-start">
+      {/* 캘린더 — 모바일 1번, 데스크탑 left/row1 */}
+      <div className="order-1 md:order-1 md:row-start-1 md:col-start-1">
         <MeetingsCalendar
           meetings={meetings}
           onMeetingClick={handleMeetingClick}
           initialMonth={initialMonth}
           focusMonth={focusMonth}
         />
-
-        {/* Past meetings */}
-        <div>
-          <motion.h2
-            initial={{ opacity: 0, y: 8 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.35 }}
-            className="text-2xl font-bold text-[#1C1A17] mb-6"
-          >
-            지난 모임
-          </motion.h2>
-          {past.length > 0 ? (
-            <motion.div
-              variants={listVariants}
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, margin: "-40px" }}
-              className="divide-y divide-[#E8E0D8]"
-            >
-              {past.map((m) => {
-                const covers = m.books.map((b) => b.cover_url_hires || b.cover_url).filter(Boolean) as string[];
-                const isSelected = selectedId === m.id;
-                return (
-                  <motion.button
-                    key={m.id}
-                    variants={rowVariants}
-                    whileHover={{ x: 4 }}
-                    transition={{ duration: 0.18 }}
-                    type="button"
-                    onClick={() => handleMeetingClick(m.id, m.date)}
-                    className={`w-full text-left flex gap-4 py-5 group cursor-pointer transition-colors ${isSelected ? "opacity-100" : ""}`}
-                  >
-                    {/* 커버 스택 */}
-                    <div className="relative flex-shrink-0" style={{ width: 56, height: 68 }}>
-                      {covers.length === 0 ? (
-                        <div className="absolute rounded-xl overflow-hidden bg-[#E8DDD0] shadow-sm flex items-center justify-center" style={{ width: 44, height: 64, left: 6, top: 2 }}>
-                          <BookOpen className="w-4 h-4 text-[#B8A898]" />
-                        </div>
-                      ) : covers.length === 1 ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={covers[0]} alt="" className="absolute object-cover rounded-xl shadow-sm" style={{ width: 44, height: 64, left: 6, top: 2 }} />
-                      ) : (
-                        covers.slice(0, 2).map((cover, ci) => (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            key={ci}
-                            src={cover}
-                            alt=""
-                            className="absolute object-cover rounded-xl shadow-sm"
-                            style={{
-                              width: 42,
-                              height: 62,
-                              left: ci === 0 ? 0 : 14,
-                              top: ci === 0 ? 3 : 0,
-                              zIndex: 2 - ci,
-                            }}
-                          />
-                        ))
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[10px] text-[#8B7B6B] mb-1">
-                        {format(new Date(m.date), "yyyy년 M월 d일", { locale: ko })}
-                      </p>
-                      <h3 className={`font-semibold text-sm transition-colors mb-0.5 ${isSelected ? "text-[#8B3A2A]" : "text-[#1C1A17] group-hover:text-[#8B3A2A]"}`}>
-                        {m.title}
-                      </h3>
-                      {m.books.length > 0 && (
-                        <p className="text-xs text-neutral-400 truncate">
-                          {m.books.map((b) => b.title).join(" · ")}
-                        </p>
-                      )}
-                      <p className={`text-xs mt-2 underline-offset-2 ${isSelected ? "text-[#8B3A2A] underline" : "text-[#8B3A2A] group-hover:underline"}`}>
-                        {isSelected ? "선택됨" : "토론 요약 보기"}
-                      </p>
-                    </div>
-                  </motion.button>
-                );
-              })}
-            </motion.div>
-          ) : (
-            <p className="text-sm text-neutral-400">지난 모임이 없습니다.</p>
-          )}
-        </div>
       </div>
 
-      {/* Right: meeting card */}
-      <div className="sticky top-20 order-1 md:order-2">
+      {/* 예정된 모임 카드 — 모바일 2번, 데스크탑 right/row1-2 */}
+      <div className="order-2 md:order-2 md:row-start-1 md:row-end-3 md:col-start-2 md:sticky md:top-20">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xs font-bold tracking-[0.15em] uppercase text-[#1C1A17]">
             {isSelectedPast ? "지난 모임" : "예정된 모임"}
@@ -310,6 +225,90 @@ const isSelectedPast = selectedId != null && displayMeeting != null && displayMe
               </Link>
             ))}
           </motion.div>
+        )}
+      </div>
+
+      {/* 지난 모임 — 모바일 3번, 데스크탑 left/row2 */}
+      <div className="order-3 md:order-3 md:row-start-2 md:col-start-1">
+        <motion.h2
+          initial={{ opacity: 0, y: 8 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.35 }}
+          className="text-2xl font-bold text-[#1C1A17] mb-6"
+        >
+          지난 모임
+        </motion.h2>
+        {past.length > 0 ? (
+          <motion.div
+            variants={listVariants}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: "-40px" }}
+            className="divide-y divide-[#E8E0D8]"
+          >
+            {past.map((m) => {
+              const covers = m.books.map((b) => b.cover_url_hires || b.cover_url).filter(Boolean) as string[];
+              const isSelected = selectedId === m.id;
+              return (
+                <motion.button
+                  key={m.id}
+                  variants={rowVariants}
+                  whileHover={{ x: 4 }}
+                  transition={{ duration: 0.18 }}
+                  type="button"
+                  onClick={() => handleMeetingClick(m.id, m.date)}
+                  className={`w-full text-left flex gap-4 py-5 group cursor-pointer transition-colors ${isSelected ? "opacity-100" : ""}`}
+                >
+                  <div className="relative flex-shrink-0" style={{ width: 56, height: 68 }}>
+                    {covers.length === 0 ? (
+                      <div className="absolute rounded-xl overflow-hidden bg-[#E8DDD0] shadow-sm flex items-center justify-center" style={{ width: 44, height: 64, left: 6, top: 2 }}>
+                        <BookOpen className="w-4 h-4 text-[#B8A898]" />
+                      </div>
+                    ) : covers.length === 1 ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={covers[0]} alt="" className="absolute object-cover rounded-xl shadow-sm" style={{ width: 44, height: 64, left: 6, top: 2 }} />
+                    ) : (
+                      covers.slice(0, 2).map((cover, ci) => (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          key={ci}
+                          src={cover}
+                          alt=""
+                          className="absolute object-cover rounded-xl shadow-sm"
+                          style={{
+                            width: 42,
+                            height: 62,
+                            left: ci === 0 ? 0 : 14,
+                            top: ci === 0 ? 3 : 0,
+                            zIndex: 2 - ci,
+                          }}
+                        />
+                      ))
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] text-[#8B7B6B] mb-1">
+                      {format(new Date(m.date), "yyyy년 M월 d일", { locale: ko })}
+                    </p>
+                    <h3 className={`font-semibold text-sm transition-colors mb-0.5 ${isSelected ? "text-[#8B3A2A]" : "text-[#1C1A17] group-hover:text-[#8B3A2A]"}`}>
+                      {m.title}
+                    </h3>
+                    {m.books.length > 0 && (
+                      <p className="text-xs text-neutral-400 truncate">
+                        {m.books.map((b) => b.title).join(" · ")}
+                      </p>
+                    )}
+                    <p className={`text-xs mt-2 underline-offset-2 ${isSelected ? "text-[#8B3A2A] underline" : "text-[#8B3A2A] group-hover:underline"}`}>
+                      {isSelected ? "선택됨" : "토론 요약 보기"}
+                    </p>
+                  </div>
+                </motion.button>
+              );
+            })}
+          </motion.div>
+        ) : (
+          <p className="text-sm text-neutral-400">지난 모임이 없습니다.</p>
         )}
       </div>
     </div>
