@@ -95,7 +95,7 @@ export default async function HomePage() {
   return (
     <div>
       {/* ── Hero ── */}
-      <section className="-mx-4 -mt-8 bg-[#F0EAE0]">
+      <section className="-mx-4 -mt-8" style={{ background: "linear-gradient(to bottom, #F0EAE0 60%, transparent 100%)" }}>
         <div className="px-4 sm:px-8 py-12 md:py-18">
           {nextMeeting ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
