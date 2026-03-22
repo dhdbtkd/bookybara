@@ -120,10 +120,9 @@ export default function PwaInstallPrompt() {
                 </div>
                 <div className="flex-1 pt-1">
                   <p className="text-lg font-semibold text-[#1C1A17] leading-snug">책피바라를 앱으로</p>
-                  <p className="text-sm text-[#6B6560] mt-0.5">
-                    {isIosSafari && "홈 화면에서 바로 책피바라를 열어보세요"}
-                    {isIosOther && "Safari에서 홈 화면에 추가할 수 있어요"}
-                    {env === "android" && "더 편리한 독서 경험을 시작하세요"}
+                  <p className="text-sm text-[#6B6560] mt-0.5 flex items-center gap-1">
+                    <Zap size={13} className="text-[#5A8A5A]" />
+                    3초 만에 간편 추가
                   </p>
                 </div>
                 <button
@@ -135,21 +134,6 @@ export default function PwaInstallPrompt() {
                 </button>
               </div>
 
-              {/* Features */}
-              <div className="grid grid-cols-3 gap-3 mb-6">
-                {[
-                  { icon: Zap, label: "빠른 접속" },
-                  { icon: Bell, label: "실시간 알림" },
-                  { icon: WifiOff, label: "오프라인" },
-                ].map(({ icon: Icon, label }) => (
-                  <div key={label} className="flex flex-col items-center gap-2 bg-[#EEF4EE] rounded-2xl py-4">
-                    <div className="w-10 h-10 rounded-full bg-[#5A8A5A] flex items-center justify-center">
-                      <Icon size={18} className="text-white" />
-                    </div>
-                    <span className="text-xs text-[#3A5A3A] font-medium">{label}</span>
-                  </div>
-                ))}
-              </div>
 
               {/* Hint */}
               {isIosSafari && (
@@ -166,10 +150,6 @@ export default function PwaInstallPrompt() {
                   iPhone에서는 <span className="font-medium text-[#1C1A17]">Safari 브라우저</span>로 열어야 홈 화면에 추가할 수 있어요
                 </p>
               )}
-              {env === "android" && (
-                <p className="text-center text-xs text-[#9B948D] mb-4">3초 만에 간편 추가, 언제든 삭제 가능</p>
-              )}
-
               {/* CTA */}
               <button
                 onClick={isIosSafari ? undefined : handleInstall}
