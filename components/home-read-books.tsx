@@ -39,7 +39,13 @@ export default function HomeReadBooks({ books }: { books: Book[] }) {
         </h2>
       </div>
 
-      {/* 마퀴 트랙 */}
+      {/* 마퀴 트랙 — 좌우 fade mask */}
+      <div
+        style={{
+          maskImage: "linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)",
+        }}
+      >
       <div
         className="flex animate-marquee"
         style={
@@ -100,6 +106,7 @@ export default function HomeReadBooks({ books }: { books: Book[] }) {
             </div>
           );
         })}
+      </div>
       </div>
     </section>
   );
