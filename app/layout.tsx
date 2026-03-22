@@ -37,7 +37,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="ko" className={`${playfair.variable} h-full antialiased`}>
+    <html lang="ko" className={`${playfair.variable} h-full antialiased`} style={{ colorScheme: "light" }}>
 <body className="h-full flex flex-col bg-[#F0EAE0] font-sans">
         {/* 배경 장식 orbs */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none -z-0" aria-hidden>

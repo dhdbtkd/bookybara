@@ -2,6 +2,10 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+:root {
+  color-scheme: light only;
+}
+
 @font-face {
     font-family: 'Eulyoo';
     src: url('/fonts/TTF/Eulyoo1945-Regular.ttf') format('truetype');
