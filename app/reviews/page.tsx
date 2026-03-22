@@ -186,7 +186,7 @@ function GatheringView({ reviews, meetings }: { reviews: Review[]; meetings: Mee
             )}
             <span className="text-[10px] text-[#9C8E7E]/60">{meetingReviews.length}개의 독후감</span>
           </div>
-          <h2 className="font-[family-name:var(--font-playfair)] text-3xl italic text-[#1C1A17] leading-tight">
+          <h2 className="text-3xl text-[#1C1A17] leading-tight">
             {meeting.title}
           </h2>
         </div>
@@ -249,7 +249,7 @@ function GatheringView({ reviews, meetings }: { reviews: Review[]; meetings: Mee
                   </div>
                   <div>
                     <p className="text-[10px] tracking-[0.2em] uppercase text-[#9C8E7E] mb-1">도서</p>
-                    <h3 className="font-[family-name:var(--font-playfair)] text-xl italic text-[#1C1A17] leading-snug">
+                    <h3 className="text-xl text-[#1C1A17] leading-snug">
                       {book.title}
                     </h3>
                     <p className="text-xs text-[#9C8E7E] mt-0.5">{book.author}</p>
@@ -258,7 +258,7 @@ function GatheringView({ reviews, meetings }: { reviews: Review[]; meetings: Mee
                 </div>
 
                 {bookReviews.length === 0 ? (
-                  <p className="text-sm text-[#9C8E7E] italic text-center py-6">이 도서에 대한 독후감이 없습니다.</p>
+                  <p className="text-sm text-[#9C8E7E] text-center py-6">이 도서에 대한 독후감이 없습니다.</p>
                 ) : (
                   <motion.div
                     variants={containerVariants}
@@ -350,7 +350,7 @@ function GatheringView({ reviews, meetings }: { reviews: Review[]; meetings: Mee
                     </span>
                   )}
                 </div>
-                <h3 className="font-[family-name:var(--font-playfair)] text-lg italic text-[#1C1A17] leading-snug group-hover:text-[#8B3A2A] transition-colors duration-200 truncate">
+                <h3 className="text-lg text-[#1C1A17] leading-snug group-hover:text-[#8B3A2A] transition-colors duration-200 truncate">
                   {meeting.title}
                 </h3>
                 {meeting.books.length > 0 && (
@@ -362,7 +362,7 @@ function GatheringView({ reviews, meetings }: { reviews: Review[]; meetings: Mee
 
               {/* 독후감 수 */}
               <div className="flex-shrink-0 text-right pr-1">
-                <p className="font-[family-name:var(--font-playfair)] text-2xl italic text-[#1C1A17] leading-none">
+                <p className="text-2xl text-[#1C1A17] leading-none">
                   {meetingReviews.length}
                 </p>
                 <p className="text-[9px] tracking-widest uppercase text-[#9C8E7E] mt-0.5">독후감</p>
@@ -392,7 +392,21 @@ function GatheringView({ reviews, meetings }: { reviews: Review[]; meetings: Mee
 
 // ── BY BOOK ──────────────────────────────────────────────────────
 function BookView({ reviews, books }: { reviews: Review[]; books: Book[] }) {
-  const [selectedBookId, setSelectedBookId] = useState<number | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedBookId = searchParams.get("book") ? Number(searchParams.get("book")) : null;
+
+  function selectBook(id: number) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("book", String(id));
+    router.push(`?${params.toString()}`);
+  }
+
+  function goBack() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("book");
+    router.push(`?${params.toString()}`);
+  }
 
   const grouped = useMemo(() => {
     const map = new Map<number, Review[]>();
@@ -417,8 +431,8 @@ function BookView({ reviews, books }: { reviews: Review[]; books: Book[] }) {
     return (
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         <button
-          onClick={() => setSelectedBookId(null)}
-          className="cursor-pointer text-xs text-[#9C8E7E] hover:text-[#1C1A17] tracking-wider uppercase mb-6 flex items-center gap-1.5 transition-colors duration-200 group"
+          onClick={goBack}
+          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1C1A17] text-[#F0EAE0] text-[11px] font-bold tracking-[0.12em] uppercase mb-6 hover:bg-[#8B3A2A] transition-colors duration-200 group"
         >
           <span className="group-hover:-translate-x-0.5 transition-transform duration-200">←</span> 전체 도서
         </button>
@@ -435,7 +449,7 @@ function BookView({ reviews, books }: { reviews: Review[]; books: Book[] }) {
           )}
           <div>
             <p className="text-[11px] tracking-widest text-[#9C8E7E] uppercase mb-1">{items.length}개의 독후감</p>
-            <h2 className="font-[family-name:var(--font-playfair)] text-2xl italic text-[#1C1A17]">{book?.title}</h2>
+            <h2 className="text-2xl font-bold text-[#1C1A17]">{book?.title}</h2>
             <p className="text-sm text-[#9C8E7E] mt-1">{book?.author}</p>
           </div>
         </div>
@@ -468,7 +482,7 @@ function BookView({ reviews, books }: { reviews: Review[]; books: Book[] }) {
             variants={itemVariants}
             whileHover={{ y: -6 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            onClick={() => setSelectedBookId(book.id)}
+            onClick={() => selectBook(book.id)}
             className="text-left group cursor-pointer"
           >
             <div className="relative mb-3 overflow-hidden rounded-xl">
@@ -481,7 +495,7 @@ function BookView({ reviews, books }: { reviews: Review[]; books: Book[] }) {
                 />
               ) : (
                 <div className="w-full aspect-[2/3] bg-gradient-to-br from-[#D4C5B0] to-[#B8A898] rounded-xl shadow-md group-hover:shadow-xl transition-shadow duration-300 flex items-end p-3">
-                  <span className="font-[family-name:var(--font-playfair)] text-sm italic text-[#5C4A3A] leading-tight">
+                  <span className="text-sm text-[#5C4A3A] leading-tight">
                     {book.title}
                   </span>
                 </div>
@@ -496,7 +510,7 @@ function BookView({ reviews, books }: { reviews: Review[]; books: Book[] }) {
                 </motion.span>
               </div>
             </div>
-            <h3 className="font-[family-name:var(--font-playfair)] text-base italic text-[#1C1A17] leading-snug group-hover:text-[#8B3A2A] transition-colors duration-200">
+            <h3 className="text-sm font-semibold text-[#1C1A17] leading-snug group-hover:text-[#8B3A2A] transition-colors duration-200">
               {book.title}
             </h3>
             <p className="text-[11px] text-[#9C8E7E] mt-0.5 tracking-wide uppercase">{book.author}</p>
@@ -509,6 +523,22 @@ function BookView({ reviews, books }: { reviews: Review[]; books: Book[] }) {
 
 // ── BY MEMBER ────────────────────────────────────────────────────
 function MemberView({ reviews }: { reviews: Review[] }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedMember = searchParams.get("member");
+
+  function selectMember(name: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("member", name);
+    router.push(`?${params.toString()}`);
+  }
+
+  function goBack() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("member");
+    router.push(`?${params.toString()}`);
+  }
+
   const grouped = useMemo(() => {
     const map = new Map<string, Review[]>();
     for (const r of reviews) {
@@ -522,89 +552,65 @@ function MemberView({ reviews }: { reviews: Review[] }) {
 
   if (grouped.length === 0) return <EmptyState />;
 
+  // ── 참석자 상세 뷰 ──────────────────────────────────────────
+  if (selectedMember) {
+    const member = grouped.find((g) => g.name === selectedMember);
+    if (!member) return null;
+
+    return (
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+        <button
+          onClick={goBack}
+          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1C1A17] text-[#F0EAE0] text-[11px] font-bold tracking-[0.12em] uppercase mb-6 hover:bg-[#8B3A2A] transition-colors duration-200 group"
+        >
+          <span className="group-hover:-translate-x-0.5 transition-transform duration-200">←</span> 참석자 목록
+        </button>
+
+        {/* 참석자 헤더 */}
+        <div className="flex items-center gap-4 mb-8 pb-6 border-b border-[#D4C5B0]/60">
+          <div className="w-14 h-14 rounded-full bg-[#D4C5B0] flex items-center justify-center flex-shrink-0">
+            <span className="text-lg font-bold text-[#5C4A3A]">{initials(member.name)}</span>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-[#1C1A17]">{member.name}</h2>
+            <p className="text-xs text-[#9C8E7E] mt-0.5 tracking-wider">독후감 {member.items.length}개</p>
+          </div>
+        </div>
+
+        {/* 독후감 리스트 */}
+        <motion.div variants={containerVariants} initial="hidden" animate="show">
+          {member.items.map((r) => (
+            <motion.div key={r.id} variants={itemVariants}>
+              <ReviewCard review={r} />
+            </motion.div>
+          ))}
+        </motion.div>
+      </motion.div>
+    );
+  }
+
+  // ── 참석자 목록 뷰 ──────────────────────────────────────────
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="divide-y divide-[#D4C5B0]/60">
-      {grouped.map(({ name, items }) => {
-        const latest = items[0];
-        return (
-          <motion.div key={name} variants={itemVariants} className="py-8 flex gap-0 md:gap-8">
-            {/* 멤버 정보 (desktop) */}
-            <div className="w-40 flex-shrink-0 hidden md:block">
-              <div className="w-16 h-16 rounded-full bg-[#D4C5B0] flex items-center justify-center mb-3">
-                <span className="font-[family-name:var(--font-playfair)] text-xl italic text-[#5C4A3A]">
-                  {initials(name)}
-                </span>
-              </div>
-              <h3 className="font-semibold text-[#1C1A17] text-base mb-0.5">{name}</h3>
-              <div className="mt-3 flex justify-between text-[11px] tracking-widest uppercase text-[#9C8E7E]">
-                <span>독후감</span>
-                <span className="font-[family-name:var(--font-playfair)] text-lg italic text-[#1C1A17] leading-none">
-                  {items.length}
-                </span>
-              </div>
-            </div>
-
-            {/* 최신 독후감 */}
-            <div className="flex-1 min-w-0">
-              {/* mobile: 멤버 인라인 */}
-              <div className="flex items-center gap-3 mb-4 md:hidden">
-                <div className="w-10 h-10 rounded-full bg-[#D4C5B0] flex items-center justify-center flex-shrink-0">
-                  <span className="font-[family-name:var(--font-playfair)] text-sm italic text-[#5C4A3A]">
-                    {initials(name)}
-                  </span>
-                </div>
-                <div>
-                  <p className="font-semibold text-[#1C1A17] text-sm">{name}</p>
-                  <p className="text-[11px] text-[#9C8E7E] tracking-wider">독후감 {items.length}개</p>
-                </div>
-              </div>
-
-              <p className="text-[10px] tracking-widest uppercase text-[#9C8E7E] mb-2 flex items-center justify-between">
-                <span>최신 독후감</span>
-                <span>{format(new Date(latest.created_at), "yy.MM.dd", { locale: ko })}</span>
-              </p>
-
-              <Link href={`/reviews/${latest.id}`} className="group block cursor-pointer">
-                <h4 className="font-[family-name:var(--font-playfair)] text-lg italic text-[#1C1A17] leading-snug mb-2 group-hover:text-[#8B3A2A] transition-colors duration-200">
-                  {latest.books?.title ?? "제목 없음"}
-                </h4>
-                <p className="text-sm text-[#3D3530] leading-relaxed line-clamp-3">
-                  &ldquo;{latest.content}&rdquo;
-                </p>
-                {latest.books && (
-                  <div className="mt-3 flex gap-2 flex-wrap">
-                    <span className="text-[10px] tracking-widest border border-[#C8956C]/60 text-[#8B3A2A] px-2 py-0.5 uppercase rounded-full">
-                      {latest.books.title}
-                    </span>
-                  </div>
-                )}
-                <span className="inline-flex items-center gap-1 text-[11px] text-[#9C8E7E] mt-3 group-hover:text-[#8B3A2A] transition-colors duration-200">
-                  전문 읽기{" "}
-                  <ChevronRight size={10} className="group-hover:translate-x-0.5 transition-transform duration-200" />
-                </span>
-              </Link>
-
-              {items.length > 1 && (
-                <div className="mt-4 pt-4 border-t border-[#D4C5B0]/40 grid grid-cols-1 gap-2">
-                  {items.slice(1, 3).map((r) => (
-                    <Link
-                      key={r.id}
-                      href={`/reviews/${r.id}`}
-                      className="flex items-center justify-between gap-3 text-xs text-[#9C8E7E] hover:text-[#1C1A17] transition-colors duration-200 cursor-pointer"
-                    >
-                      <span className="truncate">{r.books?.title ?? "—"}</span>
-                      <span className="flex-shrink-0">{format(new Date(r.created_at), "yy.MM.dd")}</span>
-                    </Link>
-                  ))}
-                  {items.length > 3 && (
-                    <p className="text-[11px] text-[#9C8E7E]/60">+ {items.length - 3}개 더</p>
-                  )}
-                </div>
-              )}
-            </div>
-          </motion.div>
-        );
-      })}
+      {grouped.map(({ name, items }) => (
+        <motion.button
+          key={name}
+          variants={itemVariants}
+          whileHover={{ x: 3 }}
+          transition={{ duration: 0.18 }}
+          onClick={() => selectMember(name)}
+          className="w-full text-left py-4 flex items-center gap-4 group cursor-pointer"
+        >
+          <div className="w-10 h-10 rounded-full bg-[#D4C5B0] flex items-center justify-center flex-shrink-0 group-hover:bg-[#C8956C]/30 transition-colors duration-200">
+            <span className="text-sm font-bold text-[#5C4A3A]">{initials(name)}</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-[#1C1A17] group-hover:text-[#8B3A2A] transition-colors duration-200">{name}</p>
+            <p className="text-[11px] text-[#9C8E7E] mt-0.5">독후감 {items.length}개</p>
+          </div>
+          <ChevronRight size={14} className="flex-shrink-0 text-[#9C8E7E] group-hover:translate-x-0.5 group-hover:text-[#8B3A2A] transition-all duration-200" />
+        </motion.button>
+      ))}
     </motion.div>
   );
 }
@@ -612,7 +618,7 @@ function MemberView({ reviews }: { reviews: Review[] }) {
 function EmptyState() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-24 text-center">
-      <p className="font-[family-name:var(--font-playfair)] text-xl italic text-[#9C8E7E]">
+      <p className="text-xl text-[#9C8E7E]">
         아직 독후감이 없습니다.
       </p>
       <Link
@@ -659,7 +665,7 @@ export default function ReviewsPage() {
     <div className="flex gap-0 md:gap-10 min-h-[60vh]">
       {/* ── 사이드바 ── */}
       <aside className="hidden md:block w-44 flex-shrink-0 pt-1">
-        <p className="font-[family-name:var(--font-playfair)] italic text-[#1C1A17] text-lg mb-0.5">독후감</p>
+        <p className="text-[#1C1A17] text-lg mb-0.5">독후감</p>
         <p className="text-[9px] tracking-[0.2em] text-[#9C8E7E] uppercase mb-6">Curated Reports</p>
 
         <nav className="space-y-0.5">
@@ -698,7 +704,7 @@ export default function ReviewsPage() {
       {/* ── 모바일 탭 ── */}
       <div className="md:hidden w-full mb-6">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="font-[family-name:var(--font-playfair)] text-xl italic text-[#1C1A17]">독후감</h1>
+          <h1 className="text-xl text-[#1C1A17]">독후감</h1>
           <Link
             href="/reviews/new"
             className="cursor-pointer flex items-center gap-1.5 text-xs text-[#8B3A2A] border border-[#C8956C]/60 px-3 py-1.5 rounded-full hover:bg-[#EAE0D0]/60 hover:border-[#C8956C] transition-all duration-200"
@@ -737,10 +743,10 @@ export default function ReviewsPage() {
                 exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.25 }}
               >
-                <h1 className="font-[family-name:var(--font-playfair)] text-3xl italic text-[#1C1A17]">
+                <h1 className="text-3xl text-[#1C1A17]">
                   {VIEW_TITLES[view].title}
                 </h1>
-                <p className="text-sm text-[#9C8E7E] mt-1.5 italic">{VIEW_TITLES[view].subtitle}</p>
+                <p className="text-sm text-[#9C8E7E] mt-1.5">{VIEW_TITLES[view].subtitle}</p>
               </motion.div>
             </AnimatePresence>
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
@@ -758,7 +764,7 @@ export default function ReviewsPage() {
 
         {loading ? (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="py-16 text-center">
-            <p className="font-[family-name:var(--font-playfair)] italic text-[#9C8E7E] text-lg animate-pulse">
+            <p className="text-[#9C8E7E] text-lg animate-pulse">
               불러오는 중...
             </p>
           </motion.div>
