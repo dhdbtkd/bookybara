@@ -51,6 +51,7 @@ const MENU = [
   { id: "reviews", label: "독후감", icon: FileText },
   { id: "announcements", label: "공지사항", icon: Megaphone },
   { id: "discussion", label: "토론 질문 AI", icon: Sparkles },
+  { id: "pdf", label: "PDF 생성", icon: FileText },
 ] as const;
 
 type SectionId = (typeof MENU)[number]["id"];
@@ -1210,6 +1211,9 @@ export default function AdminDashboard() {
             <AdminDiscussionGenerator meetings={meetings as any} discussions={discussions as any} />
           </div>
         )}
+
+        {/* ── PDF 생성 ── */}
+        {active === "pdf" && <PdfSection meetings={meetings} />}
       </main>
 
       {/* ── 새 모임 등록 - 책 선택 모달 ── */}
@@ -1629,6 +1633,139 @@ function BookAdminRow({
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── PDF 생성 섹션 ──
+function PdfSection({ meetings }: { meetings: Meeting[] }) {
+  const [selectedMeetingId, setSelectedMeetingId] = useState("");
+  const [attendees, setAttendees] = useState<{ name: string }[]>([]);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [loadingAttendees, setLoadingAttendees] = useState(false);
+
+  useEffect(() => {
+    if (!selectedMeetingId) { setAttendees([]); setSelected(new Set()); return; }
+    setLoadingAttendees(true);
+    fetch(`/api/meetings/${selectedMeetingId}`)
+      .then((r) => r.json())
+      .then(({ attendees: list, reviews }) => {
+        // attendees from meeting + anyone who wrote a review (might not be registered attendee)
+        const names = new Set<string>([
+          ...(list ?? []).map((a: { name: string }) => a.name),
+          ...(reviews ?? []).map((r: { author_name: string }) => r.author_name),
+        ]);
+        const sorted = [...names].sort();
+        setAttendees(sorted.map((name) => ({ name })));
+        setSelected(new Set(sorted));
+        setLoadingAttendees(false);
+      });
+  }, [selectedMeetingId]);
+
+  function toggleAll() {
+    if (selected.size === attendees.length) setSelected(new Set());
+    else setSelected(new Set(attendees.map((a) => a.name)));
+  }
+
+  function openPdf() {
+    if (!selectedMeetingId || selected.size === 0) return;
+    const members = [...selected].map((m) => encodeURIComponent(m)).join(",");
+    window.open(`/admin/pdf-print?meeting=${selectedMeetingId}&members=${members}`, "_blank");
+  }
+
+  const sortedMeetings = [...meetings].sort((a, b) => b.date.localeCompare(a.date));
+
+  return (
+    <div className="space-y-6">
+      <SectionHeader
+        icon={<FileText className="w-5 h-5" />}
+        title="PDF 생성"
+        description="모임과 참석자를 선택해 독후감 PDF를 생성합니다."
+      />
+
+      <FormCard title="모임 선택">
+        <div className="space-y-2">
+          {sortedMeetings.length === 0 ? (
+            <p className="text-sm text-neutral-400">등록된 모임이 없습니다.</p>
+          ) : (
+            <div className="space-y-1.5">
+              {sortedMeetings.map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setSelectedMeetingId(String(m.id))}
+                  className={cn(
+                    "w-full text-left px-3 py-2.5 rounded-xl border text-sm transition-all cursor-pointer",
+                    String(m.id) === selectedMeetingId
+                      ? "border-[#8B3A2A] bg-[#8B3A2A]/5 text-[#1C1A17] font-medium"
+                      : "border-[#E8DDD0] bg-white text-neutral-600 hover:border-neutral-300"
+                  )}
+                >
+                  <span className="text-[10px] text-neutral-400 mr-2">
+                    {format(new Date(m.date + "T00:00:00"), "yyyy.MM.dd", { locale: ko })}
+                  </span>
+                  {m.title}
+                  {m.books.length > 0 && (
+                    <span className="ml-2 text-xs text-[#9C8E7E]">— {m.books.map((b) => b.title).join(", ")}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </FormCard>
+
+      {selectedMeetingId && (
+        <FormCard title="참석자 선택">
+          {loadingAttendees ? (
+            <p className="text-sm text-neutral-400 animate-pulse">불러오는 중...</p>
+          ) : attendees.length === 0 ? (
+            <p className="text-sm text-neutral-400">이 모임의 참석자 또는 독후감이 없습니다.</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-neutral-400">{selected.size}/{attendees.length}명 선택</p>
+                <button type="button" onClick={toggleAll} className="text-xs text-[#8B3A2A] hover:underline cursor-pointer">
+                  {selected.size === attendees.length ? "전체 해제" : "전체 선택"}
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {attendees.map((a) => {
+                  const on = selected.has(a.name);
+                  return (
+                    <button
+                      key={a.name}
+                      type="button"
+                      onClick={() => {
+                        const next = new Set(selected);
+                        if (on) next.delete(a.name); else next.add(a.name);
+                        setSelected(next);
+                      }}
+                      className={cn(
+                        "px-3 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer",
+                        on ? "bg-[#1C1A17] text-white border-[#1C1A17]" : "bg-white text-neutral-400 border-neutral-200 hover:border-neutral-400"
+                      )}
+                    >
+                      {a.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </FormCard>
+      )}
+
+      <div className="flex justify-end">
+        <Button
+          onClick={openPdf}
+          disabled={!selectedMeetingId || selected.size === 0}
+          className="cursor-pointer bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors px-6"
+        >
+          <FileText className="w-4 h-4 mr-2" />
+          PDF 생성 (새 탭으로 열기 → 인쇄/저장)
+        </Button>
+      </div>
     </div>
   );
 }
