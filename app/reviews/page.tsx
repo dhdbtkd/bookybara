@@ -83,24 +83,19 @@ function ReviewCard({ review }: { review: Review }) {
     <motion.div whileHover={{ x: 4 }} transition={{ duration: 0.2 }}>
       <Link href={`/reviews/${review.id}`} className="block group cursor-pointer">
         <div className="border-b border-[#D4C5B0]/60 py-5 hover:bg-[#EAE0D0]/50 -mx-4 px-4 transition-colors duration-200">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#1C1A17] text-[#F0EAE0] text-[10px] font-bold tracking-wide flex-shrink-0 group-hover:bg-[#8B3A2A] transition-colors duration-200">
-                {initials(review.author_name)}
-              </span>
-              <p className="text-xs font-semibold tracking-widest text-[#1C1A17] uppercase leading-none">
-                {review.author_name}
-              </p>
-            </div>
-            <span className="text-[11px] text-[#9C8E7E] flex-shrink-0 pt-1">
-              {format(new Date(review.created_at), "yy.MM.dd", { locale: ko })}
+          <div className="flex items-center gap-2 mb-2">
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#1C1A17] text-[#F0EAE0] text-[10px] font-bold tracking-wide flex-shrink-0 group-hover:bg-[#8B3A2A] transition-colors duration-200">
+              {initials(review.author_name)}
             </span>
+            <p className="text-xs font-semibold tracking-widest text-[#1C1A17] uppercase leading-none">
+              {review.author_name}
+            </p>
           </div>
           <p className="text-sm text-[#3D3530] leading-relaxed line-clamp-2 mt-1 group-hover:text-[#1C1A17] transition-colors duration-200">
             {review.content}
           </p>
           <span className="inline-flex items-center gap-1 text-[11px] text-[#9C8E7E] mt-2 group-hover:text-[#8B3A2A] transition-colors duration-200">
-            전문 읽기 <ChevronRight size={10} className="group-hover:translate-x-0.5 transition-transform duration-200" />
+            읽기 <ChevronRight size={10} className="group-hover:translate-x-0.5 transition-transform duration-200" />
           </span>
         </div>
       </Link>
@@ -110,8 +105,24 @@ function ReviewCard({ review }: { review: Review }) {
 
 // ── BY GATHERING ─────────────────────────────────────────────────
 function GatheringView({ reviews, meetings }: { reviews: Review[]; meetings: MeetingData[] }) {
-  const [selectedMeetingId, setSelectedMeetingId] = useState<number | null>(null);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedMeetingId = searchParams.get("meeting") ? Number(searchParams.get("meeting")) : null;
   const [activeBookId, setActiveBookId] = useState<number | null>(null); // null = all
+
+  function selectMeeting(id: number) {
+    setActiveBookId(null);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("meeting", String(id));
+    router.push(`?${params.toString()}`);
+  }
+
+  function goBack() {
+    setActiveBookId(null);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("meeting");
+    router.push(`?${params.toString()}`);
+  }
 
   const reviewsByMeeting = useMemo(() => {
     const map = new Map<number, Review[]>();
@@ -154,8 +165,8 @@ function GatheringView({ reviews, meetings }: { reviews: Review[]; meetings: Mee
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
         {/* 뒤로가기 */}
         <button
-          onClick={() => { setSelectedMeetingId(null); setActiveBookId(null); }}
-          className="cursor-pointer text-xs text-[#9C8E7E] hover:text-[#1C1A17] tracking-wider uppercase mb-6 flex items-center gap-1.5 transition-colors duration-200 group"
+          onClick={goBack}
+          className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#1C1A17] text-[#F0EAE0] text-[11px] font-bold tracking-[0.12em] uppercase mb-6 hover:bg-[#8B3A2A] transition-colors duration-200 group"
         >
           <span className="group-hover:-translate-x-0.5 transition-transform duration-200">←</span> 모임 목록
         </button>
@@ -290,7 +301,7 @@ function GatheringView({ reviews, meetings }: { reviews: Review[]; meetings: Mee
             variants={itemVariants}
             whileHover={{ x: 3 }}
             transition={{ duration: 0.18 }}
-            onClick={() => setSelectedMeetingId(meeting.id)}
+            onClick={() => selectMeeting(meeting.id)}
             className="w-full text-left group cursor-pointer"
           >
             <div className="flex items-center gap-4 px-4 py-4 rounded-2xl border border-[#D4C5B0]/50 bg-white/40 hover:bg-white/70 hover:border-[#C8956C]/50 hover:shadow-md transition-all duration-200">
