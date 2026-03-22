@@ -2,12 +2,13 @@ import {
   Document, Page, Text, View, Image, Font, StyleSheet,
 } from "@react-pdf/renderer";
 
-// ── 폰트 등록 ──────────────────────────────────────────────
+// ── 폰트 등록 (절대 URL — 브라우저 런타임에만 import되므로 window 사용 가능) ──
+const origin = typeof window !== "undefined" ? window.location.origin : "";
 Font.register({
   family: "NanumMyeongjo",
   fonts: [
-    { src: "/fonts/NanumMyeongjo.ttf", fontWeight: "normal" },
-    { src: "/fonts/NanumMyeongjo-Bold.ttf", fontWeight: "bold" },
+    { src: `${origin}/fonts/NanumMyeongjo.ttf`, fontWeight: "normal" },
+    { src: `${origin}/fonts/NanumMyeongjo-Bold.ttf`, fontWeight: "bold" },
   ],
 });
 
