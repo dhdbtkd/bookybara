@@ -5,6 +5,7 @@ import Nav from "@/components/nav";
 import IntroSplash from "@/components/intro-splash";
 import { Toaster } from "@/components/ui/sonner";
 import ScrollToTop from "@/components/scroll-to-top";
+import PwaInstallPrompt from "@/components/pwa-install-prompt";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -49,6 +50,7 @@ export default function RootLayout({
         <Nav />
         <main className="relative z-10 flex-1 flex flex-col max-w-4xl mx-auto w-full px-4 py-4 md:py-8">{children}</main>
         <ScrollToTop />
+        <PwaInstallPrompt />
         <Toaster />
       </body>
     </html>
