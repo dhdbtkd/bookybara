@@ -37,16 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko" className={`${playfair.variable} h-full antialiased`}>
-      {/* beforeinstallprompt는 React 마운트보다 훨씬 일찍 발생하므로 인라인 스크립트로 먼저 캡처 */}
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: `
-          window.addEventListener('beforeinstallprompt', function(e) {
-            e.preventDefault();
-            window.__pwaPrompt = e;
-          });
-        `}} />
-      </head>
-      <body className="h-full flex flex-col bg-[#F0EAE0] font-sans">
+<body className="h-full flex flex-col bg-[#F0EAE0] font-sans">
         {/* 배경 장식 orbs */}
         <div className="fixed inset-0 overflow-hidden pointer-events-none -z-0" aria-hidden>
           <div className="absolute -top-32 -left-32 w-[520px] h-[520px] rounded-full bg-[#C8956C] opacity-[0.07] blur-[120px]" />
