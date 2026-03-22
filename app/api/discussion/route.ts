@@ -142,11 +142,14 @@ export async function POST(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   if (!(await isAdminAuthenticated())) return NextResponse.json({ error: "권한 없음" }, { status: 401 });
-  const { id, is_public } = await req.json();
+  const { id, is_public, questions } = await req.json();
+  const update: Record<string, unknown> = {};
+  if (is_public !== undefined) update.is_public = is_public;
+  if (questions !== undefined) update.questions = JSON.stringify(questions);
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("discussion_questions")
-    .update({ is_public })
+    .update(update)
     .eq("id", id)
     .select()
     .single();

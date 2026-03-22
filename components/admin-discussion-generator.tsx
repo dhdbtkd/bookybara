@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Sparkles, Eye, EyeOff, ChevronDown, Search, BookOpen } from "lucide-react";
+import { Sparkles, Eye, EyeOff, ChevronDown, Search, BookOpen, Pencil, Trash2, Check, X } from "lucide-react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -75,6 +75,128 @@ ${reviewsText}
 
 반드시 JSON 배열 형식으로만 답변해주세요:
 ["질문1", "질문2", "질문3", "질문4", "질문5"]`;
+}
+
+// ── 질문 카드 (수정/삭제 포함) ──────────────────────────────
+function DiscussionCard({
+  d,
+  onTogglePublic,
+  onSaveQuestions,
+}: {
+  d: Discussion;
+  onTogglePublic: (id: number, current: boolean) => Promise<void>;
+  onSaveQuestions: (id: number, questions: string[]) => Promise<void>;
+}) {
+  const [qs, setQs] = useState<string[]>(() => JSON.parse(d.questions));
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editText, setEditText] = useState("");
+
+  function startEdit(i: number) {
+    setEditingIdx(i);
+    setEditText(qs[i]);
+  }
+
+  function cancelEdit() {
+    setEditingIdx(null);
+    setEditText("");
+  }
+
+  async function saveEdit(i: number) {
+    if (!editText.trim()) return;
+    const next = qs.map((q, idx) => idx === i ? editText.trim() : q);
+    setQs(next);
+    setEditingIdx(null);
+    await onSaveQuestions(d.id, next);
+  }
+
+  async function deleteQuestion(i: number) {
+    const next = qs.filter((_, idx) => idx !== i);
+    setQs(next);
+    await onSaveQuestions(d.id, next);
+    toast.success("질문이 삭제되었습니다.");
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-[#E8DDD0] p-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <p className="text-[9px] font-bold tracking-widest uppercase text-neutral-400 mb-0.5">모임</p>
+          <p className="font-semibold text-sm text-[#1C1A17]">{d.meetings?.title ?? "—"}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className={cn(
+            "text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full",
+            d.is_public ? "bg-[#2A6B5E]/10 text-[#2A6B5E]" : "bg-neutral-100 text-neutral-400"
+          )}>
+            {d.is_public ? "공개" : "비공개"}
+          </span>
+          <button
+            onClick={() => onTogglePublic(d.id, d.is_public)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors cursor-pointer text-neutral-500"
+          >
+            {d.is_public ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+            {d.is_public ? "비공개로" : "공개로"}
+          </button>
+        </div>
+      </div>
+
+      <ol className="space-y-2">
+        {qs.map((q, i) => (
+          <li key={i} className="group flex gap-3 text-sm">
+            <span className="text-[#8B3A2A] font-bold flex-shrink-0 pt-0.5">{i + 1}.</span>
+            {editingIdx === i ? (
+              <div className="flex-1 space-y-2">
+                <textarea
+                  value={editText}
+                  onChange={(e) => setEditText(e.target.value)}
+                  rows={3}
+                  autoFocus
+                  className="w-full text-sm text-neutral-700 border border-[#C8956C] rounded-lg px-3 py-2 resize-none outline-none focus:ring-1 focus:ring-[#C8956C] leading-relaxed"
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => saveEdit(i)}
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-[#1C1A17] text-white text-xs font-medium cursor-pointer hover:bg-[#8B3A2A] transition-colors"
+                  >
+                    <Check className="w-3 h-3" />저장
+                  </button>
+                  <button
+                    onClick={cancelEdit}
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-lg border border-neutral-200 text-xs text-neutral-500 cursor-pointer hover:bg-neutral-50 transition-colors"
+                  >
+                    <X className="w-3 h-3" />취소
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex items-start justify-between gap-2">
+                <span className="leading-relaxed text-neutral-600">{q}</span>
+                <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => startEdit(i)}
+                    className="p-1.5 rounded-md hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 cursor-pointer transition-colors"
+                    title="수정"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => deleteQuestion(i)}
+                    className="p-1.5 rounded-md hover:bg-red-50 text-neutral-300 hover:text-red-400 cursor-pointer transition-colors"
+                    title="삭제"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </li>
+        ))}
+      </ol>
+      {qs.length === 0 && (
+        <p className="text-xs text-neutral-400 text-center py-3">모든 질문이 삭제되었습니다.</p>
+      )}
+    </div>
+  );
 }
 
 export default function AdminDiscussionGenerator({
@@ -216,6 +338,21 @@ export default function AdminDiscussionGenerator({
       toast.error(message);
     }
     setGenerating(false);
+  }
+
+  async function saveQuestions(id: number, newQuestions: string[]) {
+    const res = await fetch("/api/discussion", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, questions: newQuestions }),
+    });
+    if (res.ok) {
+      setDiscussions((prev) =>
+        prev.map((d) => d.id === id ? { ...d, questions: JSON.stringify(newQuestions) } : d)
+      );
+    } else {
+      toast.error("저장 실패");
+    }
   }
 
   async function togglePublic(id: number, current: boolean) {
@@ -496,42 +633,9 @@ export default function AdminDiscussionGenerator({
       {/* ── 목록 탭 ── */}
       {tab === "list" && (
         <div className="space-y-3">
-          {discussions.map((d) => {
-            const qs: string[] = JSON.parse(d.questions);
-            return (
-              <div key={d.id} className="bg-white rounded-xl border border-[#E8DDD0] p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <p className="text-[9px] font-bold tracking-widest uppercase text-neutral-400 mb-0.5">모임</p>
-                    <p className="font-semibold text-sm text-[#1C1A17]">{d.meetings?.title ?? "—"}</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      "text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full",
-                      d.is_public ? "bg-[#2A6B5E]/10 text-[#2A6B5E]" : "bg-neutral-100 text-neutral-400"
-                    )}>
-                      {d.is_public ? "공개" : "비공개"}
-                    </span>
-                    <button
-                      onClick={() => togglePublic(d.id, d.is_public)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-colors cursor-pointer text-neutral-500"
-                    >
-                      {d.is_public ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                      {d.is_public ? "비공개로" : "공개로"}
-                    </button>
-                  </div>
-                </div>
-                <ol className="space-y-2">
-                  {qs.map((q, i) => (
-                    <li key={i} className="flex gap-3 text-sm text-neutral-600">
-                      <span className="text-[#8B3A2A] font-bold flex-shrink-0">{i + 1}.</span>
-                      <span className="leading-relaxed">{q}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            );
-          })}
+          {discussions.map((d) => (
+            <DiscussionCard key={d.id} d={d} onTogglePublic={togglePublic} onSaveQuestions={saveQuestions} />
+          ))}
           {discussions.length === 0 && (
             <div className="bg-white/60 rounded-xl border border-dashed border-[#DDD5C8] px-6 py-8 text-center">
               <p className="text-sm text-neutral-400">생성된 토론 질문이 없습니다.</p>
