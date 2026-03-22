@@ -14,7 +14,7 @@ type Review = {
   content: string;
   created_at: string;
   books: { title: string; author: string; cover_url: string | null; cover_url_hires: string | null } | null;
-  meetings: { title: string; date: string } | null;
+  meetings: { id: number; title: string; date: string } | null;
 };
 
 export default function ReviewDetailClient({ review }: { review: Review }) {
@@ -53,11 +53,11 @@ export default function ReviewDetailClient({ review }: { review: Review }) {
     <div className="max-w-2xl mx-auto flex flex-col" style={{ minHeight: "calc(100dvh - 120px)" }}>
       {/* 브레드크럼 */}
       <Link
-        href="/reviews"
+        href={meeting ? `/meetings/${meeting.id}` : "/reviews"}
         className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.2em] uppercase text-[#9C8E7E] hover:text-[#1C1A17] transition-colors duration-200 mb-8 group"
       >
         <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform duration-200" />
-        독후감 목록
+        {meeting ? "모임으로" : "독후감 목록"}
       </Link>
 
       {/* 메타 태그 */}
@@ -118,10 +118,10 @@ export default function ReviewDetailClient({ review }: { review: Review }) {
       {/* 하단 */}
       <div className="border-t border-[#D4C5B0] pt-6 flex items-center justify-between">
         <Link
-          href="/reviews"
+          href={meeting ? `/meetings/${meeting.id}` : "/reviews"}
           className="text-sm text-[#9C8E7E] hover:text-[#1C1A17] transition-colors duration-200"
         >
-          ← 목록으로
+          ← {meeting ? "모임으로" : "목록으로"}
         </Link>
         {editing ? (
           <div className="flex items-center gap-2">

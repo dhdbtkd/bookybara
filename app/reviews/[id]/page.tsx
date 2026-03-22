@@ -11,7 +11,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
 
   const { data: review } = await supabase
     .from("reviews")
-    .select("*, books(title, author, cover_url, cover_url_hires), meetings(title, date)")
+    .select("*, books(title, author, cover_url, cover_url_hires), meetings(id, title, date)")
     .eq("id", id)
     .single();
 
