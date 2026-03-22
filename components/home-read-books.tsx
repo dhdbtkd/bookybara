@@ -77,18 +77,18 @@ export default function HomeReadBooks({ books }: { books: Book[] }) {
               <Wrapper>
                 {/* 표지: 2:3 비율 + 둥근 모서리 */}
                 <div
-                  className="w-full rounded-2xl overflow-hidden bg-[#E8DDD0] shadow-md mb-3 transition-transform duration-300 group-hover:scale-[1.04] group-hover:shadow-xl"
+                  className="w-full mb-3 transition-transform duration-300 group-hover:scale-[1.07] group-hover:drop-shadow-xl"
                   style={{ aspectRatio: "2 / 3" }}
                 >
                   {book.cover_url_hires ?? book.cover_url ? (
                     <img
                       src={book.cover_url_hires ?? book.cover_url!}
                       alt={book.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover rounded-2xl shadow-md"
                       draggable={false}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center">
+                    <div className="w-full h-full flex items-center justify-center rounded-2xl bg-[#E8DDD0] shadow-md">
                       <BookOpen className="w-7 h-7 text-[#B8A898]" />
                     </div>
                   )}
