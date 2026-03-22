@@ -4,21 +4,6 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { X, Zap, Bell, WifiOff, ArrowUpFromLine, Smartphone } from "lucide-react";
 
-declare global {
-  namespace JSX {
-    interface IntrinsicElements {
-      "pwa-install": React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement> & {
-        "manifest-url"?: string;
-        "install-description"?: string;
-        "icon"?: string;
-        "name"?: string;
-        "description"?: string;
-        "manual-chrome"?: boolean | string;
-        "manual-apple"?: boolean | string;
-      }, HTMLElement>;
-    }
-  }
-}
 
 const DISMISSED_KEY = "pwa_prompt_dismissed_until";
 const ONE_MONTH_MS = 30 * 24 * 60 * 60 * 1000;
@@ -86,8 +71,8 @@ export default function PwaInstallPrompt() {
         name="책피바라"
         description="우리들의 독서모임"
         install-description="홈 화면에 추가하면 앱처럼 바로 열 수 있어요"
-        manual-chrome
-        manual-apple
+        manual-chrome="true"
+        manual-apple="true"
       />
 
       {/* 커스텀 바텀시트 */}

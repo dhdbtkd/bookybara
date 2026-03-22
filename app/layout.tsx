@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Nav from "@/components/nav";
@@ -14,9 +14,12 @@ const playfair = Playfair_Display({
   weight: ["400", "500", "600", "700"],
 });
 
+export const viewport: Viewport = {
+  colorScheme: "light",
+};
+
 export const metadata: Metadata = {
   title: "책피바라",
-  colorScheme: "light",
   description: "우리들의 독서모임",
   openGraph: {
     title: "책피바라",
