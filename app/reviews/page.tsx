@@ -327,14 +327,22 @@ function GatheringView({ reviews, meetings }: { reviews: Review[]; meetings: Mee
             className="w-full text-left group cursor-pointer"
           >
             <div className="flex items-center gap-4 px-4 py-4 rounded-2xl border border-[#D4C5B0]/50 bg-white/40 hover:bg-white/70 hover:border-[#C8956C]/50 hover:shadow-md transition-all duration-200">
-              {/* 커버 스택 */}
-              <div className="relative flex-shrink-0" style={{ width: covers.length > 1 ? 58 : 44, height: 64 }}>
+              {/* 커버 스택 — 고정 너비 68px */}
+              <div className="relative flex-shrink-0" style={{ width: 68, height: 64 }}>
                 {covers.length === 0 ? (
-                  <div className="w-11 h-16 bg-[#D4C5B0] rounded-lg shadow-sm flex items-center justify-center">
+                  <div className="absolute inset-0 w-11 h-full bg-[#D4C5B0] rounded-lg shadow-sm flex items-center justify-center">
                     <BookOpen size={13} className="text-[#9C8E7E]" />
                   </div>
+                ) : covers.length === 1 ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={covers[0]}
+                    alt=""
+                    className="absolute object-cover rounded-lg shadow-sm"
+                    style={{ width: 44, height: 64, left: 12, top: 0, zIndex: 1 }}
+                  />
                 ) : (
-                  covers.slice(0, 3).map((cover, ci) => (
+                  covers.slice(0, 2).map((cover, ci) => (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       key={ci}
@@ -344,9 +352,9 @@ function GatheringView({ reviews, meetings }: { reviews: Review[]; meetings: Mee
                       style={{
                         width: 44,
                         height: 64,
-                        left: ci * 7,
-                        top: ci * -2,
-                        zIndex: covers.length - ci,
+                        left: ci === 0 ? 0 : 24,
+                        top: ci === 0 ? 0 : -4,
+                        zIndex: 2 - ci,
                       }}
                     />
                   ))
@@ -355,7 +363,16 @@ function GatheringView({ reviews, meetings }: { reviews: Review[]; meetings: Mee
 
               {/* 모임 정보 */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                {/* 책 제목(들) — 크게 */}
+                {meeting.books.length > 0 ? (
+                  <h3 className="text-sm font-semibold text-[#1C1A17] leading-snug group-hover:text-[#8B3A2A] transition-colors duration-200 truncate mb-0.5">
+                    {meeting.books.map((b) => b.title).join(" · ")}
+                  </h3>
+                ) : null}
+                {/* 모임 이름 — 작게 */}
+                <p className="text-[11px] text-[#9C8E7E] truncate mb-1.5">{meeting.title}</p>
+                {/* 날짜/장소 */}
+                <div className="flex items-center gap-2 flex-wrap">
                   {isLatest && (
                     <span className="text-[9px] font-bold tracking-widest bg-[#C8956C]/15 text-[#C8956C] px-2 py-0.5 rounded-full uppercase">
                       최신
@@ -372,14 +389,6 @@ function GatheringView({ reviews, meetings }: { reviews: Review[]; meetings: Mee
                     </span>
                   )}
                 </div>
-                <h3 className="text-lg text-[#1C1A17] leading-snug group-hover:text-[#8B3A2A] transition-colors duration-200 truncate">
-                  {meeting.title}
-                </h3>
-                {meeting.books.length > 0 && (
-                  <p className="text-xs text-[#9C8E7E] mt-0.5 truncate">
-                    {meeting.books.map((b) => b.title).join(" · ")}
-                  </p>
-                )}
               </div>
 
               {/* 독후감 수 */}
@@ -665,7 +674,7 @@ export default function ReviewsPage() {
   const [loading, setLoading] = useState(true);
 
   function setView(v: ViewMode) {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams();
     params.set("view", v);
     router.push(`?${params.toString()}`, { scroll: false });
   }
