@@ -78,20 +78,42 @@ function initials(name: string) {
 }
 
 // ── Review Card ──────────────────────────────────────────────────
-function ReviewCard({ review }: { review: Review }) {
+function ReviewCard({ review, showBook }: { review: Review; showBook?: boolean }) {
+  const cover = review.books?.cover_url_hires || review.books?.cover_url;
   return (
     <motion.div whileHover={{ x: 4 }} transition={{ duration: 0.2 }}>
       <Link href={`/reviews/${review.id}`} className="block group cursor-pointer">
         <div className="border-b border-[#D4C5B0]/60 py-5 hover:bg-[#EAE0D0]/50 -mx-4 px-4 transition-colors duration-200">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#1C1A17] text-[#F0EAE0] text-[10px] font-bold tracking-wide flex-shrink-0 group-hover:bg-[#8B3A2A] transition-colors duration-200">
-              {initials(review.author_name)}
-            </span>
-            <p className="text-xs font-semibold tracking-widest text-[#1C1A17] uppercase leading-none">
-              {review.author_name}
-            </p>
-          </div>
-          <p className="text-sm text-[#3D3530] leading-relaxed line-clamp-2 mt-1 group-hover:text-[#1C1A17] transition-colors duration-200">
+          {showBook ? (
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-9 h-[52px] flex-shrink-0 rounded-lg overflow-hidden bg-[#D4C5B0] shadow-sm">
+                {cover ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={cover} alt={review.books?.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <BookOpen size={12} className="text-[#9C8E7E]" />
+                  </div>
+                )}
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-[#1C1A17] leading-snug truncate group-hover:text-[#8B3A2A] transition-colors duration-200">
+                  {review.books?.title ?? "제목 없음"}
+                </p>
+                <p className="text-[11px] text-[#9C8E7E] mt-0.5 truncate">{review.books?.author}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 mb-2">
+              <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-[#1C1A17] text-[#F0EAE0] text-[10px] font-bold tracking-wide flex-shrink-0 group-hover:bg-[#8B3A2A] transition-colors duration-200">
+                {initials(review.author_name)}
+              </span>
+              <p className="text-xs font-semibold tracking-widest text-[#1C1A17] uppercase leading-none">
+                {review.author_name}
+              </p>
+            </div>
+          )}
+          <p className="text-sm text-[#3D3530] leading-relaxed line-clamp-2 group-hover:text-[#1C1A17] transition-colors duration-200">
             {review.content}
           </p>
           <span className="inline-flex items-center gap-1 text-[11px] text-[#9C8E7E] mt-2 group-hover:text-[#8B3A2A] transition-colors duration-200">
@@ -581,7 +603,7 @@ function MemberView({ reviews }: { reviews: Review[] }) {
         <motion.div variants={containerVariants} initial="hidden" animate="show">
           {member.items.map((r) => (
             <motion.div key={r.id} variants={itemVariants}>
-              <ReviewCard review={r} />
+              <ReviewCard review={r} showBook />
             </motion.div>
           ))}
         </motion.div>
