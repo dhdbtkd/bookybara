@@ -2,18 +2,13 @@ import {
   Document, Page, Text, View, Image, Font, StyleSheet,
 } from "@react-pdf/renderer";
 
-// ── 폰트 등록 ──────────────────────────────────────────────
+// ── 폰트 등록 (절대 URL, TTF) ──────────────────────────────
+const origin = typeof window !== "undefined" ? window.location.origin : "";
 Font.register({
-  family: "BookkMyungjo",
+  family: "Eulyoo",
   fonts: [
-    {
-      src: "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/BookkMyungjo-Lt.woff2",
-      fontWeight: "normal",
-    },
-    {
-      src: "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/BookkMyungjo-Bd.woff2",
-      fontWeight: "bold",
-    },
+    { src: `${origin}/fonts/TTF/Eulyoo1945-Regular.ttf`, fontWeight: "normal" },
+    { src: `${origin}/fonts/TTF/Eulyoo1945-SemiBold.ttf`, fontWeight: "bold" },
   ],
 });
 
@@ -58,11 +53,11 @@ const C = {
 const s = StyleSheet.create({
   page: {
     paddingTop: 55, paddingBottom: 50, paddingHorizontal: 52,
-    fontFamily: "BookkMyungjo", fontSize: 11, color: C.brown, backgroundColor: "white",
+    fontFamily: "Eulyoo", fontSize: 11, color: C.brown, backgroundColor: "white",
   },
   coverPage: {
     paddingTop: 55, paddingBottom: 50, paddingHorizontal: 52,
-    fontFamily: "BookkMyungjo", fontSize: 11, color: C.brown, backgroundColor: C.cream,
+    fontFamily: "Eulyoo", fontSize: 11, color: C.brown, backgroundColor: C.cream,
     display: "flex", flexDirection: "column", justifyContent: "space-between",
   },
 
