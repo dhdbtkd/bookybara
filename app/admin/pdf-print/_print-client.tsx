@@ -123,9 +123,6 @@ export default function PrintClient({ meeting, reviews, questions, selectedMembe
         <div className="pdf-page pdf-cover" style={{ background: "#FDFAF7" }}>
           {/* 상단 클럽명 */}
           <div style={{ textAlign: "center", paddingTop: "8mm" }}>
-            <p style={{ fontSize: "11px", letterSpacing: "0.4em", color: "#8B3A2A", fontWeight: "bold", marginBottom: "8px" }}>
-              BOOK CLUB
-            </p>
             <h1 style={{ fontSize: "40px", fontWeight: "bold", color: "#1C1A17", letterSpacing: "0.15em", marginBottom: "4px" }}>
               책피바라
             </h1>
@@ -168,8 +165,8 @@ export default function PrintClient({ meeting, reviews, questions, selectedMembe
           {/* 하단 – 날짜 + 참석자 */}
           <div style={{ textAlign: "center", paddingBottom: "8mm" }}>
             <div style={{ width: "100%", height: "1px", background: "#D4C5B0", marginBottom: "12px" }} />
-            <p style={{ fontSize: "12px", color: "#6B5E52", letterSpacing: "0.08em", marginBottom: "10px" }}>
-              {formatDate(meeting.date)}{meeting.location ? `　·　${meeting.location}` : ""}
+            <p style={{ fontSize: "10px", color: "#6B5E52", letterSpacing: "0.08em", marginBottom: "10px" }}>
+              {formatDate(meeting.date)}
             </p>
             <p style={{ fontSize: "11px", color: "#9C8E7E", letterSpacing: "0.06em" }}>
               {selectedMembers.join("　·　")}
@@ -189,7 +186,7 @@ export default function PrintClient({ meeting, reviews, questions, selectedMembe
               <div style={{ display: "flex", alignItems: "flex-start", gap: "14px", marginBottom: "10mm", paddingBottom: "6mm", borderBottom: "2px solid #1C1A17" }}>
                 <div style={{ flex: 1 }}>
                   <p style={{ fontSize: "9px", letterSpacing: "0.3em", color: "#8B3A2A", marginBottom: "6px" }}>
-                    독후감 · 책피바라 · {meeting.title}
+                    {meeting.title}
                   </p>
                   <h2 style={{ fontSize: "28px", fontWeight: "bold", color: "#1C1A17", marginBottom: "5px" }}>
                     {review.author_name}

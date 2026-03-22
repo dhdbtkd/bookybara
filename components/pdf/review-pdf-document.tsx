@@ -68,17 +68,17 @@ const s = StyleSheet.create({
   coverLine: { width: 100, height: 1.5, backgroundColor: C.terracotta, marginTop: 12, marginBottom: 0 },
 
   coverMid: { alignItems: "center", flex: 1, justifyContent: "center" },
-  coverMeetingTitle: { fontSize: 13, color: C.warm, letterSpacing: 3, marginBottom: 20, textAlign: "center" },
+  coverMeetingTitle: { fontSize: 12, color: C.warm, letterSpacing: 3, marginBottom: 20, textAlign: "center" },
   coverCovers: { flexDirection: "row", gap: 16, justifyContent: "center", marginBottom: 18 },
-  coverBookImg: { width: 130, height: 190, objectFit: "cover", borderRadius: 3 },
+  coverBookImg: { width: 130, height: 190, objectFit: "cover", borderRadius: 8 },
   coverBookTitle: { fontSize: 16, fontWeight: "bold", color: C.brown, textAlign: "center", marginBottom: 4 },
   coverBookAuthor: { fontSize: 11, color: C.muted, textAlign: "center" },
   coverBookGroup: { alignItems: "center", marginBottom: 4 },
 
   coverBottom: { alignItems: "center", paddingBottom: 10 },
   coverHr: { width: "100%", height: 0.75, backgroundColor: C.line, marginBottom: 12 },
-  coverDate: { fontSize: 11, color: C.warm, letterSpacing: 2, marginBottom: 10 },
-  coverMembers: { fontSize: 10, color: C.muted, letterSpacing: 2 },
+  coverDate: { fontSize: 9, color: C.warm, letterSpacing: 2, marginBottom: 10 },
+  coverMembers: { fontSize: 8, color: C.muted, letterSpacing: 2 },
 
   // ── 독후감 페이지 ──
   reviewHeader: {
@@ -87,7 +87,7 @@ const s = StyleSheet.create({
   },
   reviewMeta: { fontSize: 8, letterSpacing: 3, color: C.rust, marginBottom: 6 },
   reviewAuthor: { fontSize: 24, fontWeight: "bold", color: C.brown, marginBottom: 5 },
-  reviewBookLabel: { fontSize: 10, color: C.muted },
+  reviewBookLabel: { fontSize: 9, color: C.muted },
   reviewCover: { width: 44, height: 64, objectFit: "cover", borderRadius: 2 },
 
   reviewBody: { fontSize: 10, lineHeight: 2.0, color: "#2C2520" },
@@ -144,7 +144,6 @@ export default function ReviewPdfDocument({ meeting, reviews, questions, selecte
       <Page size="A4" style={s.coverPage}>
         {/* 상단 클럽명 */}
         <View style={s.coverTop}>
-          <Text style={s.coverLabel}>BOOK CLUB</Text>
           <Text style={s.coverClub}>책피바라</Text>
           <View style={s.coverLine} />
         </View>
@@ -178,7 +177,7 @@ export default function ReviewPdfDocument({ meeting, reviews, questions, selecte
         <View style={s.coverBottom}>
           <View style={s.coverHr} />
           <Text style={s.coverDate}>
-            {formatDate(meeting.date)}{meeting.location ? `   ·   ${meeting.location}` : ""}
+            {formatDate(meeting.date)}
           </Text>
           <Text style={s.coverMembers}>{selectedMembers.join("   ·   ")}</Text>
         </View>
@@ -195,7 +194,7 @@ export default function ReviewPdfDocument({ meeting, reviews, questions, selecte
             {/* 헤더 */}
             <View style={s.reviewHeader}>
               <View style={{ flex: 1 }}>
-                <Text style={s.reviewMeta}>독후감  ·  책피바라  ·  {meeting.title}</Text>
+                <Text style={s.reviewMeta}>{meeting.title}</Text>
                 <Text style={s.reviewAuthor}>{review.author_name}</Text>
                 {book && (
                   <Text style={s.reviewBookLabel}>
@@ -224,7 +223,7 @@ export default function ReviewPdfDocument({ meeting, reviews, questions, selecte
           {/* 헤더 */}
           <View style={[s.reviewHeader, { marginBottom: 26 }]}>
             <View>
-              <Text style={s.reviewMeta}>AI 생성  ·  책피바라  ·  {meeting.title}</Text>
+              <Text style={s.reviewMeta}>{meeting.title}</Text>
               <Text style={s.reviewAuthor}>토론 질문</Text>
             </View>
           </View>
