@@ -26,7 +26,7 @@ export default function HomeReadBooks({ books }: { books: Book[] }) {
 
   return (
     <section
-      className="mt-16 py-12 overflow-hidden"
+      className="mt-16 py-12 overflow-x-hidden"
       style={{ width: "100vw", marginLeft: "calc(50% - 50vw)" }}
     >
       {/* 헤더 */}
