@@ -2,13 +2,18 @@ import {
   Document, Page, Text, View, Image, Font, StyleSheet,
 } from "@react-pdf/renderer";
 
-// ── 폰트 등록 (절대 URL — 브라우저 런타임에만 import되므로 window 사용 가능) ──
-const origin = typeof window !== "undefined" ? window.location.origin : "";
+// ── 폰트 등록 ──────────────────────────────────────────────
 Font.register({
-  family: "NanumMyeongjo",
+  family: "BookkMyungjo",
   fonts: [
-    { src: `${origin}/fonts/NanumMyeongjo.ttf`, fontWeight: "normal" },
-    { src: `${origin}/fonts/NanumMyeongjo-Bold.ttf`, fontWeight: "bold" },
+    {
+      src: "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/BookkMyungjo-Lt.woff2",
+      fontWeight: "normal",
+    },
+    {
+      src: "https://cdn.jsdelivr.net/gh/projectnoonnu/noonfonts_2302@1.0/BookkMyungjo-Bd.woff2",
+      fontWeight: "bold",
+    },
   ],
 });
 
@@ -53,11 +58,11 @@ const C = {
 const s = StyleSheet.create({
   page: {
     paddingTop: 55, paddingBottom: 50, paddingHorizontal: 52,
-    fontFamily: "NanumMyeongjo", fontSize: 11, color: C.brown, backgroundColor: "white",
+    fontFamily: "BookkMyungjo", fontSize: 11, color: C.brown, backgroundColor: "white",
   },
   coverPage: {
     paddingTop: 55, paddingBottom: 50, paddingHorizontal: 52,
-    fontFamily: "NanumMyeongjo", fontSize: 11, color: C.brown, backgroundColor: C.cream,
+    fontFamily: "BookkMyungjo", fontSize: 11, color: C.brown, backgroundColor: C.cream,
     display: "flex", flexDirection: "column", justifyContent: "space-between",
   },
 
