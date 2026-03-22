@@ -44,6 +44,8 @@ export default function HomeReadBooks({ books }: { books: Book[] }) {
         style={{
           maskImage: "linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)",
           WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 12%, black 88%, transparent 100%)",
+          paddingTop: "16px",
+          paddingBottom: "16px",
         }}
       >
       <div
