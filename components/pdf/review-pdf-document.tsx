@@ -90,7 +90,7 @@ const s = StyleSheet.create({
   reviewBookLabel: { fontSize: 10, color: C.muted },
   reviewCover: { width: 44, height: 64, objectFit: "cover", borderRadius: 2 },
 
-  reviewBody: { fontSize: 11.5, lineHeight: 2.1, color: "#2C2520" },
+  reviewBody: { fontSize: 10, lineHeight: 2.0, color: "#2C2520" },
   reviewPara: { marginBottom: 6 },
 
   footer: {
@@ -202,7 +202,7 @@ export default function ReviewPdfDocument({ meeting, reviews, questions, selecte
                   </Text>
                 )}
               </View>
-              {cover && <Image src={cover} style={s.reviewCover} />}
+              {/* 책 커버 이미지 제거 — 인쇄 잉크 절약 */}
             </View>
 
             {/* 본문 — wrap 덕분에 길면 자동으로 다음 페이지로 */}
