@@ -208,7 +208,7 @@ function GatheringView({ reviews, meetings }: { reviews: Review[]; meetings: Mee
             )}
             <span className="text-[10px] text-[#9C8E7E]/60">{meetingReviews.length}개의 독후감</span>
           </div>
-          <h2 className="text-3xl text-[#1C1A17] leading-tight">
+          <h2 className="text-2xl md:text-3xl text-[#1C1A17] leading-tight">
             {meeting.title}
           </h2>
         </div>
@@ -695,7 +695,7 @@ function ReviewsInner() {
   }, []);
 
   return (
-    <div className="flex gap-0 md:gap-10 min-h-[60vh]">
+    <div className="flex flex-col md:flex-row gap-0 md:gap-10 min-h-[60vh]">
       {/* ── 사이드바 ── */}
       <aside className="hidden md:block w-44 flex-shrink-0 pt-1">
         <p className="text-[#1C1A17] text-lg mb-0.5">독후감</p>

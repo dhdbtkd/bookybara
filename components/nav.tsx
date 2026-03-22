@@ -18,6 +18,7 @@ export default function Nav() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // 라우트 변경 시 닫기
   useEffect(() => { setOpen(false); }, [pathname]);
@@ -35,12 +36,20 @@ export default function Nav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // 모바일 감지
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
+
   return (
     <>
-      {/* 스크롤 전: 전체 폭 헤더 / 스크롤 후: 플로팅 pill */}
+      {/* 스크롤 전: 전체 폭 헤더 / 스크롤 후: 플로팅 pill (데스크탑) 또는 숨김 (모바일) */}
       <div className="sticky top-0 z-50 pointer-events-none">
         <motion.header
-          animate={scrolled ? "floating" : "default"}
+          animate={scrolled ? (isMobile ? "hiddenMobile" : "floating") : "default"}
           variants={{
             default: {
               marginLeft: 0,
@@ -51,6 +60,8 @@ export default function Nav() {
               backdropFilter: "blur(0px)",
               boxShadow: "none",
               borderBottomWidth: "1px",
+              opacity: 1,
+              y: 0,
             },
             floating: {
               marginLeft: 320,
@@ -61,6 +72,20 @@ export default function Nav() {
               backdropFilter: "blur(16px)",
               boxShadow: "0 4px 24px 0 rgba(28,26,23,0.10)",
               borderBottomWidth: "0px",
+              opacity: 1,
+              y: 0,
+            },
+            hiddenMobile: {
+              marginLeft: 0,
+              marginRight: 0,
+              marginTop: 0,
+              borderRadius: 0,
+              backgroundColor: "rgba(240,234,224,1)",
+              backdropFilter: "blur(0px)",
+              boxShadow: "none",
+              borderBottomWidth: "0px",
+              opacity: 0,
+              y: -56,
             },
           }}
           transition={{ duration: 0.35, ease: [0.25, 0.1, 0.25, 1] }}
@@ -118,6 +143,23 @@ export default function Nav() {
           </div>
         </motion.header>
       </div>
+
+      {/* 모바일 플로팅 햄버거 버튼 (스크롤 후) */}
+      <AnimatePresence>
+        {scrolled && isMobile && !open && (
+          <motion.button
+            className="fixed top-3 right-3 z-50 p-2.5 rounded-full bg-[#F0EAE0]/85 backdrop-blur-md shadow-lg text-[#1C1A17] cursor-pointer border border-[#DDD5C8]/60"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.2 }}
+            onClick={() => setOpen(true)}
+            aria-label="메뉴 열기"
+          >
+            <Menu className="w-5 h-5" />
+          </motion.button>
+        )}
+      </AnimatePresence>
 
       {/* 모바일 사이드 패널 */}
       <AnimatePresence>
