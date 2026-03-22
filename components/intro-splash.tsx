@@ -51,7 +51,7 @@ export default function IntroSplash() {
               transition={(phase as ActivePhase) === "circle" ? { duration: 0.15 } : { duration: 0.85, ease: [0.25, 0.1, 0.25, 1] }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/logo.png" alt="책피바라" className="h-16 w-auto" />
+              <img src="/logo.png" alt="책피바라" className="h-16 w-auto dark:invert" />
               <span
                 style={{
                   fontFamily: "Eulyoo, serif",

@@ -97,7 +97,7 @@ export default function Nav() {
               href="/"
               className="flex items-center gap-2 flex-shrink-0"
             >
-              <img src="/logo.png" alt="책피바라" className="h-7 w-auto" />
+              <img src="/logo.png" alt="책피바라" className="h-7 w-auto dark:invert" />
               <span className="text-lg tracking-tight text-[#1C1A17]" style={{ fontFamily: "Eulyoo, serif" }}>
                 책피바라
               </span>
