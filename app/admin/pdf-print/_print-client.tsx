@@ -61,13 +61,16 @@ export default function PrintClient({ meeting, reviews, questions, selectedMembe
       <style>{`
         @import url('//fonts.googleapis.com/earlyaccess/nanummyeongjo.css');
 
-        /* 루트 레이아웃 숨기기 */
-        html.pdf-print-mode body > *:not(#pdf-root-wrapper) { display: none !important; }
-        html.pdf-print-mode body { background: white !important; margin: 0 !important; padding: 0 !important; }
-        html.pdf-print-mode #pdf-root-wrapper { display: block !important; }
+        /* ── 화면 모드: nav 숨기고 main 제약 제거 ── */
+        html.pdf-print-mode body { background: #d1d5db !important; }
+        html.pdf-print-mode nav { display: none !important; }
+        html.pdf-print-mode main {
+          max-width: none !important;
+          margin: 0 !important;
+          padding: 24px !important;
+        }
 
         #pdf-root-wrapper * { font-family: 'Nanum Myeongjo', 'NanumMyeongjo', serif !important; }
-        #pdf-root-wrapper { background: white; }
 
         .pdf-page {
           width: 210mm;
@@ -79,30 +82,19 @@ export default function PrintClient({ meeting, reviews, questions, selectedMembe
           display: flex;
           flex-direction: column;
           background: white;
-          margin: 0 auto;
+          margin: 0 auto 24px;
+          box-shadow: 0 4px 24px rgba(0,0,0,0.13);
         }
-        .pdf-page:last-child {
-          page-break-after: avoid;
-          break-after: avoid;
-        }
+        .pdf-page:last-child { page-break-after: avoid; break-after: avoid; }
 
-        @media screen {
-          #pdf-root-wrapper {
-            background: #e5e7eb;
-            padding: 24px;
-          }
-          .pdf-page {
-            box-shadow: 0 4px 24px rgba(0,0,0,0.12);
-            margin-bottom: 24px;
-          }
-        }
-
+        /* ── 인쇄 모드 ── */
         @media print {
           @page { size: A4 portrait; margin: 0; }
-          html.pdf-print-mode body > * { display: none !important; }
-          html.pdf-print-mode #pdf-root-wrapper { display: block !important; }
-          #pdf-root-wrapper { background: white; padding: 0; }
-          .pdf-page { box-shadow: none; margin-bottom: 0; }
+          html.pdf-print-mode body { background: white !important; }
+          html.pdf-print-mode main { padding: 0 !important; }
+          .pdf-page { box-shadow: none !important; margin-bottom: 0 !important; }
+          /* 배경 orb, nav, toaster, scroll-to-top 등 숨김 */
+          nav, [aria-hidden="true"], [data-sonner-toaster], button[aria-label] { display: none !important; }
         }
       `}</style>
 
