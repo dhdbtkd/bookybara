@@ -78,7 +78,7 @@ export default async function ReviewDetailPage({ params }: { params: Promise<{ i
         <div className="border-t border-[#D4C5B0] mb-8" />
 
         {/* 본문 */}
-        <div className="font-[family-name:var(--font-playfair)] text-[1.1rem] leading-[1.85] text-[#2C2520] whitespace-pre-wrap mb-10">
+        <div className="text-sm leading-[1.85] text-[#2C2520] whitespace-pre-wrap mb-10">
           {review.content}
         </div>
 

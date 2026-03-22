@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Skeleton from "react-loading-skeleton";
@@ -9,9 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { BookOpen, CalendarDays, MapPin, ChevronLeft, ChevronDown } from "lucide-react";
+import { BookOpen, CalendarDays, MapPin, ChevronLeft, ChevronDown, Save } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+
+type Draft = { authorName: string; content: string; savedAt: string };
+function draftKey(meetingId: string, bookId: string) {
+  return `reading_club_draft_${meetingId}_${bookId}`;
+}
 
 const ReviewEditor = dynamic(() => import("./_review-editor"), { ssr: false });
 
@@ -166,6 +171,11 @@ function NewReviewForm() {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingAttendees, setLoadingAttendees] = useState(false);
+  const [savedIndicator, setSavedIndicator] = useState(false);
+  const [restoreDraft, setRestoreDraft] = useState<Draft | null>(null);
+  const [editorInitialText, setEditorInitialText] = useState<string | undefined>(undefined);
+  const [editorKey, setEditorKey] = useState(0);
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Initial load: all meetings + all books (fallback)
   useEffect(() => {
@@ -218,6 +228,34 @@ function NewReviewForm() {
     setCharCount(text.length);
   }, []);
 
+  // Check for existing draft when meetingId + bookId are set
+  useEffect(() => {
+    if (!selectedMeetingId || !selectedBookId) return;
+    const key = draftKey(selectedMeetingId, selectedBookId);
+    const raw = localStorage.getItem(key);
+    if (!raw) return;
+    try {
+      const draft: Draft = JSON.parse(raw);
+      if (draft.content?.trim()) setRestoreDraft(draft);
+    } catch {
+      // ignore
+    }
+  }, [selectedMeetingId, selectedBookId]);
+
+  // Autosave to localStorage (debounced 3s)
+  useEffect(() => {
+    if (!selectedMeetingId || !selectedBookId) return;
+    if (!content.trim() && !authorName.trim()) return;
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => {
+      const draft: Draft = { authorName, content, savedAt: new Date().toISOString() };
+      localStorage.setItem(draftKey(selectedMeetingId, selectedBookId), JSON.stringify(draft));
+      setSavedIndicator(true);
+      setTimeout(() => setSavedIndicator(false), 2000);
+    }, 3000);
+    return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
+  }, [content, authorName, selectedMeetingId, selectedBookId]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!authorName.trim()) { toast.error("작성자를 선택해주세요."); return; }
@@ -237,6 +275,7 @@ function NewReviewForm() {
     });
 
     if (res.ok) {
+      localStorage.removeItem(draftKey(selectedMeetingId, selectedBookId));
       toast.success("독후감이 등록되었습니다!");
       router.push(selectedMeetingId ? `/meetings/${selectedMeetingId}` : "/reviews");
     } else {
@@ -306,6 +345,41 @@ function NewReviewForm() {
   // ── Step: write ──
   return (
     <div className="w-full flex flex-col gap-4">
+      {/* 임시저장 복원 모달 */}
+      {restoreDraft && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full space-y-4">
+            <p className="text-sm font-semibold text-[#1C1A17]">임시저장된 내용이 있어요</p>
+            <p className="text-xs text-neutral-500">
+              {format(new Date(restoreDraft.savedAt), "M월 d일 HH:mm")} 에 저장된 초안이 있습니다. 이어서 작성할까요?
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setAuthorName(restoreDraft.authorName);
+                  setEditorInitialText(restoreDraft.content);
+                  setEditorKey((k) => k + 1);
+                  setRestoreDraft(null);
+                }}
+                className="flex-1 py-2 rounded-xl bg-[#1C1A17] text-white text-sm font-medium hover:bg-[#8B3A2A] transition-colors cursor-pointer"
+              >
+                이어서 작성
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.removeItem(draftKey(selectedMeetingId, selectedBookId));
+                  setRestoreDraft(null);
+                }}
+                className="flex-1 py-2 rounded-xl border border-neutral-200 text-sm text-neutral-500 hover:bg-neutral-50 transition-colors cursor-pointer"
+              >
+                새로 작성
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="flex items-center gap-2 flex-shrink-0">
         <button onClick={() => router.back()} className="p-1 text-neutral-400 hover:text-neutral-700 cursor-pointer transition-colors">
           <ChevronLeft className="w-4 h-4" />
@@ -372,10 +446,17 @@ function NewReviewForm() {
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between">
             <label className="text-sm font-semibold text-neutral-700">독후감</label>
-            <span className="text-xs text-neutral-400">{charCount.toLocaleString()}자</span>
+            <div className="flex items-center gap-2">
+              {savedIndicator && (
+                <span className="flex items-center gap-1 text-[10px] text-neutral-400 animate-pulse">
+                  <Save className="w-3 h-3" />임시저장됨
+                </span>
+              )}
+              <span className="text-xs text-neutral-400">{charCount.toLocaleString()}자</span>
+            </div>
           </div>
           <div className="rounded-xl border border-neutral-200 bg-white min-h-[50dvh]">
-            <ReviewEditor onChange={handleEditorChange} />
+            <ReviewEditor key={editorKey} onChange={handleEditorChange} initialText={editorInitialText} />
           </div>
           <p className="text-xs text-neutral-400 hidden sm:block">책을 읽고 느낀 점, 인상적인 구절, 생각 등을 자유롭게 써주세요.</p>
         </div>

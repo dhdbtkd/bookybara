@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { ko } from "@blocknote/core/locales";
@@ -24,10 +24,20 @@ function blocksToPlainText(blocks: any[]): string {
 
 interface Props {
   onChange: (plainText: string) => void;
+  initialText?: string;
 }
 
-export default function ReviewEditor({ onChange }: Props) {
-  const editor = useCreateBlockNote({ dictionary: ko });
+export default function ReviewEditor({ onChange, initialText }: Props) {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const initialContent = useMemo(() => {
+    if (!initialText) return undefined;
+    return initialText.split("\n").map((line) => ({
+      type: "paragraph" as const,
+      content: line ? [{ type: "text" as const, text: line, styles: {} }] : [],
+    }));
+  }, []);
+
+  const editor = useCreateBlockNote({ dictionary: ko, initialContent });
 
   useEffect(() => {
     const unsubscribe = editor.onChange(() => {
