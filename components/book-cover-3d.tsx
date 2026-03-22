@@ -6,29 +6,19 @@ import { Environment, useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { BookOpen } from "lucide-react";
 
-// 책 치수
 const W = 1.4;   // 너비
 const H = 2.0;   // 높이
-const D = 0.30;  // 두께
+const D = 0.28;  // 두께
 
-/**
- * 호의 납작함 제어 헬퍼
- * R이 클수록 납작 (R = D/2 = 완전 반원, R = ∞ = 평면)
- * chord = D (앞뒤 표지 사이 거리) 에 맞춰 phiStart/phiLength 자동 계산
- *
- * pageR  — 페이지 단면(오른쪽, BackSide 오목)
- * spineR — 책등(왼쪽, FrontSide 볼록)
- */
-const pageR  = D * 3;
-const spineR = D * 3;
-
-// 페이지 단면: 호가 +x를 지나도록 (BackSide로 오목하게 보임)
-const pagePhi      = 2 * Math.asin(D / (2 * pageR));
-const pagePhiStart = Math.PI / 2 - pagePhi / 2;
-
-// 책등: 호가 -x를 지나도록 (FrontSide로 볼록하게 보임)
-const spinePhi      = 2 * Math.asin(D / (2 * spineR));
-const spinePhiStart = 3 * Math.PI / 2 - spinePhi / 2;
+/*
+  BoxGeometry 6면 재질 순서
+  0: +x (right)  → 페이지 단면
+  1: -x (left)   → 책등
+  2: +y (top)    → 페이지 단면 (위)
+  3: -y (bottom) → 페이지 단면 (아래)
+  4: +z (front)  → 앞표지
+  5: -z (back)   → 뒷표지
+*/
 
 /* ── 책 메시 ──────────────────────────────────────────────── */
 function BookMesh({ coverUrl, mouse }: { coverUrl: string; mouse: React.MutableRefObject<[number, number]> }) {
@@ -36,24 +26,14 @@ function BookMesh({ coverUrl, mouse }: { coverUrl: string; mouse: React.MutableR
   const coverTex = useTexture(coverUrl);
   coverTex.colorSpace = THREE.SRGBColorSpace;
 
-  const coverMat = useMemo(() => new THREE.MeshStandardMaterial({
-    map: coverTex, roughness: 0.2, metalness: 0.06,
-  }), [coverTex]);
-
-  // 책등: 진한 갈색
-  const spineMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#000000", roughness: 0.3, metalness: 0.03,
-  }), []);
-
-  // 페이지 단면: 크림 화이트, 약간 거칠게
-  const pageMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#f2ede5", roughness: 0.95, metalness: 0,
-  }), []);
-
-  // 뒷표지: 커버보다 약간 어둡게
-  const backMat = useMemo(() => new THREE.MeshStandardMaterial({
-    color: "#2e1f14", roughness: 0.7, metalness: 0.04,
-  }), []);
+  const materials = useMemo(() => [
+    new THREE.MeshStandardMaterial({ color: "#ede8df", roughness: 0.92, metalness: 0 }),   // 페이지 단면 우
+    new THREE.MeshStandardMaterial({ color: "#1a0e07", roughness: 0.75, metalness: 0.02 }), // 책등 좌
+    new THREE.MeshStandardMaterial({ color: "#ede8df", roughness: 0.92, metalness: 0 }),   // 페이지 단면 상
+    new THREE.MeshStandardMaterial({ color: "#ede8df", roughness: 0.92, metalness: 0 }),   // 페이지 단면 하
+    new THREE.MeshStandardMaterial({ map: coverTex, roughness: 0.25, metalness: 0.05 }),   // 앞표지
+    new THREE.MeshStandardMaterial({ color: "#1a0e07", roughness: 0.75, metalness: 0.02 }), // 뒷표지
+  ], [coverTex]);
 
   useFrame(() => {
     if (!groupRef.current) return;
@@ -63,41 +43,9 @@ function BookMesh({ coverUrl, mouse }: { coverUrl: string; mouse: React.MutableR
   });
 
   return (
-    <group ref={groupRef} rotation={[0, 0.4, 0]}>
-      {/* 앞표지 */}
-      <mesh position={[0, 0, D / 2]}>
-        <planeGeometry args={[W, H]} />
-        <primitive object={coverMat} attach="material" />
-      </mesh>
-
-      {/* 뒷표지 */}
-      <mesh position={[0, 0, -D / 2]} rotation={[0, Math.PI, 0]}>
-        <planeGeometry args={[W, H]} />
-        <primitive object={backMat} attach="material" />
-      </mesh>
-
-      {/* 책등 — 왼쪽, -x 방향으로 볼록 */}
-      <mesh position={[-W / 2, 0, 0]}>
-        <cylinderGeometry args={[spineR, spineR, H, 64, 1, true, spinePhiStart, spinePhi]} />
-        <primitive object={spineMat} attach="material" />
-      </mesh>
-
-      {/* 상단 (페이지 단면) */}
-      <mesh position={[0, H / 2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[W, D]} />
-        <primitive object={pageMat} attach="material" />
-      </mesh>
-
-      {/* 하단 (페이지 단면) */}
-      <mesh position={[0, -H / 2, 0]} rotation={[Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[W, D]} />
-        <primitive object={pageMat} attach="material" />
-      </mesh>
-
-      {/* 페이지 단면 — 오른쪽, BackSide로 오목하게 */}
-      <mesh position={[W / 2, 0, 0]}>
-        <cylinderGeometry args={[pageR, pageR, H, 64, 1, true, pagePhiStart, pagePhi]} />
-        <meshStandardMaterial color="#f2ede5" roughness={0.95} metalness={0} side={THREE.BackSide} />
+    <group ref={groupRef} rotation={[0, 0.5, 0]}>
+      <mesh material={materials} castShadow>
+        <boxGeometry args={[W, H, D]} />
       </mesh>
     </group>
   );
@@ -106,9 +54,15 @@ function BookMesh({ coverUrl, mouse }: { coverUrl: string; mouse: React.MutableR
 /* ── 폴백 ─────────────────────────────────────────────────── */
 function PlaceholderMesh({ mouse }: { mouse: React.MutableRefObject<[number, number]> }) {
   const groupRef = useRef<THREE.Group>(null!);
-  const pageMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#f2ede5", roughness: 0.95 }), []);
-  const spineMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#2e1f14", roughness: 0.8 }), []);
-  const bodyMat = useMemo(() => new THREE.MeshStandardMaterial({ color: "#d4c5b0", roughness: 0.8 }), []);
+
+  const materials = useMemo(() => [
+    new THREE.MeshStandardMaterial({ color: "#ede8df", roughness: 0.92 }), // pages
+    new THREE.MeshStandardMaterial({ color: "#3a2518", roughness: 0.8 }),  // spine
+    new THREE.MeshStandardMaterial({ color: "#ede8df", roughness: 0.92 }), // top
+    new THREE.MeshStandardMaterial({ color: "#ede8df", roughness: 0.92 }), // bottom
+    new THREE.MeshStandardMaterial({ color: "#d4c5b0", roughness: 0.85 }), // front
+    new THREE.MeshStandardMaterial({ color: "#3a2518", roughness: 0.8 }),  // back
+  ], []);
 
   useFrame(() => {
     if (!groupRef.current) return;
@@ -118,18 +72,9 @@ function PlaceholderMesh({ mouse }: { mouse: React.MutableRefObject<[number, num
   });
 
   return (
-    <group ref={groupRef} rotation={[0, 0.4, 0]}>
-      <mesh position={[0, 0, D / 2]}><planeGeometry args={[W, H]} /><primitive object={bodyMat} attach="material" /></mesh>
-      <mesh position={[0, 0, -D / 2]} rotation={[0, Math.PI, 0]}><planeGeometry args={[W, H]} /><primitive object={spineMat} attach="material" /></mesh>
-      <mesh position={[-W / 2, 0, 0]}>
-        <cylinderGeometry args={[spineR, spineR, H, 64, 1, true, spinePhiStart, spinePhi]} />
-        <primitive object={spineMat} attach="material" />
-      </mesh>
-      <mesh position={[0, H / 2, 0]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[W, D]} /><primitive object={pageMat} attach="material" /></mesh>
-      <mesh position={[0, -H / 2, 0]} rotation={[Math.PI / 2, 0, 0]}><planeGeometry args={[W, D]} /><primitive object={pageMat} attach="material" /></mesh>
-      <mesh position={[W / 2, 0, 0]}>
-        <cylinderGeometry args={[pageR, pageR, H, 64, 1, true, pagePhiStart, pagePhi]} />
-        <meshStandardMaterial color="#f2ede5" roughness={0.95} metalness={0} side={THREE.BackSide} />
+    <group ref={groupRef} rotation={[0, 0.5, 0]}>
+      <mesh material={materials}>
+        <boxGeometry args={[W, H, D]} />
       </mesh>
     </group>
   );
@@ -152,12 +97,9 @@ function Scene({ coverUrl }: { coverUrl: string | null }) {
 
   return (
     <>
-      <ambientLight intensity={0.55} />
-      {/* 주광: 우상단에서 → 커버에 자연스러운 하이라이트 */}
+      <ambientLight intensity={0.6} />
       <directionalLight position={[3, 4, 5]} intensity={1.8} />
-      {/* 보조광: 좌측에서 → 책등에 미묘한 빛 */}
-      <directionalLight position={[-3, 1, 2]} intensity={0.35} color="#c8b89a" />
-      {/* 하단 반사광: 바닥 반사 느낌 */}
+      <directionalLight position={[-4, 1, 2]} intensity={0.4} color="#c8b89a" />
       <pointLight position={[0, -3, 3]} intensity={0.2} color="#fff4e0" />
       <Environment preset="apartment" />
 
