@@ -33,7 +33,11 @@ type Meeting = {
   books: BookBasic[];
   attendees?: { id: number; name: string; member_id: number | null }[];
 };
-type Review = { id: number; author_name: string; content: string; books: { title: string } | null };
+type Review = {
+  id: number; author_name: string; content: string; book_id: number; meeting_id: number | null;
+  books: { title: string; author: string; cover_url: string | null; cover_url_hires: string | null } | null;
+  meetings: { title: string; date: string; location: string | null } | null;
+};
 type Announcement = { id: number; title: string; content: string; is_pinned: boolean };
 type Candidate = { id: number; title: string; author: string; proposed_by: string; status: string };
 type Discussion = { id: number; questions: string; is_public: boolean; meeting_id: number | null; meetings: { title: string } | null };
@@ -329,11 +333,25 @@ export default function AdminDashboard() {
   }
 
   // ── Reviews ──
+  const [reviewView, setReviewView] = useState<"gathering" | "book" | "member">("gathering");
+  const [editingReview, setEditingReview] = useState<{ id: number; author_name: string; content: string } | null>(null);
+
   async function deleteReview(id: number) {
     openConfirm("독후감 삭제", "독후감을 삭제할까요?", async () => {
       await fetch(`/api/reviews/${id}`, { method: "DELETE" });
       toast.success("삭제 완료"); loadAll();
     });
+  }
+
+  async function saveReview() {
+    if (!editingReview) return;
+    const res = await fetch(`/api/reviews/${editingReview.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ author_name: editingReview.author_name, content: editingReview.content }),
+    });
+    if (res.ok) { toast.success("수정 완료"); setEditingReview(null); loadAll(); }
+    else { toast.error("수정 실패"); }
   }
 
   // ── Discussion ──
@@ -959,37 +977,174 @@ export default function AdminDashboard() {
         )}
 
         {/* ── 독후감 ── */}
-        {active === "reviews" && (
-          <div className="space-y-6">
-            <SectionHeader
-              icon={<FileText className="w-5 h-5" />}
-              title="독후감"
-              description="제출된 독후감을 조회하고 관리합니다."
-            />
-            {reviews.length > 0 ? (
-              <div className="space-y-2">
-                {reviews.map((r) => (
-                  <div key={r.id} className="bg-white rounded-xl border border-[#E8DDD0] px-5 py-4 flex items-start gap-4">
+        {active === "reviews" && (() => {
+          // 그룹 계산
+          const byMeeting = new Map<string, Review[]>();
+          const byBook = new Map<string, Review[]>();
+          const byMember = new Map<string, Review[]>();
+          for (const r of reviews) {
+            const mk = r.meeting_id != null ? String(r.meeting_id) : "__none__";
+            if (!byMeeting.has(mk)) byMeeting.set(mk, []);
+            byMeeting.get(mk)!.push(r);
+            const bk = r.books?.title ?? "도서 미지정";
+            if (!byBook.has(bk)) byBook.set(bk, []);
+            byBook.get(bk)!.push(r);
+            if (!byMember.has(r.author_name)) byMember.set(r.author_name, []);
+            byMember.get(r.author_name)!.push(r);
+          }
+
+          // 인라인 편집 카드
+          function ReviewRow({ r }: { r: Review }) {
+            const isEditing = editingReview?.id === r.id;
+            return (
+              <div key={r.id} className="bg-white rounded-xl border border-[#E8DDD0] px-5 py-4">
+                {isEditing ? (
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <input
+                        className="text-sm border border-[#D4C5B0] rounded-lg px-3 py-1.5 w-36 focus:outline-none focus:ring-1 focus:ring-[#8B3A2A]"
+                        value={editingReview!.author_name}
+                        onChange={(e) => setEditingReview((p) => p && ({ ...p, author_name: e.target.value }))}
+                        placeholder="작성자"
+                      />
+                    </div>
+                    <textarea
+                      className="w-full text-sm border border-[#D4C5B0] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#8B3A2A]"
+                      rows={4}
+                      value={editingReview!.content}
+                      onChange={(e) => setEditingReview((p) => p && ({ ...p, content: e.target.value }))}
+                    />
+                    <div className="flex gap-2">
+                      <button onClick={saveReview} className="px-3 py-1.5 bg-[#1C1A17] text-white text-xs rounded-lg hover:bg-[#8B3A2A] transition-colors cursor-pointer">저장</button>
+                      <button onClick={() => setEditingReview(null)} className="px-3 py-1.5 bg-neutral-100 text-xs rounded-lg hover:bg-neutral-200 transition-colors cursor-pointer">취소</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        {r.books && (
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#F0EAE0] text-[#8B7B6B]">
-                            {r.books.title}
-                          </span>
-                        )}
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        {r.books && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#F0EAE0] text-[#8B7B6B]">{r.books.title}</span>}
                         <span className="font-semibold text-sm text-[#1C1A17]">{r.author_name}</span>
                       </div>
                       <p className="text-sm text-neutral-400 line-clamp-2 leading-relaxed">{r.content}</p>
                     </div>
-                    <button onClick={() => deleteReview(r.id)} className="p-1.5 text-neutral-300 hover:text-red-400 transition-colors cursor-pointer rounded-md hover:bg-red-50 flex-shrink-0 mt-0.5">
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex gap-1 flex-shrink-0 mt-0.5">
+                      <button
+                        onClick={() => setEditingReview({ id: r.id, author_name: r.author_name, content: r.content })}
+                        className="p-1.5 text-neutral-300 hover:text-[#8B3A2A] transition-colors cursor-pointer rounded-md hover:bg-[#F0EAE0]"
+                      >
+                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
+                      <button onClick={() => deleteReview(r.id)} className="p-1.5 text-neutral-300 hover:text-red-400 transition-colors cursor-pointer rounded-md hover:bg-red-50">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
+                )}
+              </div>
+            );
+          }
+
+          return (
+            <div className="space-y-6">
+              <SectionHeader icon={<FileText className="w-5 h-5" />} title="독후감" description={`총 ${reviews.length}개의 독후감을 조회하고 관리합니다.`} />
+
+              {/* 서브 탭 */}
+              <div className="flex gap-1 bg-[#F0EAE0] rounded-xl p-1">
+                {([["gathering", "모임별"], ["book", "도서별"], ["member", "참석자별"]] as const).map(([id, label]) => (
+                  <button
+                    key={id}
+                    onClick={() => setReviewView(id)}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${reviewView === id ? "bg-white text-[#1C1A17] shadow-sm" : "text-[#9C8E7E] hover:text-[#1C1A17]"}`}
+                  >
+                    {label}
+                  </button>
                 ))}
               </div>
-            ) : <EmptyState text="제출된 독후감이 없습니다." />}
-          </div>
-        )}
+
+              {reviews.length === 0 ? <EmptyState text="제출된 독후감이 없습니다." /> : (
+                <>
+                  {/* 모임별 */}
+                  {reviewView === "gathering" && (
+                    <div className="space-y-4">
+                      {meetings.filter((m) => byMeeting.has(String(m.id))).map((m) => {
+                        const mrs = byMeeting.get(String(m.id)) ?? [];
+                        return (
+                          <div key={m.id} className="border border-[#E8DDD0] rounded-xl overflow-hidden">
+                            <div className="bg-[#F8F4EF] px-5 py-3 flex items-center justify-between">
+                              <div>
+                                <p className="font-semibold text-sm text-[#1C1A17]">{m.title}</p>
+                                <p className="text-[11px] text-[#9C8E7E] mt-0.5">{m.date} · 독후감 {mrs.length}개</p>
+                              </div>
+                            </div>
+                            <div className="divide-y divide-[#F0EAE0] px-4 py-2 space-y-2">
+                              {mrs.map((r) => <ReviewRow key={r.id} r={r} />)}
+                            </div>
+                          </div>
+                        );
+                      })}
+                      {byMeeting.has("__none__") && (
+                        <div className="border border-dashed border-[#D4C5B0] rounded-xl overflow-hidden">
+                          <div className="bg-[#F8F4EF] px-5 py-3">
+                            <p className="font-semibold text-sm text-[#9C8E7E]">모임 미지정</p>
+                          </div>
+                          <div className="px-4 py-2 space-y-2">
+                            {(byMeeting.get("__none__") ?? []).map((r) => <ReviewRow key={r.id} r={r} />)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 도서별 */}
+                  {reviewView === "book" && (
+                    <div className="space-y-4">
+                      {Array.from(byBook.entries()).map(([bookTitle, brs]) => (
+                        <div key={bookTitle} className="border border-[#E8DDD0] rounded-xl overflow-hidden">
+                          <div className="bg-[#F8F4EF] px-5 py-3 flex items-center gap-3">
+                            {brs[0]?.books?.cover_url_hires || brs[0]?.books?.cover_url ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={brs[0].books!.cover_url_hires ?? brs[0].books!.cover_url!} alt="" className="w-8 h-11 object-cover rounded-md flex-shrink-0" />
+                            ) : null}
+                            <div>
+                              <p className="font-semibold text-sm text-[#1C1A17]">{bookTitle}</p>
+                              <p className="text-[11px] text-[#9C8E7E] mt-0.5">독후감 {brs.length}개</p>
+                            </div>
+                          </div>
+                          <div className="px-4 py-2 space-y-2">
+                            {brs.map((r) => <ReviewRow key={r.id} r={r} />)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* 참석자별 */}
+                  {reviewView === "member" && (
+                    <div className="space-y-4">
+                      {Array.from(byMember.entries()).sort((a, b) => b[1].length - a[1].length).map(([name, mrs]) => (
+                        <div key={name} className="border border-[#E8DDD0] rounded-xl overflow-hidden">
+                          <div className="bg-[#F8F4EF] px-5 py-3 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-[#D4C5B0] flex items-center justify-center flex-shrink-0">
+                              <span className="text-xs font-bold text-[#5C4A3A]">{name.slice(0, 2)}</span>
+                            </div>
+                            <div>
+                              <p className="font-semibold text-sm text-[#1C1A17]">{name}</p>
+                              <p className="text-[11px] text-[#9C8E7E] mt-0.5">독후감 {mrs.length}개</p>
+                            </div>
+                          </div>
+                          <div className="px-4 py-2 space-y-2">
+                            {mrs.map((r) => <ReviewRow key={r.id} r={r} />)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ── 공지사항 ── */}
         {active === "announcements" && (
