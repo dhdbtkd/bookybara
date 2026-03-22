@@ -8,6 +8,13 @@ import Link from "next/link";
 import BookCover3D from "@/components/book-cover-3d";
 import HomeReadBooks from "@/components/home-read-books";
 import HomeCandidates from "@/components/home-candidates";
+import {
+  HomeHeroLeft,
+  HomeHeroItem,
+  HomeHeroRight,
+  HomeMeetingCard,
+  HomeSection,
+} from "./_home-hero-animation";
 
 export const dynamic = "force-dynamic";
 
@@ -93,8 +100,8 @@ export default async function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
 
               {/* Left: text */}
-              <div className="space-y-6">
-                <div>
+              <HomeHeroLeft>
+                <HomeHeroItem>
                   <p className="text-[10px] font-semibold tracking-[0.22em] uppercase text-[#8B3A2A] mb-5">
                     이번 선정 도서
                   </p>
@@ -130,39 +137,43 @@ export default async function HomePage() {
                       {category.name}
                     </span>
                   )}
-                </div>
+                </HomeHeroItem>
 
                 {bookInfo?.description && (
-                  <p className="text-sm text-[#6B5E52] leading-relaxed max-w-xs line-clamp-4">
-                    {bookInfo.description}
-                  </p>
+                  <HomeHeroItem>
+                    <p className="text-sm text-[#6B5E52] leading-relaxed max-w-xs line-clamp-4">
+                      {bookInfo.description}
+                    </p>
+                  </HomeHeroItem>
                 )}
 
-                <div className="flex items-center gap-5 flex-wrap">
-                  <Link
-                    href={`/reviews/new?meetingId=${nextMeeting.id}`}
-                    className="px-6 py-2.5 bg-[#1C1A17] text-white text-[11px] font-bold tracking-[0.18em] uppercase hover:bg-[#8B3A2A] transition-colors cursor-pointer"
-                  >
-                    독후감 쓰기
-                  </Link>
-                  <Link
-                    href={`/meetings/${nextMeeting.id}`}
-                    className="text-sm text-[#8B3A2A] hover:underline cursor-pointer underline-offset-4"
-                  >
-                    모임 상세 보기 →
-                  </Link>
-                </div>
-              </div>
+                <HomeHeroItem>
+                  <div className="flex items-center gap-5 flex-wrap">
+                    <Link
+                      href={`/reviews/new?meetingId=${nextMeeting.id}`}
+                      className="px-6 py-2.5 bg-[#1C1A17] text-white text-[11px] font-bold tracking-[0.18em] uppercase hover:bg-[#8B3A2A] transition-colors cursor-pointer rounded-full"
+                    >
+                      독후감 쓰기
+                    </Link>
+                    <Link
+                      href={`/meetings/${nextMeeting.id}`}
+                      className="text-sm text-[#8B3A2A] hover:underline cursor-pointer underline-offset-4"
+                    >
+                      모임 상세 보기 →
+                    </Link>
+                  </div>
+                </HomeHeroItem>
+              </HomeHeroLeft>
 
               {/* Right: 3D book + meeting card */}
-              <div className="relative flex justify-center md:justify-end">
+              <HomeHeroRight>
                 <BookCover3D
                   coverUrl={bookInfo?.cover_url_hires ?? bookInfo?.cover_url ?? null}
                   title={bookInfo?.title ?? nextMeeting.title}
                 />
 
                 {/* Meeting card */}
-                <div className="absolute bottom-4 left-0 md:-left-4 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-white/60 p-4 w-54 z-30">
+                <HomeMeetingCard>
                   <p className="text-[9px] font-bold tracking-[0.18em] uppercase text-neutral-400 mb-1.5">
                     다음 모임
                   </p>
@@ -188,8 +199,8 @@ export default async function HomePage() {
                       <span className="ml-auto text-xs font-bold text-[#8B3A2A]">{dday}</span>
                     )}
                   </div>
-                </div>
-              </div>
+                </HomeMeetingCard>
+              </HomeHeroRight>
             </div>
           ) : (
             <div className="py-16 text-center">
@@ -209,7 +220,7 @@ export default async function HomePage() {
 
       {/* ── 공지사항 ── */}
       {announcements && announcements.length > 0 && (
-        <section className="mt-10">
+        <HomeSection className="mt-10">
           <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">
             공지사항
           </h2>
@@ -233,7 +244,7 @@ export default async function HomePage() {
               </Card>
             ))}
           </div>
-        </section>
+        </HomeSection>
       )}
 
       <HomeReadBooks books={readBooks} />

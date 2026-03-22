@@ -1,6 +1,7 @@
 import { createClient } from "@/utils/supabase/server";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import MotionPage from "@/components/motion-page";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export default async function DiscussionPage() {
     .order("created_at", { ascending: false });
 
   return (
+    <MotionPage>
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">토론 질문</h1>
@@ -56,5 +58,6 @@ export default async function DiscussionPage() {
         </div>
       )}
     </div>
+    </MotionPage>
   );
 }

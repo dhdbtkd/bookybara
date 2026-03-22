@@ -48,12 +48,12 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 18 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
 };
 
 const pageVariants = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.25, 0.1, 0.25, 1] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35 } },
   exit: { opacity: 0, y: -8, transition: { duration: 0.2 } },
 };
 
@@ -248,7 +248,7 @@ function BookView({ reviews, books }: { reviews: Review[]; books: Book[] }) {
               )}
               <div className="absolute bottom-2.5 left-2.5">
                 <motion.span
-                  className="bg-[#1C1A17] text-[#F0EAE0] text-[10px] font-bold tracking-widest px-2 py-1 uppercase rounded-sm"
+                  className="bg-[#1C1A17] text-[#F0EAE0] text-[10px] font-bold tracking-widest px-2 py-1 uppercase rounded-full"
                   whileHover={{ backgroundColor: "#8B3A2A" }}
                   transition={{ duration: 0.2 }}
                 >
@@ -333,7 +333,7 @@ function MemberView({ reviews }: { reviews: Review[] }) {
                 </p>
                 {latest.books && (
                   <div className="mt-3 flex gap-2 flex-wrap">
-                    <span className="text-[10px] tracking-widest border border-[#C8956C]/60 text-[#8B3A2A] px-2 py-0.5 uppercase">
+                    <span className="text-[10px] tracking-widest border border-[#C8956C]/60 text-[#8B3A2A] px-2 py-0.5 uppercase rounded-full">
                       {latest.books.title}
                     </span>
                   </div>
@@ -424,7 +424,7 @@ export default function ReviewsPage() {
             <button
               key={item.mode}
               onClick={() => setView(item.mode)}
-              className={`cursor-pointer w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-all duration-200 border-l-2 ${
+              className={`cursor-pointer w-full flex items-center gap-2.5 px-3 py-2.5 text-left transition-all duration-200 border-l-2 rounded-r-lg ${
                 view === item.mode
                   ? "border-l-[#8B3A2A] bg-[#EAE0D0]/60 text-[#1C1A17]"
                   : "border-l-transparent text-[#9C8E7E] hover:text-[#1C1A17] hover:bg-[#EAE0D0]/40"
@@ -458,7 +458,7 @@ export default function ReviewsPage() {
           <h1 className="font-[family-name:var(--font-playfair)] text-xl italic text-[#1C1A17]">독후감</h1>
           <Link
             href="/reviews/new"
-            className="cursor-pointer flex items-center gap-1.5 text-xs text-[#8B3A2A] border border-[#C8956C]/60 px-3 py-1.5 hover:bg-[#EAE0D0]/60 hover:border-[#C8956C] transition-all duration-200"
+            className="cursor-pointer flex items-center gap-1.5 text-xs text-[#8B3A2A] border border-[#C8956C]/60 px-3 py-1.5 rounded-full hover:bg-[#EAE0D0]/60 hover:border-[#C8956C] transition-all duration-200"
           >
             <PenLine size={12} />
             독후감 쓰기
@@ -503,7 +503,7 @@ export default function ReviewsPage() {
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} transition={{ duration: 0.15 }}>
               <Link
                 href="/reviews/new"
-                className="cursor-pointer flex items-center gap-2 text-sm font-medium text-[#F0EAE0] bg-[#1C1A17] px-4 py-2 hover:bg-[#8B3A2A] transition-colors duration-200 flex-shrink-0"
+                className="cursor-pointer flex items-center gap-2 text-sm font-medium text-[#F0EAE0] bg-[#1C1A17] px-4 py-2 rounded-full hover:bg-[#8B3A2A] transition-colors duration-200 flex-shrink-0"
               >
                 <PenLine size={14} />
                 독후감 쓰기

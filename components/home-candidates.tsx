@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { BookOpen, Star } from "lucide-react";
+import { motion } from "motion/react";
 
 type Candidate = {
   id: number;
@@ -18,11 +19,27 @@ function getBadge(index: number, createdAt: string): { label: string; isNew: boo
   return { label: `후보 #${index + 1}`, isNew: false };
 }
 
+const containerVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08 } },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4 } },
+};
+
 export default function HomeCandidates({ candidates }: { candidates: Candidate[] }) {
   return (
     <section className="-mx-4 mt-0 py-12 px-4 sm:px-8 pb-14">
       {/* 헤더 */}
-      <div className="flex items-center gap-4 mb-8">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true, margin: "-60px" }}
+        transition={{ duration: 0.4, ease: [0.25, 0.1, 0.25, 1] }}
+        className="flex items-center gap-4 mb-8"
+      >
         <h2 className="text-2xl sm:text-3xl font-bold text-[#1C1A17] whitespace-nowrap leading-tight">
           아직 읽지 않은 후보 도서 리스트
         </h2>
@@ -33,22 +50,32 @@ export default function HomeCandidates({ candidates }: { candidates: Candidate[]
         >
           전체 후보 보기 →
         </Link>
-      </div>
+      </motion.div>
 
       {candidates.length === 0 ? (
         <p className="text-sm text-neutral-400 py-6">아직 후보가 없어요.</p>
       ) : (
-        <div className="flex gap-5 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-60px" }}
+          className="flex gap-5 overflow-x-auto pb-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0"
+        >
           {candidates.map((c, i) => {
             const badge = getBadge(i, c.created_at);
             return (
-              <div
+              <motion.div
                 key={c.id}
-                className="flex-shrink-0 w-[280px] sm:w-[320px] bg-white border border-neutral-200 p-4 flex gap-4"
+                variants={cardVariants}
+                whileHover={{ y: -5, boxShadow: "0 12px 32px rgba(28,26,23,0.12)" }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                className="flex-shrink-0 w-[280px] sm:w-[320px] bg-white border border-neutral-200 rounded-2xl p-4 flex gap-4 cursor-pointer"
               >
                 {/* 썸네일 */}
-                <div className="flex-shrink-0 w-[88px] h-[120px] bg-[#E8DDD0] overflow-hidden">
+                <div className="flex-shrink-0 w-[88px] h-[120px] bg-[#E8DDD0] overflow-hidden rounded-xl">
                   {c.cover_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={c.cover_url} alt={c.title} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -83,15 +110,15 @@ export default function HomeCandidates({ candidates }: { candidates: Candidate[]
                   {/* 투표 버튼 */}
                   <Link
                     href="/candidates?tab=candidates"
-                    className="mt-3 block text-center py-2 border border-neutral-300 text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-500 hover:border-[#1C1A17] hover:text-[#1C1A17] transition-colors"
+                    className="mt-3 block text-center py-2 border border-neutral-300 text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-500 hover:border-[#1C1A17] hover:text-[#1C1A17] transition-colors rounded-full"
                   >
                     Vote for this
                   </Link>
                 </div>
-              </div>
+              </motion.div>
             );
           })}
-        </div>
+        </motion.div>
       )}
     </section>
   );

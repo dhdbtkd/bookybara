@@ -4,6 +4,7 @@ import { ko } from "date-fns/locale";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import MotionPage from "@/components/motion-page";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ export default async function ArchivePage() {
   }));
 
   return (
+    <MotionPage>
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">책 아카이브</h1>
       <p className="text-sm text-neutral-400">지금까지 함께 읽은 책들</p>
@@ -67,5 +69,6 @@ export default async function ArchivePage() {
         </div>
       )}
     </div>
+    </MotionPage>
   );
 }

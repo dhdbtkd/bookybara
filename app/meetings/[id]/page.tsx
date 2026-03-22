@@ -10,6 +10,7 @@ import Link from "next/link";
 import { ChevronLeft, Plus, X, PenLine, CalendarDays, MapPin, BookOpen } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PieChart, Pie, Cell } from "recharts";
+import { motion, AnimatePresence } from "motion/react";
 
 type Book = { title: string; author: string; cover_url: string | null; cover_url_hires: string | null };
 type Meeting = {
@@ -46,10 +47,7 @@ function ReviewPieChart({ submitted, total }: { submitted: number; total: number
             strokeWidth={0}
           >
             {data.map((entry, i) => (
-              <Cell
-                key={i}
-                fill={entry.empty ? "#E8DDD0" : "#1C1A17"}
-              />
+              <Cell key={i} fill={entry.empty ? "#E8DDD0" : "#1C1A17"} />
             ))}
           </Pie>
         </PieChart>
@@ -63,6 +61,26 @@ function ReviewPieChart({ submitted, total }: { submitted: number; total: number
     </div>
   );
 }
+
+const staggerContainer = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show: { opacity: 1, y: 0 },
+};
+
+const reviewVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07 } },
+};
+
+const reviewItem = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0 },
+};
 
 export default function MeetingDetailPage() {
   const { id } = useParams();
@@ -111,7 +129,15 @@ export default function MeetingDetailPage() {
     load();
   }
 
-  if (loading) return <div className="text-sm text-neutral-400 pt-10 text-center">불러오는 중...</div>;
+  if (loading) return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="text-sm text-neutral-400 pt-10 text-center"
+    >
+      <p className="font-[family-name:var(--font-playfair)] italic text-lg animate-pulse">불러오는 중...</p>
+    </motion.div>
+  );
   if (!meeting) return <div className="text-sm text-neutral-400 pt-10 text-center">모임을 찾을 수 없습니다.</div>;
 
   const book = meeting.books[0] ?? null;
@@ -123,33 +149,45 @@ export default function MeetingDetailPage() {
   const dday = diffDays === 0 ? "D-Day" : diffDays > 0 ? `D-${diffDays}` : `D+${Math.abs(diffDays)}`;
 
   return (
-    <div className="space-y-10 md:space-y-14">
-
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-10 md:space-y-14"
+    >
       {/* ── 브레드크럼 ── */}
-      <Link href="/meetings" className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400 hover:text-neutral-600 transition-colors">
-        <ChevronLeft className="w-3.5 h-3.5" />
+      <Link
+        href="/meetings"
+        className="inline-flex items-center gap-2 text-[10px] font-bold tracking-[0.2em] uppercase text-neutral-400 hover:text-neutral-600 transition-colors group"
+      >
+        <ChevronLeft className="w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform duration-200" />
         모임 일정
       </Link>
 
-      {/* ── 상단 히어로: 타이틀 + 북커버 ── */}
+      {/* ── 상단 히어로 ── */}
       <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-8 md:gap-12 items-center">
 
         {/* 왼쪽: 타이틀 + 메타 + 통계 */}
-        <div>
-          <span className={cn(
-            "inline-block text-[9px] font-bold tracking-[0.18em] uppercase px-2.5 py-1 rounded-full mb-4",
-            isPast ? "bg-neutral-100 text-neutral-400" : "bg-[#C8956C]/15 text-[#C8956C]"
-          )}>
+        <motion.div variants={staggerContainer} initial="hidden" animate="show">
+          <motion.span
+            variants={fadeUp}
+            className={cn(
+              "inline-block text-[9px] font-bold tracking-[0.18em] uppercase px-3 py-1 rounded-full mb-4",
+              isPast ? "bg-neutral-100 text-neutral-400" : "bg-[#C8956C]/15 text-[#C8956C]"
+            )}
+          >
             {isPast ? "지난 모임" : "예정된 모임"}
-          </span>
-          <h1
+          </motion.span>
+
+          <motion.h1
+            variants={fadeUp}
             className="text-4xl sm:text-5xl font-bold text-[#1C1A17] leading-[1.1] mb-8"
             style={{ fontFamily: "var(--font-playfair)" }}
           >
             {meeting.title}
-          </h1>
+          </motion.h1>
 
-          <div className="space-y-3 mb-8">
+          <motion.div variants={fadeUp} className="space-y-3 mb-8">
             <div className="flex items-start gap-3 pb-3 border-b border-neutral-200/60">
               <CalendarDays className="w-4 h-4 text-neutral-400 mt-0.5 flex-shrink-0" />
               <div>
@@ -174,23 +212,29 @@ export default function MeetingDetailPage() {
                 </div>
               </div>
             )}
-          </div>
+          </motion.div>
 
-          {/* 통계 */}
-          <div className="flex gap-8 items-center">
+          <motion.div variants={fadeUp} className="flex gap-8 items-center">
             <div>
               <p className="text-4xl font-bold text-[#1C1A17]">{attendees.length}</p>
               <p className="text-[9px] font-bold tracking-[0.2em] uppercase text-neutral-400 mt-1">참석</p>
             </div>
             <div className="w-px h-10 bg-neutral-200" />
             <ReviewPieChart submitted={reviews.length} total={attendees.length} />
-          </div>
-        </div>
+          </motion.div>
+        </motion.div>
 
-        {/* 오른쪽: 북커버 (책 비율 2:3) */}
-        <div className="flex-shrink-0 mx-auto md:mx-0" style={{ width: "clamp(140px, 22vw, 220px)" }}>
+        {/* 오른쪽: 북커버 */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.96, y: 10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15, ease: "easeOut" }}
+          className="flex-shrink-0 mx-auto md:mx-0"
+          style={{ width: "clamp(140px, 22vw, 220px)" }}
+        >
           <div className="relative rounded-2xl overflow-hidden shadow-xl" style={{ aspectRatio: "2 / 3" }}>
             {book?.cover_url_hires ?? book?.cover_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={book.cover_url_hires ?? book.cover_url!} alt={book.title} className="absolute inset-0 w-full h-full object-cover" />
             ) : (
               <div className="absolute inset-0 bg-[#2C2926] flex items-center justify-center">
@@ -212,7 +256,7 @@ export default function MeetingDetailPage() {
               </>
             )}
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* ── 구분선 ── */}
@@ -232,7 +276,7 @@ export default function MeetingDetailPage() {
             </div>
             <Link
               href={`/reviews/new?meetingId=${id}`}
-              className="flex items-center gap-1.5 px-4 py-2 bg-[#1C1A17] text-white text-xs font-semibold rounded-full hover:bg-[#8B3A2A] transition-colors flex-shrink-0"
+              className="flex items-center gap-1.5 px-4 py-2 bg-[#1C1A17] text-white text-xs font-semibold rounded-full hover:bg-[#8B3A2A] transition-colors flex-shrink-0 cursor-pointer"
             >
               <PenLine className="w-3.5 h-3.5" /> 독후감 쓰기
             </Link>
@@ -247,26 +291,33 @@ export default function MeetingDetailPage() {
               </Link>
             </div>
           ) : (
-            <div className="space-y-3">
+            <motion.div
+              variants={reviewVariants}
+              initial="hidden"
+              animate="show"
+              className="space-y-3"
+            >
               {reviews.map((r) => (
-                <Link key={r.id} href={`/reviews/${r.id}`} className="block group">
-                  <div className="rounded-2xl border border-neutral-200/80 bg-white/60 px-5 py-5 hover:bg-white hover:border-neutral-300 hover:shadow-md transition-all duration-200">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-9 h-9 rounded-full bg-[#1C1A17] group-hover:bg-[#8B3A2A] flex items-center justify-center flex-shrink-0 transition-colors duration-200">
-                        <span className="text-[11px] font-bold text-white">{r.author_name.slice(0, 2)}</span>
+                <motion.div key={r.id} variants={reviewItem}>
+                  <Link href={`/reviews/${r.id}`} className="block group cursor-pointer">
+                    <div className="rounded-2xl border border-neutral-200/80 bg-white/60 px-5 py-5 hover:bg-white hover:border-neutral-300 hover:shadow-md transition-all duration-200">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-9 h-9 rounded-full bg-[#1C1A17] group-hover:bg-[#8B3A2A] flex items-center justify-center flex-shrink-0 transition-colors duration-200">
+                          <span className="text-[11px] font-bold text-white">{r.author_name.slice(0, 2)}</span>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-sm text-[#1C1A17]">{r.author_name}</p>
+                          <p className="text-xs text-neutral-400">{format(new Date(r.created_at), "yyyy년 M월 d일", { locale: ko })}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold text-sm text-[#1C1A17]">{r.author_name}</p>
-                        <p className="text-xs text-neutral-400">{format(new Date(r.created_at), "yyyy년 M월 d일", { locale: ko })}</p>
-                      </div>
+                      <p className="text-sm text-neutral-500 leading-relaxed line-clamp-4 group-hover:text-[#3C3530] transition-colors duration-200">
+                        {r.content}
+                      </p>
                     </div>
-                    <p className="text-sm text-neutral-500 leading-relaxed line-clamp-4 group-hover:text-[#3C3530] transition-colors duration-200">
-                      {r.content}
-                    </p>
-                  </div>
-                </Link>
+                  </Link>
+                </motion.div>
               ))}
-            </div>
+            </motion.div>
           )}
         </div>
 
@@ -287,14 +338,23 @@ export default function MeetingDetailPage() {
             {attendees.length === 0 ? (
               <p className="text-xs text-neutral-400">아직 참석자가 없습니다.</p>
             ) : (
-              <div className="space-y-2.5">
+              <motion.div
+                variants={{ hidden: {}, show: { transition: { staggerChildren: 0.05 } } }}
+                initial="hidden"
+                animate="show"
+                className="space-y-2.5"
+              >
                 {attendees.map((a) => (
-                  <div key={a.id} className="flex items-center gap-2.5">
+                  <motion.div
+                    key={a.id}
+                    variants={{ hidden: { opacity: 0, x: -8 }, show: { opacity: 1, x: 0, transition: { duration: 0.25 } } }}
+                    className="flex items-center gap-2.5"
+                  >
                     <div className="w-1.5 h-1.5 rounded-full bg-[#C8956C] flex-shrink-0" />
                     <span className="text-sm text-[#1C1A17]">{a.name}</span>
-                  </div>
+                  </motion.div>
                 ))}
-              </div>
+              </motion.div>
             )}
           </div>
 
@@ -309,75 +369,99 @@ export default function MeetingDetailPage() {
       </div>
 
       {/* ── 참석자 추가 모달 ── */}
-      {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setModalOpen(false)} />
-          <div className="relative bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm shadow-2xl p-6 z-10">
-            <div className="flex items-center justify-between mb-5">
-              <h3 className="font-bold text-[#1C1A17]">참석자 선택</h3>
-              <button onClick={() => setModalOpen(false)} className="p-1 text-neutral-400 hover:text-neutral-600 cursor-pointer">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {(() => {
-              const attendedMemberIds = new Set(attendees.map((a) => a.member_id).filter(Boolean));
-              const attendedNames = new Set(attendees.map((a) => a.name));
-              const allAdded = members.every((m) => attendedMemberIds.has(m.id) || attendedNames.has(m.name));
-
-              if (members.length === 0) return <p className="text-sm text-neutral-400 text-center py-4">등록된 멤버가 없습니다.</p>;
-
-              return (
-                <div className="space-y-4">
-                  <div className="flex flex-wrap gap-2">
-                    {members.map((m) => {
-                      const alreadyIn = attendedMemberIds.has(m.id) || attendedNames.has(m.name);
-                      const isSelected = selected.has(m.id);
-                      return (
-                        <button
-                          key={m.id}
-                          type="button"
-                          disabled={alreadyIn}
-                          onClick={() => {
-                            if (alreadyIn) return;
-                            setSelected((prev) => {
-                              const next = new Set(prev);
-                              next.has(m.id) ? next.delete(m.id) : next.add(m.id);
-                              return next;
-                            });
-                          }}
-                          className={cn(
-                            "px-3 py-1.5 rounded-full text-sm font-medium border transition-all",
-                            alreadyIn
-                              ? "bg-neutral-50 text-neutral-300 border-neutral-100 cursor-not-allowed"
-                              : isSelected
-                                ? "bg-[#1C1A17] text-white border-[#1C1A17] cursor-pointer"
-                                : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400 cursor-pointer"
-                          )}
-                        >
-                          {alreadyIn ? <span className="line-through">{m.name}</span> : m.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {allAdded && (
-                    <p className="text-xs text-neutral-400 text-center">모든 멤버가 이미 참석자로 등록되어 있습니다.</p>
-                  )}
-
-                  <Button
-                    onClick={confirmAdd}
-                    disabled={selected.size === 0 || adding}
-                    className="w-full bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer rounded-xl"
-                  >
-                    {adding ? "추가 중..." : `${selected.size > 0 ? `${selected.size}명 ` : ""}참석자 추가`}
-                  </Button>
+      <AnimatePresence>
+        {modalOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              onClick={() => setModalOpen(false)}
+            />
+            <motion.div
+              className="fixed bottom-0 left-0 right-0 sm:inset-0 z-50 flex sm:items-center sm:justify-center pointer-events-none"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                className="relative bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm shadow-2xl p-6 z-10 pointer-events-auto"
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", stiffness: 340, damping: 34 }}
+              >
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="font-bold text-[#1C1A17]">참석자 선택</h3>
+                  <button onClick={() => setModalOpen(false)} className="p-1 text-neutral-400 hover:text-neutral-600 cursor-pointer">
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
-              );
-            })()}
-          </div>
-        </div>
-      )}
-    </div>
+
+                {(() => {
+                  const attendedMemberIds = new Set(attendees.map((a) => a.member_id).filter(Boolean));
+                  const attendedNames = new Set(attendees.map((a) => a.name));
+                  const allAdded = members.every((m) => attendedMemberIds.has(m.id) || attendedNames.has(m.name));
+
+                  if (members.length === 0) return <p className="text-sm text-neutral-400 text-center py-4">등록된 멤버가 없습니다.</p>;
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-2">
+                        {members.map((m) => {
+                          const alreadyIn = attendedMemberIds.has(m.id) || attendedNames.has(m.name);
+                          const isSelected = selected.has(m.id);
+                          return (
+                            <motion.button
+                              key={m.id}
+                              type="button"
+                              disabled={alreadyIn}
+                              whileHover={alreadyIn ? {} : { scale: 1.04 }}
+                              whileTap={alreadyIn ? {} : { scale: 0.96 }}
+                              onClick={() => {
+                                if (alreadyIn) return;
+                                setSelected((prev) => {
+                                  const next = new Set(prev);
+                                  next.has(m.id) ? next.delete(m.id) : next.add(m.id);
+                                  return next;
+                                });
+                              }}
+                              className={cn(
+                                "px-3 py-1.5 rounded-full text-sm font-medium border transition-all",
+                                alreadyIn
+                                  ? "bg-neutral-50 text-neutral-300 border-neutral-100 cursor-not-allowed"
+                                  : isSelected
+                                    ? "bg-[#1C1A17] text-white border-[#1C1A17] cursor-pointer"
+                                    : "bg-white text-neutral-600 border-neutral-200 hover:border-neutral-400 cursor-pointer"
+                              )}
+                            >
+                              {alreadyIn ? <span className="line-through">{m.name}</span> : m.name}
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+
+                      {allAdded && (
+                        <p className="text-xs text-neutral-400 text-center">모든 멤버가 이미 참석자로 등록되어 있습니다.</p>
+                      )}
+
+                      <Button
+                        onClick={confirmAdd}
+                        disabled={selected.size === 0 || adding}
+                        className="w-full bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer rounded-full"
+                      >
+                        {adding ? "추가 중..." : `${selected.size > 0 ? `${selected.size}명 ` : ""}참석자 추가`}
+                      </Button>
+                    </div>
+                  );
+                })()}
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 }
