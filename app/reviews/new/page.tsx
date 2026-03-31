@@ -287,6 +287,43 @@ function NewReviewForm() {
 
   if (loading) return <div className="pt-10 text-center text-sm text-neutral-400">불러오는 중...</div>;
 
+  // ── 임시저장 복원 모달 (step에 무관하게 표시) ──
+  const restoreDraftModal = restoreDraft && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+      <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full space-y-4">
+        <p className="text-sm font-semibold text-[#1C1A17]">임시저장된 내용이 있어요</p>
+        <p className="text-xs text-neutral-500">
+          {format(new Date(restoreDraft.savedAt), "M월 d일 HH:mm")} 에 저장된 초안이 있습니다. 이어서 작성할까요?
+        </p>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setAuthorName(restoreDraft.authorName);
+              setEditorInitialText(restoreDraft.content);
+              setEditorKey((k) => k + 1);
+              setStep("write");
+              setRestoreDraft(null);
+            }}
+            className="flex-1 py-2 rounded-xl bg-[#1C1A17] text-white text-sm font-medium hover:bg-[#8B3A2A] transition-colors cursor-pointer"
+          >
+            이어서 작성
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              localStorage.removeItem(draftKey(selectedMeetingId, selectedBookId));
+              setRestoreDraft(null);
+            }}
+            className="flex-1 py-2 rounded-xl border border-neutral-200 text-sm text-neutral-500 hover:bg-neutral-50 transition-colors cursor-pointer"
+          >
+            새로 작성
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   const selectedMeeting = meetings.find((m) => String(m.id) === selectedMeetingId) ?? null;
   // Books available for this meeting: meeting's book if set, else all books
   const meetingBooks: Book[] = selectedMeeting?.books ?? [];
@@ -298,6 +335,7 @@ function NewReviewForm() {
   if (step === "book") {
     return (
       <div className="w-full flex flex-col flex-1 min-h-0 gap-5">
+        {restoreDraftModal}
         <div className="flex items-center gap-2 flex-shrink-0">
           <button onClick={() => router.back()} className="p-1 text-neutral-400 hover:text-neutral-700 cursor-pointer transition-colors">
             <ChevronLeft className="w-4 h-4" />
@@ -345,41 +383,7 @@ function NewReviewForm() {
   // ── Step: write ──
   return (
     <div className="w-full flex flex-col gap-4">
-      {/* 임시저장 복원 모달 */}
-      {restoreDraft && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full space-y-4">
-            <p className="text-sm font-semibold text-[#1C1A17]">임시저장된 내용이 있어요</p>
-            <p className="text-xs text-neutral-500">
-              {format(new Date(restoreDraft.savedAt), "M월 d일 HH:mm")} 에 저장된 초안이 있습니다. 이어서 작성할까요?
-            </p>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setAuthorName(restoreDraft.authorName);
-                  setEditorInitialText(restoreDraft.content);
-                  setEditorKey((k) => k + 1);
-                  setRestoreDraft(null);
-                }}
-                className="flex-1 py-2 rounded-xl bg-[#1C1A17] text-white text-sm font-medium hover:bg-[#8B3A2A] transition-colors cursor-pointer"
-              >
-                이어서 작성
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  localStorage.removeItem(draftKey(selectedMeetingId, selectedBookId));
-                  setRestoreDraft(null);
-                }}
-                className="flex-1 py-2 rounded-xl border border-neutral-200 text-sm text-neutral-500 hover:bg-neutral-50 transition-colors cursor-pointer"
-              >
-                새로 작성
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {restoreDraftModal}
       <div className="flex items-center gap-2 flex-shrink-0">
         <button onClick={() => router.back()} className="p-1 text-neutral-400 hover:text-neutral-700 cursor-pointer transition-colors">
           <ChevronLeft className="w-4 h-4" />

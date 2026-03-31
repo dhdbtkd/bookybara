@@ -93,6 +93,7 @@ export default function MeetingDetailPage() {
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [adding, setAdding] = useState(false);
   const [activeBookIdx, setActiveBookIdx] = useState(0);
+  const [attendeeBarOpen, setAttendeeBarOpen] = useState(false);
   const dragX = useMotionValue(0);
   const BACK_OFFSET_X = 22;
   const BACK_OFFSET_Y = -14;
@@ -344,7 +345,7 @@ export default function MeetingDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-[1fr_240px] gap-12 items-start">
 
         {/* 왼쪽: 독후감 */}
-        <div className="order-2 md:order-1">
+        <div className="order-2 md:order-1 pb-20 md:pb-0">
           <div className="flex items-end justify-between mb-2">
             <div>
               <h2 className="text-2xl font-bold text-[#1C1A17]" style={{ fontFamily: "var(--font-playfair)" }}>
@@ -399,8 +400,8 @@ export default function MeetingDetailPage() {
           )}
         </div>
 
-        {/* 오른쪽 사이드바 */}
-        <div className="sticky top-20 space-y-8 order-1 md:order-2">
+        {/* 오른쪽 사이드바 (데스크탑만) */}
+        <div className="hidden md:block sticky top-20 space-y-8 order-1 md:order-2">
 
           {/* 참석자 */}
           <div>
@@ -457,6 +458,77 @@ export default function MeetingDetailPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* ── 모바일 참석자 고정 하단 바 ── */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40">
+        {/* 펼쳐진 패널 */}
+        <AnimatePresence>
+          {attendeeBarOpen && (
+            <motion.div
+              key="attendee-panel"
+              initial={{ y: "100%" }}
+              animate={{ y: 0 }}
+              exit={{ y: "100%" }}
+              transition={{ type: "spring", stiffness: 340, damping: 34 }}
+              className="bg-white border-t border-neutral-200 shadow-2xl max-h-[60vh] flex flex-col"
+            >
+              <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-100">
+                <p className="text-[9px] font-bold tracking-[0.22em] uppercase text-neutral-400">참석자</p>
+                <button
+                  onClick={openModal}
+                  className="flex items-center gap-1 text-[10px] font-bold tracking-wide text-neutral-400 cursor-pointer uppercase"
+                >
+                  <Plus className="w-3 h-3" /> 추가
+                </button>
+              </div>
+              <div className="overflow-y-auto px-5 py-3 space-y-2.5">
+                {attendees.length === 0 ? (
+                  <p className="text-xs text-neutral-400">아직 참석자가 없습니다.</p>
+                ) : (
+                  [...attendees].sort((a, b) => {
+                    const aHas = reviews.some((r) => r.author_name === a.name) ? 0 : 1;
+                    const bHas = reviews.some((r) => r.author_name === b.name) ? 0 : 1;
+                    return aHas - bHas;
+                  }).map((a) => {
+                    const hasReview = reviews.some((r) => r.author_name === a.name);
+                    return (
+                      <div key={a.id} className="flex items-center gap-2.5">
+                        <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${hasReview ? "bg-emerald-500" : "bg-[#C8956C]"}`} />
+                        <span className="text-sm text-[#1C1A17] flex-1">{a.name}</span>
+                        {hasReview && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                            <CheckCircle2 className="w-3 h-3" />
+                            제출완료
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* 항상 보이는 탭 바 */}
+        <button
+          onClick={() => setAttendeeBarOpen((v) => !v)}
+          className="w-full flex items-center justify-between px-5 py-3 bg-[#1C1A17] text-white"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] font-bold tracking-[0.22em] uppercase opacity-60">참석자</span>
+            <span className="text-sm font-bold">{attendees.length}명</span>
+            {attendees.length > 0 && (
+              <span className="text-[10px] text-emerald-400 font-semibold">
+                · 독후감 {reviews.length}/{attendees.length}
+              </span>
+            )}
+          </div>
+          <motion.div animate={{ rotate: attendeeBarOpen ? 180 : 0 }} transition={{ duration: 0.2 }}>
+            <ChevronLeft className="w-4 h-4 opacity-60 -rotate-90" />
+          </motion.div>
+        </button>
       </div>
 
       {/* ── 참석자 추가 모달 ── */}
