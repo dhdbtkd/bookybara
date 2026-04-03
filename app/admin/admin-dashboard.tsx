@@ -390,7 +390,7 @@ export default function AdminDashboard() {
       style={{ width: "100vw", marginLeft: "calc(50% - 50vw)", minHeight: "calc(100vh - 3.5rem)" }}
     >
       {/* ── Sidebar ── */}
-      <aside className="w-52 bg-[#1C1A17] sticky top-14 h-[calc(100vh-3.5rem)] flex flex-col flex-shrink-0">
+      <aside className="hidden md:flex w-52 bg-[#1C1A17] sticky top-14 h-[calc(100vh-3.5rem)] flex-col flex-shrink-0">
         <div className="px-5 py-5 border-b border-white/10">
           <p className="text-[9px] font-bold tracking-[0.22em] uppercase text-white/30 mb-1">독서모임</p>
           <p className="text-white text-lg" style={{ fontFamily: "var(--font-playfair)", fontStyle: "italic" }}>
@@ -428,7 +428,7 @@ export default function AdminDashboard() {
       </aside>
 
       {/* ── Main content ── */}
-      <main className="flex-1 min-w-0 p-8">
+      <main className="flex-1 min-w-0 p-4 md:p-8 pb-24 md:pb-8">
 
         {/* ── 대시보드 ── */}
         {active === "dashboard" && (
@@ -504,7 +504,7 @@ export default function AdminDashboard() {
                 <Field label="모임 이름 *">
                   <Input value={meetingForm.title} onChange={(e) => setMeetingForm((p) => ({ ...p, title: e.target.value }))} placeholder="예: 3월 독서모임" />
                 </Field>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <Field label="날짜 *">
                     <DatePicker value={meetingForm.date} onChange={(v) => setMeetingForm((p) => ({ ...p, date: v }))} />
                   </Field>
@@ -696,7 +696,7 @@ export default function AdminDashboard() {
                     </div>
                   </Field>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Field label="제목 *">
                       <Input value={bookForm.title} onChange={(e) => setBookForm((p) => ({ ...p, title: e.target.value }))} placeholder="책 제목" />
                     </Field>
@@ -1225,6 +1225,28 @@ export default function AdminDashboard() {
         onSelect={(id) => { setMeetingForm((p) => ({ ...p, book_ids: p.book_ids.includes(id) ? p.book_ids.filter((x) => x !== id) : [...p.book_ids, id] })); }}
         onClose={() => setNewMeetingBookModalOpen(false)}
       />
+
+      {/* ── 모바일 하단 내비게이션 ── */}
+      <div
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#1C1A17] border-t border-white/10 overflow-x-auto"
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="flex">
+          {MENU.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              onClick={() => handleSetActive(id)}
+              className={cn(
+                "flex flex-col items-center gap-1 px-3 py-2.5 flex-1 min-w-[56px] text-[9px] font-medium transition-colors cursor-pointer whitespace-nowrap",
+                active === id ? "text-[#E8856A]" : "text-white/40"
+              )}
+            >
+              <Icon className="w-4.5 h-4.5 flex-shrink-0" style={{ width: 18, height: 18 }} />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
     </>
   );
@@ -1610,7 +1632,7 @@ function BookAdminRow({
           <div className="flex items-center justify-end h-5">
             <SavedIndicator saved={saved} />
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-neutral-400">제목</Label>
               <Input value={form.title} onChange={(e) => updateForm({ title: e.target.value })} className="h-8 text-xs bg-white" />
