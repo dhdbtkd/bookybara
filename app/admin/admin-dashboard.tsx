@@ -386,7 +386,7 @@ export default function AdminDashboard() {
     />
     {/* 뷰포트 전체 너비로 탈출 (max-w-4xl 컨테이너 이탈) */}
     <div
-      className="flex items-start -mt-8"
+      className="flex items-start -mt-4 md:-mt-8"
       style={{ width: "100vw", marginLeft: "calc(50% - 50vw)", minHeight: "calc(100vh - 3.5rem)" }}
     >
       {/* ── Sidebar ── */}
