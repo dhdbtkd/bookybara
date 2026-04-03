@@ -1746,35 +1746,66 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
       />
 
       <FormCard title="모임 선택">
-        <div className="space-y-2">
-          {sortedMeetings.length === 0 ? (
-            <p className="text-sm text-neutral-400">등록된 모임이 없습니다.</p>
-          ) : (
-            <div className="space-y-1.5">
-              {sortedMeetings.map((m) => (
+        {sortedMeetings.length === 0 ? (
+          <p className="text-sm text-neutral-400">등록된 모임이 없습니다.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {sortedMeetings.map((m) => {
+              const isSelected = String(m.id) === selectedMeetingId;
+              const cover = m.books[0]?.cover_url_hires ?? m.books[0]?.cover_url ?? null;
+              return (
                 <button
                   key={m.id}
                   type="button"
                   onClick={() => setSelectedMeetingId(String(m.id))}
                   className={cn(
-                    "w-full text-left px-3 py-2.5 rounded-xl border text-sm transition-all cursor-pointer",
-                    String(m.id) === selectedMeetingId
-                      ? "border-[#8B3A2A] bg-[#8B3A2A]/5 text-[#1C1A17] font-medium"
-                      : "border-[#E8DDD0] bg-white text-neutral-600 hover:border-neutral-300"
+                    "w-full text-left rounded-xl border transition-all cursor-pointer overflow-hidden group",
+                    isSelected
+                      ? "border-[#8B3A2A] ring-1 ring-[#8B3A2A]/30 bg-white"
+                      : "border-[#E8DDD0] bg-white hover:border-[#C8B8A8]"
                   )}
                 >
-                  <span className="text-[10px] text-neutral-400 mr-2">
-                    {format(new Date(m.date + "T00:00:00"), "yyyy.MM.dd", { locale: ko })}
-                  </span>
-                  {m.title}
-                  {m.books.length > 0 && (
-                    <span className="ml-2 text-xs text-[#9C8E7E]">— {m.books.map((b) => b.title).join(", ")}</span>
-                  )}
+                  <div className="flex items-stretch gap-0">
+                    {/* 책 표지 스트립 */}
+                    <div className="w-14 flex-shrink-0 bg-[#F0EAE0] relative overflow-hidden">
+                      {cover ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={cover} alt="" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <BookCopy className="w-5 h-5 text-[#C8BEB4]" />
+                        </div>
+                      )}
+                      {isSelected && (
+                        <div className="absolute inset-0 bg-[#8B3A2A]/20 flex items-center justify-center">
+                          <div className="w-5 h-5 rounded-full bg-[#8B3A2A] flex items-center justify-center">
+                            <Check className="w-3 h-3 text-white" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 내용 */}
+                    <div className="flex-1 min-w-0 px-3 py-2.5">
+                      <p className="text-[10px] font-medium text-neutral-400 mb-0.5">
+                        {format(new Date(m.date + "T00:00:00"), "yyyy년 M월 d일 (EEE)", { locale: ko })}
+                        {m.location && <span className="ml-1.5">· {m.location}</span>}
+                      </p>
+                      <p className={cn("text-sm font-semibold leading-snug", isSelected ? "text-[#8B3A2A]" : "text-[#1C1A17]")}>
+                        {m.title}
+                      </p>
+                      {m.books.length > 0 && (
+                        <p className="text-[11px] text-[#9C8E7E] mt-1 leading-snug line-clamp-1">
+                          {m.books.map((b) => b.title).join(" · ")}
+                        </p>
+                      )}
+                    </div>
+                  </div>
                 </button>
-              ))}
-            </div>
-          )}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </FormCard>
 
       {selectedMeetingId && (
