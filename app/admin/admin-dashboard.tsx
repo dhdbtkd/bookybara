@@ -22,6 +22,7 @@ import {
   GripVertical, Shuffle,
 } from "lucide-react";
 import PdfDownloadButton from "@/components/pdf/pdf-download-button";
+import { Reorder, useDragControls } from "motion/react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -1661,6 +1662,76 @@ function BookAdminRow({
   );
 }
 
+// ── 참석자 순서 아이템 (Reorder 전용) ──
+function AttendeeOrderItem({
+  name, pos, on, isFirst, isLast, onToggle, onMoveUp, onMoveDown,
+}: {
+  name: string; pos: number | null; on: boolean;
+  isFirst: boolean; isLast: boolean;
+  onToggle: () => void; onMoveUp: () => void; onMoveDown: () => void;
+}) {
+  const controls = useDragControls();
+  return (
+    <Reorder.Item
+      value={name}
+      dragListener={false}
+      dragControls={controls}
+      layout
+      layoutId={name}
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: on ? 1 : 0.4, y: 0 }}
+      exit={{ opacity: 0, y: 6 }}
+      whileDrag={{ scale: 1.02, boxShadow: "0 6px 20px rgba(0,0,0,0.1)", zIndex: 50 }}
+      transition={{ layout: { type: "spring", stiffness: 400, damping: 30 }, opacity: { duration: 0.15 } }}
+      className={cn(
+        "flex items-center gap-2 px-3 py-2 rounded-lg border bg-white select-none",
+        "border-[#E8DDD0]"
+      )}
+      style={{ position: "relative" }}
+      as="div"
+    >
+      <span
+        onPointerDown={(e) => controls.start(e)}
+        className="touch-none cursor-grab active:cursor-grabbing text-neutral-300 hover:text-neutral-400 flex-shrink-0"
+      >
+        <GripVertical className="w-4 h-4" />
+      </span>
+      <span className="w-5 text-center text-[11px] font-mono text-neutral-400 flex-shrink-0">
+        {pos ?? "—"}
+      </span>
+      <span className="flex-1 text-sm font-medium text-[#1C1A17]">{name}</span>
+      <div className="flex gap-0.5 flex-shrink-0">
+        <button
+          type="button"
+          onClick={onMoveUp}
+          disabled={isFirst}
+          className="p-1 text-neutral-300 hover:text-neutral-600 disabled:opacity-20 cursor-pointer disabled:cursor-default"
+        >
+          <ChevronUp className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onMoveDown}
+          disabled={isLast}
+          className="p-1 text-neutral-300 hover:text-neutral-600 disabled:opacity-20 cursor-pointer disabled:cursor-default"
+        >
+          <ChevronDown className="w-3.5 h-3.5" />
+        </button>
+      </div>
+      <button
+        type="button"
+        onClick={onToggle}
+        className={cn(
+          "w-5 h-5 rounded border-2 flex-shrink-0 transition-all cursor-pointer flex items-center justify-center",
+          on ? "bg-[#1C1A17] border-[#1C1A17]" : "border-neutral-300 bg-white"
+        )}
+      >
+        {on && <Check className="w-3 h-3 text-white" />}
+      </button>
+    </Reorder.Item>
+  );
+}
+
 // ── PDF 생성 섹션 ──
 function PdfSection({ meetings }: { meetings: Meeting[] }) {
   const [selectedMeetingId, setSelectedMeetingId] = useState("");
@@ -1669,7 +1740,6 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
   const [loadingAttendees, setLoadingAttendees] = useState(false);
   const [includeQuestions, setIncludeQuestions] = useState(true);
   const [randomize, setRandomize] = useState(false);
-  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   useEffect(() => {
     if (!selectedMeetingId) { setOrder([]); setSelected(new Set()); return; }
@@ -1690,28 +1760,6 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
   function toggleAll() {
     if (selected.size === order.length) setSelected(new Set());
     else setSelected(new Set(order));
-  }
-
-  function handleDragStart(e: React.DragEvent, idx: number) {
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", String(idx));
-  }
-
-  function handleDragOver(e: React.DragEvent, idx: number) {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    setDragOverIdx(idx);
-  }
-
-  function handleDrop(e: React.DragEvent, toIdx: number) {
-    e.preventDefault();
-    const fromIdx = Number(e.dataTransfer.getData("text/plain"));
-    setDragOverIdx(null);
-    if (fromIdx === toIdx) return;
-    const next = [...order];
-    const [item] = next.splice(fromIdx, 1);
-    next.splice(toIdx, 0, item);
-    setOrder(next);
   }
 
   function moveUp(idx: number) {
@@ -1822,67 +1870,35 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
                   {selected.size === order.length ? "전체 해제" : "전체 선택"}
                 </button>
               </div>
-              <div
+              <Reorder.Group
+                axis="y"
+                values={order}
+                onReorder={setOrder}
                 className="space-y-1"
-                onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverIdx(null); }}
+                as="div"
               >
                 {order.map((name, idx) => {
                   const on = selected.has(name);
                   const pos = selectedPos(name);
                   return (
-                    <div
+                    <AttendeeOrderItem
                       key={name}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, idx)}
-                      onDragOver={(e) => handleDragOver(e, idx)}
-                      onDrop={(e) => handleDrop(e, idx)}
-                      className={cn(
-                        "flex items-center gap-2 px-3 py-2 rounded-lg border transition-all select-none",
-                        dragOverIdx === idx ? "border-[#8B3A2A] bg-[#8B3A2A]/5" : "border-[#E8DDD0] bg-white",
-                        !on && "opacity-40"
-                      )}
-                    >
-                      <GripVertical className="w-4 h-4 text-neutral-300 cursor-grab flex-shrink-0" />
-                      <span className="w-5 text-center text-[11px] font-mono text-neutral-400 flex-shrink-0">
-                        {pos ?? "—"}
-                      </span>
-                      <span className="flex-1 text-sm font-medium text-[#1C1A17]">{name}</span>
-                      <div className="flex gap-0.5 flex-shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => moveUp(idx)}
-                          disabled={idx === 0}
-                          className="p-1 text-neutral-300 hover:text-neutral-600 disabled:opacity-20 cursor-pointer disabled:cursor-default"
-                        >
-                          <ChevronUp className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => moveDown(idx)}
-                          disabled={idx === order.length - 1}
-                          className="p-1 text-neutral-300 hover:text-neutral-600 disabled:opacity-20 cursor-pointer disabled:cursor-default"
-                        >
-                          <ChevronDown className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const next = new Set(selected);
-                          if (on) next.delete(name); else next.add(name);
-                          setSelected(next);
-                        }}
-                        className={cn(
-                          "w-5 h-5 rounded border-2 flex-shrink-0 transition-all cursor-pointer flex items-center justify-center",
-                          on ? "bg-[#1C1A17] border-[#1C1A17]" : "border-neutral-300 bg-white"
-                        )}
-                      >
-                        {on && <Check className="w-3 h-3 text-white" />}
-                      </button>
-                    </div>
+                      name={name}
+                      pos={pos}
+                      on={on}
+                      isFirst={idx === 0}
+                      isLast={idx === order.length - 1}
+                      onToggle={() => {
+                        const next = new Set(selected);
+                        if (on) next.delete(name); else next.add(name);
+                        setSelected(next);
+                      }}
+                      onMoveUp={() => moveUp(idx)}
+                      onMoveDown={() => moveDown(idx)}
+                    />
                   );
                 })}
-              </div>
+              </Reorder.Group>
             </div>
           )}
         </FormCard>
