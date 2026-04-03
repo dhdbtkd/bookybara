@@ -19,6 +19,7 @@ import {
   LayoutDashboard, CalendarDays, BookOpen, Users, BookMarked,
   FileText, Megaphone, Sparkles, LogOut, Plus, Trash2,
   ChevronDown, ChevronUp, BookCopy, Eye, EyeOff, Check, Search, CheckCircle2, Loader2, X,
+  GripVertical, Shuffle,
 } from "lucide-react";
 import PdfDownloadButton from "@/components/pdf/pdf-download-button";
 import { cn } from "@/lib/utils";
@@ -1663,34 +1664,78 @@ function BookAdminRow({
 // ── PDF 생성 섹션 ──
 function PdfSection({ meetings }: { meetings: Meeting[] }) {
   const [selectedMeetingId, setSelectedMeetingId] = useState("");
-  const [attendees, setAttendees] = useState<{ name: string }[]>([]);
+  const [order, setOrder] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loadingAttendees, setLoadingAttendees] = useState(false);
   const [includeQuestions, setIncludeQuestions] = useState(true);
+  const [randomize, setRandomize] = useState(false);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!selectedMeetingId) { setAttendees([]); setSelected(new Set()); return; }
+    if (!selectedMeetingId) { setOrder([]); setSelected(new Set()); return; }
     setLoadingAttendees(true);
     fetch(`/api/meetings/${selectedMeetingId}`)
       .then((r) => r.json())
       .then(({ reviews }) => {
-        // 독후감 제출한 참석자만
         const names = new Set<string>(
           (reviews ?? []).map((r: { author_name: string }) => r.author_name)
         );
         const sorted = [...names].sort();
-        setAttendees(sorted.map((name) => ({ name })));
+        setOrder(sorted);
         setSelected(new Set(sorted));
         setLoadingAttendees(false);
       });
   }, [selectedMeetingId]);
 
   function toggleAll() {
-    if (selected.size === attendees.length) setSelected(new Set());
-    else setSelected(new Set(attendees.map((a) => a.name)));
+    if (selected.size === order.length) setSelected(new Set());
+    else setSelected(new Set(order));
   }
 
+  function handleDragStart(e: React.DragEvent, idx: number) {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", String(idx));
+  }
+
+  function handleDragOver(e: React.DragEvent, idx: number) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverIdx(idx);
+  }
+
+  function handleDrop(e: React.DragEvent, toIdx: number) {
+    e.preventDefault();
+    const fromIdx = Number(e.dataTransfer.getData("text/plain"));
+    setDragOverIdx(null);
+    if (fromIdx === toIdx) return;
+    const next = [...order];
+    const [item] = next.splice(fromIdx, 1);
+    next.splice(toIdx, 0, item);
+    setOrder(next);
+  }
+
+  function moveUp(idx: number) {
+    if (idx === 0) return;
+    const next = [...order];
+    [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+    setOrder(next);
+  }
+
+  function moveDown(idx: number) {
+    if (idx === order.length - 1) return;
+    const next = [...order];
+    [next[idx + 1], next[idx]] = [next[idx], next[idx + 1]];
+    setOrder(next);
+  }
+
+  const orderedSelected = order.filter((name) => selected.has(name));
   const sortedMeetings = [...meetings].sort((a, b) => b.date.localeCompare(a.date));
+
+  // 선택된 참석자 중 순서 번호 (선택된 것만 1부터)
+  function selectedPos(name: string) {
+    const idx = orderedSelected.indexOf(name);
+    return idx === -1 ? null : idx + 1;
+  }
 
   return (
     <div className="space-y-6">
@@ -1733,38 +1778,77 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
       </FormCard>
 
       {selectedMeetingId && (
-        <FormCard title="참석자 선택">
+        <FormCard title="참석자 순서">
           {loadingAttendees ? (
             <p className="text-sm text-neutral-400 animate-pulse">불러오는 중...</p>
-          ) : attendees.length === 0 ? (
+          ) : order.length === 0 ? (
             <p className="text-sm text-neutral-400">이 모임의 참석자 또는 독후감이 없습니다.</p>
           ) : (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-neutral-400">{selected.size}/{attendees.length}명 선택</p>
+                <p className="text-xs text-neutral-400">{selected.size}/{order.length}명 선택 · 드래그 또는 화살표로 순서 변경</p>
                 <button type="button" onClick={toggleAll} className="text-xs text-[#8B3A2A] hover:underline cursor-pointer">
-                  {selected.size === attendees.length ? "전체 해제" : "전체 선택"}
+                  {selected.size === order.length ? "전체 해제" : "전체 선택"}
                 </button>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {attendees.map((a) => {
-                  const on = selected.has(a.name);
+              <div
+                className="space-y-1"
+                onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverIdx(null); }}
+              >
+                {order.map((name, idx) => {
+                  const on = selected.has(name);
+                  const pos = selectedPos(name);
                   return (
-                    <button
-                      key={a.name}
-                      type="button"
-                      onClick={() => {
-                        const next = new Set(selected);
-                        if (on) next.delete(a.name); else next.add(a.name);
-                        setSelected(next);
-                      }}
+                    <div
+                      key={name}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, idx)}
+                      onDragOver={(e) => handleDragOver(e, idx)}
+                      onDrop={(e) => handleDrop(e, idx)}
                       className={cn(
-                        "px-3 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer",
-                        on ? "bg-[#1C1A17] text-white border-[#1C1A17]" : "bg-white text-neutral-400 border-neutral-200 hover:border-neutral-400"
+                        "flex items-center gap-2 px-3 py-2 rounded-lg border transition-all select-none",
+                        dragOverIdx === idx ? "border-[#8B3A2A] bg-[#8B3A2A]/5" : "border-[#E8DDD0] bg-white",
+                        !on && "opacity-40"
                       )}
                     >
-                      {a.name}
-                    </button>
+                      <GripVertical className="w-4 h-4 text-neutral-300 cursor-grab flex-shrink-0" />
+                      <span className="w-5 text-center text-[11px] font-mono text-neutral-400 flex-shrink-0">
+                        {pos ?? "—"}
+                      </span>
+                      <span className="flex-1 text-sm font-medium text-[#1C1A17]">{name}</span>
+                      <div className="flex gap-0.5 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => moveUp(idx)}
+                          disabled={idx === 0}
+                          className="p-1 text-neutral-300 hover:text-neutral-600 disabled:opacity-20 cursor-pointer disabled:cursor-default"
+                        >
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveDown(idx)}
+                          disabled={idx === order.length - 1}
+                          className="p-1 text-neutral-300 hover:text-neutral-600 disabled:opacity-20 cursor-pointer disabled:cursor-default"
+                        >
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = new Set(selected);
+                          if (on) next.delete(name); else next.add(name);
+                          setSelected(next);
+                        }}
+                        className={cn(
+                          "w-5 h-5 rounded border-2 flex-shrink-0 transition-all cursor-pointer flex items-center justify-center",
+                          on ? "bg-[#1C1A17] border-[#1C1A17]" : "border-neutral-300 bg-white"
+                        )}
+                      >
+                        {on && <Check className="w-3 h-3 text-white" />}
+                      </button>
+                    </div>
                   );
                 })}
               </div>
@@ -1773,21 +1857,34 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
         </FormCard>
       )}
 
-      {selectedMeetingId && selected.size > 0 && (
-        <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-neutral-600">
-            <input
-              type="checkbox"
-              checked={includeQuestions}
-              onChange={(e) => setIncludeQuestions(e.target.checked)}
-              className="w-4 h-4 accent-[#8B3A2A] cursor-pointer"
-            />
-            AI 토론 질문 포함
-          </label>
+      {selectedMeetingId && orderedSelected.length > 0 && (
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-4 flex-wrap">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-neutral-600">
+              <input
+                type="checkbox"
+                checked={includeQuestions}
+                onChange={(e) => setIncludeQuestions(e.target.checked)}
+                className="w-4 h-4 accent-[#8B3A2A] cursor-pointer"
+              />
+              AI 토론 질문 포함
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-neutral-600">
+              <input
+                type="checkbox"
+                checked={randomize}
+                onChange={(e) => setRandomize(e.target.checked)}
+                className="w-4 h-4 accent-[#8B3A2A] cursor-pointer"
+              />
+              <Shuffle className="w-3.5 h-3.5" />
+              랜덤 순서
+            </label>
+          </div>
           <PdfDownloadButton
             meetingId={selectedMeetingId}
-            selectedMembers={[...selected]}
+            selectedMembers={orderedSelected}
             includeQuestions={includeQuestions}
+            randomize={randomize}
             disabled={false}
           />
         </div>

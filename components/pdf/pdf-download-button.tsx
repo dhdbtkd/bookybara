@@ -7,10 +7,11 @@ interface Props {
   meetingId: string;
   selectedMembers: string[];
   includeQuestions: boolean;
+  randomize?: boolean;
   disabled?: boolean;
 }
 
-export default function PdfDownloadButton({ meetingId, selectedMembers, includeQuestions, disabled }: Props) {
+export default function PdfDownloadButton({ meetingId, selectedMembers, includeQuestions, randomize, disabled }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -29,9 +30,19 @@ export default function PdfDownloadButton({ meetingId, selectedMembers, includeQ
       const questionsRaw = questionsRes.ok ? await questionsRes.json() : [];
 
       const meeting: PdfMeeting = rawMeeting;
-      const reviews: PdfReview[] = (allReviews ?? []).filter((r: PdfReview) =>
-        selectedMembers.includes(r.author_name)
-      );
+
+      // selectedMembers 순서대로 정렬 (랜덤이면 Fisher-Yates 셔플)
+      let orderedMembers = [...selectedMembers];
+      if (randomize) {
+        for (let i = orderedMembers.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [orderedMembers[i], orderedMembers[j]] = [orderedMembers[j], orderedMembers[i]];
+        }
+      }
+
+      const reviews: PdfReview[] = orderedMembers
+        .map((name) => (allReviews ?? []).find((r: PdfReview) => r.author_name === name))
+        .filter(Boolean) as PdfReview[];
       const questions: PdfQuestion[] = Array.isArray(questionsRaw)
         ? questionsRaw.filter((q: any) => q.is_public !== false)
         : [];
@@ -47,7 +58,7 @@ export default function PdfDownloadButton({ meetingId, selectedMembers, includeQ
           meeting={meeting}
           reviews={reviews}
           questions={questions}
-          selectedMembers={selectedMembers}
+          selectedMembers={orderedMembers}
           includeQuestions={includeQuestions}
         />
       ).toBlob();

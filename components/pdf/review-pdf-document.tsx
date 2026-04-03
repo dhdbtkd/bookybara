@@ -128,7 +128,8 @@ interface Props {
 }
 
 export default function ReviewPdfDocument({ meeting, reviews, questions, selectedMembers, includeQuestions = true }: Props) {
-  const selectedReviews = reviews.filter((r) => selectedMembers.includes(r.author_name));
+  // selectedMembers 순서를 그대로 유지 (이미 button에서 정렬/셔플 완료된 배열)
+  const selectedReviews = reviews;
 
   const questionsByBook = new Map<number, string[]>();
   for (const q of questions) {
