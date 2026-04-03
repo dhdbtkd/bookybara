@@ -36,7 +36,7 @@ export default function ReviewDetailClient({ review }: { review: Review }) {
     const res = await fetch(`/api/reviews/${review.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: content.trim() }),
+      body: JSON.stringify({ author_name: authorName.trim(), content: content.trim() }),
     });
     if (res.ok) {
       toast.success("수정되었습니다.");
