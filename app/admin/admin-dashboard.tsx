@@ -42,7 +42,7 @@ type Review = {
   meetings: { title: string; date: string; location: string | null } | null;
 };
 type Announcement = { id: number; title: string; content: string; is_pinned: boolean };
-type Candidate = { id: number; title: string; author: string; proposed_by: string; status: string };
+type Candidate = { id: number; title: string; author: string; proposed_by: string; status: string; cover_url: string | null; cover_url_hires: string | null };
 type Discussion = { id: number; questions: string; is_public: boolean; meeting_id: number | null; meetings: { title: string } | null };
 
 const MENU = [
@@ -331,6 +331,97 @@ export default function AdminDashboard() {
   }
 
   // ── Candidates ──
+  const [candidateModalOpen, setCandidateModalOpen] = useState(false);
+  const [candidateForm, setCandidateForm] = useState({ title: "", author: "", proposed_by: "", notes: "", cover_url: "", cover_url_hires: "", description: "" });
+  const [candidateSearch, setCandidateSearch] = useState("");
+  const [candidateSearchResults, setCandidateSearchResults] = useState<{ title: string; authors: string[]; thumbnail: string | null; description: string | null; isbn: string }[]>([]);
+  const [candidateSearching, setCandidateSearching] = useState(false);
+  const [candidateSearchOpen, setCandidateSearchOpen] = useState(false);
+  const candidateSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [candidateSources, setCandidateSources] = useState<BookSources | null>(null);
+  const [candidateCoverSource, setCandidateCoverSource] = useState<SourceKey | "kyobo">("kakao");
+  const [candidateDescSource, setCandidateDescSource] = useState<SourceKey>("kakao");
+  const [candidateDetailFetching, setCandidateDetailFetching] = useState(false);
+
+  function handleCandidateSearchChange(q: string) {
+    setCandidateSearch(q);
+    setCandidateSearchOpen(true);
+    if (candidateSearchTimer.current) clearTimeout(candidateSearchTimer.current);
+    if (!q.trim()) { setCandidateSearchResults([]); setCandidateSearching(false); return; }
+    setCandidateSearching(true);
+    candidateSearchTimer.current = setTimeout(async () => {
+      const res = await fetch(`/api/search-book?query=${encodeURIComponent(q)}`);
+      const data = res.ok ? await res.json() : [];
+      setCandidateSearchResults(Array.isArray(data) ? data : []);
+      setCandidateSearching(false);
+      setCandidateSearchOpen(true);
+    }, 400);
+  }
+
+  async function selectCandidateFromSearch(book: { title: string; authors: string[]; thumbnail: string | null; description: string | null; isbn: string }) {
+    setCandidateForm((p) => ({ ...p, title: book.title, author: book.authors.join(", "), cover_url: book.thumbnail ?? "", cover_url_hires: "", description: book.description ?? "" }));
+    setCandidateSearch(book.title);
+    setCandidateSearchOpen(false);
+    setCandidateSearchResults([]);
+    setCandidateSources(null);
+    setCandidateCoverSource("kakao");
+    setCandidateDescSource("kakao");
+
+    if (!book.isbn) return;
+    setCandidateDetailFetching(true);
+    try {
+      const res = await fetch(`/api/book-detail?isbn=${encodeURIComponent(book.isbn)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCandidateSources({
+          kakao: { thumbnail: book.thumbnail, description: book.description },
+          naver: data.naver,
+          naverKeyMissing: !!data.naverKeyMissing,
+          naverError: data.naverError,
+          google: data.google,
+          kyobo: data.kyobo,
+        });
+        const imgPriority: (SourceKey | "kyobo")[] = ["kyobo", "naver", "google", "kakao"];
+        const bestImg = imgPriority.find((s) => {
+          if (s === "kakao") return !!book.thumbnail;
+          if (s === "kyobo") return !!data.kyobo?.hiresUrl;
+          return !!(data[s as "naver" | "google"]?.hiresUrl);
+        }) ?? "kakao";
+        const descPriority: SourceKey[] = ["naver", "google", "kakao"];
+        const bestDesc = descPriority.find((s) =>
+          s === "kakao" ? !!book.description : !!(data[s as "naver" | "google"]?.description)
+        ) ?? "kakao";
+        setCandidateCoverSource(bestImg);
+        setCandidateDescSource(bestDesc);
+        const hiresUrl = bestImg === "kakao" ? "" : bestImg === "kyobo" ? (data.kyobo?.hiresUrl ?? "") : (data[bestImg as "naver" | "google"]?.hiresUrl ?? "");
+        setCandidateForm((p) => ({
+          ...p,
+          cover_url_hires: hiresUrl,
+          description: bestDesc === "kakao" ? (book.description ?? "") : (data[bestDesc]?.description ?? book.description ?? ""),
+        }));
+      }
+    } catch { /* 실패 시 카카오 기본값 유지 */ }
+    finally { setCandidateDetailFetching(false); }
+  }
+
+  async function addCandidate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!candidateForm.title.trim() || !candidateForm.author.trim() || !candidateForm.proposed_by.trim()) {
+      toast.error("제목, 저자, 제안자는 필수입니다."); return;
+    }
+    const res = await fetch("/api/candidates", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(candidateForm) });
+    if (res.ok) {
+      toast.success("후보 도서 등록 완료");
+      setCandidateModalOpen(false);
+      setCandidateForm({ title: "", author: "", proposed_by: "", notes: "", cover_url: "", cover_url_hires: "", description: "" });
+      setCandidateSearch(""); setCandidateSearchResults([]); setCandidateSearchOpen(false);
+      setCandidateSources(null); setCandidateCoverSource("kakao"); setCandidateDescSource("kakao");
+      loadAll();
+    } else {
+      const { error } = await res.json(); toast.error(error ?? "오류가 발생했습니다.");
+    }
+  }
+
   async function updateCandidateStatus(id: number, status: string) {
     await fetch(`/api/candidates/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status }) });
     toast.success("상태 변경 완료"); loadAll();
@@ -930,6 +1021,225 @@ export default function AdminDashboard() {
               title="도서 후보"
               description="멤버들이 제안한 도서 후보의 상태를 관리합니다."
             />
+
+            <Button
+              type="button"
+              onClick={() => setCandidateModalOpen(true)}
+              className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4 mr-1.5" /> 후보 도서 등록
+            </Button>
+
+            <Dialog open={candidateModalOpen} onOpenChange={(open) => {
+              if (!open) {
+                setCandidateForm({ title: "", author: "", proposed_by: "", notes: "", cover_url: "", cover_url_hires: "", description: "" });
+                setCandidateSearch(""); setCandidateSearchResults([]); setCandidateSearchOpen(false);
+                setCandidateSources(null); setCandidateCoverSource("kakao"); setCandidateDescSource("kakao");
+              }
+              setCandidateModalOpen(open);
+            }}>
+              <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
+                <DialogHeader className="flex-shrink-0">
+                  <DialogTitle>후보 도서 등록</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={addCandidate} className="flex flex-col flex-1 min-h-0">
+                <div className="flex-1 overflow-y-auto space-y-4 pr-1 mt-2">
+                  <Field label="도서 검색">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+                      <Input
+                        value={candidateSearch}
+                        onChange={(e) => handleCandidateSearchChange(e.target.value)}
+                        onFocus={() => candidateSearchResults.length > 0 && setCandidateSearchOpen(true)}
+                        placeholder="제목 또는 저자 검색..."
+                        className="pl-9 pr-9"
+                      />
+                      {candidateSearch && (
+                        <button type="button" onClick={() => { setCandidateSearch(""); setCandidateSearchResults([]); setCandidateSearchOpen(false); setCandidateForm((p) => ({ ...p, title: "", author: "", cover_url: "" })); }}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer">
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                      {candidateSearchOpen && (candidateSearching || candidateSearchResults.length > 0) && (
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-200 rounded-xl shadow-lg overflow-hidden">
+                          {candidateSearching ? (
+                            <div className="flex items-center justify-center gap-2 py-4 text-sm text-neutral-400">
+                              <Loader2 className="w-4 h-4 animate-spin" /> 검색 중...
+                            </div>
+                          ) : (
+                            <ul className="max-h-60 overflow-y-auto divide-y divide-neutral-100">
+                              {candidateSearchResults.map((b, i) => (
+                                <li key={i}>
+                                  <button type="button" onClick={() => selectCandidateFromSearch(b)}
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#F8F5F0] text-left transition-colors cursor-pointer">
+                                    {b.thumbnail ? (
+                                      <img src={b.thumbnail} alt={b.title} className="w-8 h-11 object-cover rounded flex-shrink-0" />
+                                    ) : (
+                                      <div className="w-8 h-11 bg-neutral-100 rounded flex-shrink-0" />
+                                    )}
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-medium text-[#1C1A17] truncate">{b.title}</p>
+                                      <p className="text-xs text-neutral-500 truncate">{b.authors.join(", ")}</p>
+                                    </div>
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </Field>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Field label="제목 *">
+                      <Input value={candidateForm.title} onChange={(e) => setCandidateForm((p) => ({ ...p, title: e.target.value }))} placeholder="책 제목" />
+                    </Field>
+                    <Field label="저자 *">
+                      <Input value={candidateForm.author} onChange={(e) => setCandidateForm((p) => ({ ...p, author: e.target.value }))} placeholder="저자" />
+                    </Field>
+                  </div>
+                  <Field label="제안자 *">
+                    <div className="space-y-2">
+                      <div className="flex flex-wrap gap-2">
+                        {members.map((m) => (
+                          <button
+                            key={m.id}
+                            type="button"
+                            onClick={() => setCandidateForm((p) => ({ ...p, proposed_by: p.proposed_by === m.name ? "" : m.name }))}
+                            className={cn(
+                              "px-3 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer",
+                              candidateForm.proposed_by === m.name
+                                ? "bg-[#1C1A17] text-white border-[#1C1A17]"
+                                : "bg-white text-neutral-400 border-neutral-200 hover:border-neutral-400 hover:text-neutral-600"
+                            )}
+                          >
+                            {m.name}
+                          </button>
+                        ))}
+                      </div>
+                      <Input
+                        value={members.some((m) => m.name === candidateForm.proposed_by) ? "" : candidateForm.proposed_by}
+                        onChange={(e) => setCandidateForm((p) => ({ ...p, proposed_by: e.target.value }))}
+                        placeholder="직접 입력"
+                        className="text-sm"
+                      />
+                    </div>
+                  </Field>
+                  {/* 소스 선택 UI */}
+                  {candidateDetailFetching && (
+                    <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-xs text-neutral-400 flex items-center gap-2">
+                      <span className="inline-block w-3.5 h-3.5 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-500 flex-shrink-0" />
+                      교보·네이버·Google Books 조회 중...
+                    </div>
+                  )}
+                  {candidateSources && (() => {
+                    const coverSources: { key: SourceKey | "kyobo"; label: string }[] = [
+                      { key: "kyobo", label: "교보" },
+                      { key: "naver", label: "네이버" },
+                      { key: "google", label: "Google" },
+                      { key: "kakao", label: "카카오" },
+                    ];
+                    const descSources: { key: SourceKey; label: string }[] = [
+                      { key: "naver", label: "네이버" },
+                      { key: "google", label: "Google" },
+                      { key: "kakao", label: "카카오" },
+                    ];
+                    const getImg = (k: SourceKey | "kyobo") => {
+                      if (k === "kakao") return candidateSources.kakao.thumbnail;
+                      if (k === "kyobo") return candidateSources.kyobo?.hiresUrl ?? null;
+                      return candidateSources[k]?.hiresUrl ?? null;
+                    };
+                    const getDesc = (k: SourceKey) =>
+                      k === "kakao" ? candidateSources.kakao.description : candidateSources[k]?.description ?? null;
+                    const applySelection = (coverKey: SourceKey | "kyobo", descKey: SourceKey) => {
+                      setCandidateForm((p) => ({
+                        ...p,
+                        cover_url_hires: coverKey === "kakao" ? "" : (getImg(coverKey) ?? ""),
+                        description: getDesc(descKey) ?? "",
+                      }));
+                    };
+                    return (
+                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-xs space-y-3">
+                        <div>
+                          <p className="font-semibold text-neutral-500 mb-1.5">표지 선택</p>
+                          <div className="flex gap-2">
+                            {coverSources.map(({ key, label }) => {
+                              const url = getImg(key);
+                              const selected = candidateCoverSource === key;
+                              const keyMissing = key === "naver" && candidateSources.naverKeyMissing;
+                              return (
+                                <button key={key} type="button" disabled={keyMissing}
+                                  onClick={() => { setCandidateCoverSource(key); applySelection(key, candidateDescSource); }}
+                                  className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border-2 transition-colors ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent" : `cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent hover:border-neutral-300"}`}`}
+                                >
+                                  {url ? (
+                                    <img src={url} alt={label} className="w-10 h-14 object-cover rounded shadow-sm" />
+                                  ) : (
+                                    <div className="w-10 h-14 rounded bg-neutral-200 flex items-center justify-center text-neutral-400 text-center leading-tight px-1">
+                                      {keyMissing ? "키없음" : "없음"}
+                                    </div>
+                                  )}
+                                  <span className={selected ? "text-[#8B3A2A] font-semibold" : "text-neutral-400"}>{label}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-neutral-500 mb-1.5">소개 선택</p>
+                          <div className="flex flex-col gap-1.5">
+                            {descSources.map(({ key, label }) => {
+                              const desc = getDesc(key);
+                              const selected = candidateDescSource === key;
+                              const keyMissing = key === "naver" && candidateSources.naverKeyMissing;
+                              return (
+                                <button key={key} type="button" disabled={keyMissing}
+                                  onClick={() => { setCandidateDescSource(key); applySelection(candidateCoverSource, key); }}
+                                  className={`text-left px-2.5 py-2 rounded-lg border-2 transition-colors ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent bg-white" : `cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent bg-white hover:border-neutral-300"}`}`}
+                                >
+                                  <span className={`font-semibold ${selected ? "text-[#8B3A2A]" : "text-neutral-400"}`}>{label}</span>
+                                  {keyMissing
+                                    ? <span className="ml-2 text-amber-500">API 키 없음</span>
+                                    : desc
+                                      ? <span className="ml-2 text-neutral-500 line-clamp-1">{desc}</span>
+                                      : <span className="ml-2 text-neutral-300">없음</span>
+                                  }
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  <Field label="줄거리">
+                    <Textarea
+                      value={candidateForm.description}
+                      onChange={(e) => setCandidateForm((p) => ({ ...p, description: e.target.value }))}
+                      rows={3}
+                      className="resize-none text-sm"
+                    />
+                  </Field>
+                  <Field label="추천 이유 (선택)">
+                    <Textarea
+                      value={candidateForm.notes}
+                      onChange={(e) => setCandidateForm((p) => ({ ...p, notes: e.target.value }))}
+                      placeholder="이 책을 추천하는 이유를 간단히 써주세요."
+                      rows={3}
+                      className="resize-none text-sm"
+                    />
+                  </Field>
+                </div>
+                <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t border-neutral-100 mt-2">
+                    <Button type="button" variant="outline" onClick={() => setCandidateModalOpen(false)} className="cursor-pointer">취소</Button>
+                    <Button type="submit" disabled={candidateDetailFetching || !candidateForm.title || !candidateForm.author || !candidateForm.proposed_by} className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                      <Plus className="w-4 h-4 mr-1.5" /> 등록
+                    </Button>
+                  </div>
+                </form>
+              </DialogContent>
+            </Dialog>
+
             {candidates.length > 0 ? (
               <div className="space-y-2">
                 {candidates.map((c) => {
@@ -942,6 +1252,13 @@ export default function AdminDashboard() {
                   return (
                     <div key={c.id} className="bg-white rounded-xl border border-[#E8DDD0] px-5 py-4 flex items-center gap-4">
                       <div className="w-1.5 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
+                      {c.cover_url_hires ?? c.cover_url ? (
+                        <img src={c.cover_url_hires ?? c.cover_url!} alt={c.title} className="w-8 h-11 object-cover rounded flex-shrink-0" />
+                      ) : (
+                        <div className="w-8 h-11 rounded bg-[#E8DDD0] flex-shrink-0 flex items-center justify-center">
+                          <BookOpen className="w-3.5 h-3.5 text-[#B8A898]" />
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <span className="font-semibold text-sm text-[#1C1A17]">{c.title}</span>

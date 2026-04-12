@@ -44,7 +44,7 @@ type Candidate = {
   created_at: string;
 };
 
-const EMPTY_FORM = { title: "", author: "", proposed_by: "", notes: "", cover_url: "" };
+const EMPTY_FORM = { title: "", author: "", proposed_by: "", notes: "", cover_url: "", cover_url_hires: "", description: "" };
 
 export default function BooksView({
   readingBooks,
