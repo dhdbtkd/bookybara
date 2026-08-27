@@ -27,19 +27,42 @@ type ModelInfo = {
   badge?: string;
   inputPrice: number;
   outputPrice: number;
+  /** provider 전환 시 고를 모델. 목록 순서가 바뀌어도 안 깨지도록 위치 대신 플래그로 지정한다. */
+  default?: boolean;
 };
 
-const MODELS: Record<"claude" | "openai", ModelInfo[]> = {
+type Provider = "claude" | "claude-oracle" | "openai";
+
+// metered=false 는 토큰당 과금이 아니라 구독으로 나가는 경로다.
+const PROVIDERS: Record<Provider, { label: string; icon: string; env: string; metered: boolean }> = {
+  claude:          { label: "Anthropic", icon: "simple-icons:anthropic", env: "ANTHROPIC_API_KEY",                   metered: true  },
+  "claude-oracle": { label: "Oracle",    icon: "simple-icons:oracle",    env: "CLIPROXY_BASE_URL / CLIPROXY_API_KEY", metered: false },
+  openai:          { label: "OpenAI",    icon: "simple-icons:openai",    env: "OPENAI_API_KEY",                      metered: true  },
+};
+
+const MODELS: Record<Provider, ModelInfo[]> = {
   claude: [
-    { value: "claude-opus-4-6",            label: "Claude Opus 4.6",         inputPrice: 5,     outputPrice: 25   },
-    { value: "claude-opus-4-5",            label: "Claude Opus 4.5",         inputPrice: 5,     outputPrice: 25   },
-    { value: "claude-sonnet-4-6",          label: "Claude Sonnet 4.6",       badge: "권장",     inputPrice: 3,     outputPrice: 15   },
-    { value: "claude-sonnet-4-5",          label: "Claude Sonnet 4.5",       inputPrice: 3,     outputPrice: 15   },
-    { value: "claude-haiku-4-5-20251001",  label: "Claude Haiku 4.5",        badge: "빠름",     inputPrice: 1,     outputPrice: 5    },
+    { value: "claude-opus-5",     label: "Claude Opus 5",     badge: "권장",     inputPrice: 5,  outputPrice: 25, default: true },
+    { value: "claude-fable-5",    label: "Claude Fable 5",    badge: "최고성능", inputPrice: 10, outputPrice: 50 },
+    { value: "claude-sonnet-5",   label: "Claude Sonnet 5",   inputPrice: 2,  outputPrice: 10 },
+    { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", inputPrice: 3,  outputPrice: 15 },
+    { value: "claude-haiku-4-5",  label: "Claude Haiku 4.5",  badge: "빠름",     inputPrice: 1,  outputPrice: 5  },
+  ],
+  // 자체 서버 프록시가 실제로 노출하는 id. 별칭 대신 정확한 id 를 쓴다.
+  // 구독으로 나가므로 토큰 단가는 0 이다.
+  // 프록시에 실제로 요청을 보내 200 을 확인한 id 만 싣는다.
+  // claude-fable-5 는 구독에 포함되지 않아 429(크레딧 필요)로 거절되고,
+  // 별칭 claude-haiku-4-5 는 400 이라 날짜가 붙은 id 를 써야 한다.
+  "claude-oracle": [
+    { value: "claude-opus-5",             label: "Claude Opus 5",     badge: "권장", inputPrice: 0, outputPrice: 0, default: true },
+    { value: "claude-sonnet-5",           label: "Claude Sonnet 5",   inputPrice: 0, outputPrice: 0 },
+    { value: "claude-sonnet-4-6",         label: "Claude Sonnet 4.6", inputPrice: 0, outputPrice: 0 },
+    { value: "claude-opus-4-6",           label: "Claude Opus 4.6",   inputPrice: 0, outputPrice: 0 },
+    { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5",  badge: "빠름", inputPrice: 0, outputPrice: 0 },
   ],
   openai: [
     { value: "gpt-5.4",      label: "GPT-5.4",       inputPrice: 2.50,  outputPrice: 15.00 },
-    { value: "gpt-5.4-mini", label: "GPT-5.4 mini",  badge: "권장",     inputPrice: 0.75,  outputPrice: 4.50  },
+    { value: "gpt-5.4-mini", label: "GPT-5.4 mini",  badge: "권장",     inputPrice: 0.75,  outputPrice: 4.50, default: true },
     { value: "gpt-5.4-nano", label: "GPT-5.4 nano",  badge: "빠름",     inputPrice: 0.20,  outputPrice: 1.25  },
     { value: "gpt-4o",       label: "GPT-4o",         inputPrice: 5.00,  outputPrice: 22.50 },
     { value: "gpt-4o-mini",  label: "GPT-4o mini",   inputPrice: 0.075, outputPrice: 0.30  },
@@ -82,10 +105,12 @@ function DiscussionCard({
   d,
   onTogglePublic,
   onSaveQuestions,
+  onDelete,
 }: {
   d: Discussion;
   onTogglePublic: (id: number, current: boolean) => Promise<void>;
   onSaveQuestions: (id: number, questions: string[]) => Promise<void>;
+  onDelete: (id: number) => Promise<void>;
 }) {
   const [qs, setQs] = useState<string[]>(() => JSON.parse(d.questions));
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -136,6 +161,13 @@ function DiscussionCard({
           >
             {d.is_public ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
             {d.is_public ? "비공개로" : "공개로"}
+          </button>
+          <button
+            onClick={() => { if (confirm("이 모임의 토론 질문을 모두 삭제할까요?")) onDelete(d.id); }}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-neutral-200 hover:bg-[#8B3A2A]/5 hover:border-[#8B3A2A]/30 hover:text-[#8B3A2A] transition-colors cursor-pointer text-neutral-500"
+          >
+            <Trash2 className="w-3 h-3" />
+            삭제
           </button>
         </div>
       </div>
@@ -220,9 +252,10 @@ export default function AdminDiscussionGenerator({
 
   // ── AI 설정 ──
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-  const [provider, setProvider] = useState<"claude" | "openai">("claude");
-  const [model, setModel] = useState("claude-sonnet-4-6");
+  const [provider, setProvider] = useState<Provider>("claude");
+  const [model, setModel] = useState("claude-opus-5");
   const [generating, setGenerating] = useState(false);
+  const [mode, setMode] = useState<"append" | "replace">("append");
 
   // ── 모달 ──
   const [meetingPickerOpen, setMeetingPickerOpen] = useState(false);
@@ -251,6 +284,11 @@ export default function AdminDiscussionGenerator({
   }
 
   const selectedMeeting = meetings.find((m) => String(m.id) === meetingId) ?? null;
+  // 한 모임 = 한 행이므로 첫 매치가 그 모임의 질문 카드다.
+  const existingDiscussion = meetingId
+    ? discussions.find((d) => d.meeting_id === Number(meetingId)) ?? null
+    : null;
+  const existingCount = existingDiscussion ? (JSON.parse(existingDiscussion.questions) as string[]).length : 0;
   const selectedBook = selectedMeeting?.books.find((b) => b.id === selectedBookId) ?? null;
 
   // 모임 변경 → 독후감 로드, 책 초기화
@@ -279,7 +317,10 @@ export default function AdminDiscussionGenerator({
   }, [selectedBookId, allReviews]);
 
   // provider 변경 → 기본 모델
-  useEffect(() => { setModel(MODELS[provider][1].value); }, [provider]);
+  useEffect(() => {
+    const list = MODELS[provider];
+    setModel((list.find((m) => m.default) ?? list[0]).value);
+  }, [provider]);
 
   // 현재 표시할 독후감 (책 선택 시 필터)
   const visibleReviews = selectedBookId !== null
@@ -324,12 +365,17 @@ export default function AdminDiscussionGenerator({
         review_ids: selectedIds.size > 0 ? [...selectedIds] : undefined,
         provider,
         model,
+        mode,
       }),
     });
     if (res.ok) {
-      const created = await res.json();
-      setDiscussions((prev) => [{ ...created, meetings: selectedMeeting ? { title: selectedMeeting.title } : null }, ...prev]);
-      toast.success("토론 질문 생성 완료!");
+      const saved = await res.json();
+      const card = { ...saved, meetings: selectedMeeting ? { title: selectedMeeting.title } : null };
+      // 한 모임은 한 행이다. 이미 있으면 새로 쌓지 않고 그 자리에서 갱신한다.
+      setDiscussions((prev) =>
+        prev.some((d) => d.id === card.id) ? prev.map((d) => (d.id === card.id ? card : d)) : [card, ...prev]
+      );
+      toast.success(existingDiscussion ? "토론 질문이 갱신되었습니다." : "토론 질문 생성 완료!");
       setTab("list");
     } else {
       const text = await res.text();
@@ -347,11 +393,23 @@ export default function AdminDiscussionGenerator({
       body: JSON.stringify({ id, questions: newQuestions }),
     });
     if (res.ok) {
-      setDiscussions((prev) =>
+      // 질문을 전부 지우면 서버가 행째로 지운다. 목록에서도 카드를 뺀다.
+      if (newQuestions.length === 0) setDiscussions((prev) => prev.filter((d) => d.id !== id));
+      else setDiscussions((prev) =>
         prev.map((d) => d.id === id ? { ...d, questions: JSON.stringify(newQuestions) } : d)
       );
     } else {
       toast.error("저장 실패");
+    }
+  }
+
+  async function deleteDiscussion(id: number) {
+    const res = await fetch(`/api/discussion?id=${id}`, { method: "DELETE" });
+    if (res.ok) {
+      setDiscussions((prev) => prev.filter((d) => d.id !== id));
+      toast.success("삭제되었습니다.");
+    } else {
+      toast.error("삭제 실패");
     }
   }
 
@@ -536,7 +594,7 @@ export default function AdminDiscussionGenerator({
             </div>
             <div className="space-y-4">
               <div className="flex gap-1 bg-neutral-100 rounded-lg p-1 w-fit">
-                {(["claude", "openai"] as const).map((p) => (
+                {(Object.keys(PROVIDERS) as Provider[]).map((p) => (
                   <button
                     key={p}
                     type="button"
@@ -546,8 +604,11 @@ export default function AdminDiscussionGenerator({
                       provider === p ? "bg-white text-[#1C1A17] shadow-sm" : "text-neutral-500 hover:text-neutral-700"
                     )}
                   >
-                    <Icon icon={p === "claude" ? "simple-icons:anthropic" : "simple-icons:openai"} className="w-3.5 h-3.5" />
-                    {p === "claude" ? "Claude" : "OpenAI"}
+                    <Icon icon={PROVIDERS[p].icon} className="w-3.5 h-3.5" />
+                    {PROVIDERS[p].label}
+                    {!PROVIDERS[p].metered && (
+                      <span className="text-[9px] font-bold tracking-widest uppercase text-[#8B3A2A]">구독</span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -571,7 +632,7 @@ export default function AdminDiscussionGenerator({
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         <Icon
-                          icon={provider === "claude" ? "simple-icons:anthropic" : "simple-icons:openai"}
+                          icon={PROVIDERS[provider].icon}
                           className={cn("w-4 h-4 flex-shrink-0", isSelected ? "text-white/70" : "text-neutral-400")}
                         />
                         <span className="text-sm font-medium truncate">{m.label}</span>
@@ -586,13 +647,23 @@ export default function AdminDiscussionGenerator({
                       </div>
                       <div className="flex items-center gap-3 flex-shrink-0 ml-3">
                         <div className="text-right w-[88px]">
-                          <p className={cn("text-[10px]", isSelected ? "text-white/60" : "text-neutral-400")}>
-                            입력 {formatInputPrice(m.inputPrice)}
-                          </p>
-                          <p className={cn("text-[10px] mt-0.5", isSelected ? "text-white/40" : "text-neutral-300")}>예상 비용</p>
-                          <p className={cn("text-[11px] font-semibold", isSelected ? "text-white" : "text-[#8B3A2A]")}>
-                            {reviewsText.length > 0 ? `≈ ${formatCost(cost)}` : "—"}
-                          </p>
+                          {PROVIDERS[provider].metered ? (
+                            <>
+                              <p className={cn("text-[10px]", isSelected ? "text-white/60" : "text-neutral-400")}>
+                                입력 {formatInputPrice(m.inputPrice)}
+                              </p>
+                              <p className={cn("text-[10px] mt-0.5", isSelected ? "text-white/40" : "text-neutral-300")}>예상 비용</p>
+                              <p className={cn("text-[11px] font-semibold", isSelected ? "text-white" : "text-[#8B3A2A]")}>
+                                {reviewsText.length > 0 ? `≈ ${formatCost(cost)}` : "—"}
+                              </p>
+                            </>
+                          ) : (
+                            <>
+                              <p className={cn("text-[10px]", isSelected ? "text-white/60" : "text-neutral-400")}>자체 서버</p>
+                              <p className={cn("text-[10px] mt-0.5", isSelected ? "text-white/40" : "text-neutral-300")}>추가 비용</p>
+                              <p className={cn("text-[11px] font-semibold", isSelected ? "text-white" : "text-[#8B3A2A]")}>없음</p>
+                            </>
+                          )}
                         </div>
                         {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0" />}
                       </div>
@@ -602,12 +673,43 @@ export default function AdminDiscussionGenerator({
               </div>
 
               <p className="text-[11px] text-neutral-400">
-                API 키는 서버 환경변수({provider === "claude" ? "ANTHROPIC_API_KEY" : "OPENAI_API_KEY"})에서 읽어옵니다.
+                API 키는 서버 환경변수({PROVIDERS[provider].env})에서 읽어옵니다.
               </p>
             </div>
           </div>
 
           {/* 액션 버튼 */}
+          {existingCount > 0 && (
+            <div className="px-5 pb-1 flex items-center gap-3 flex-wrap">
+              <span className="text-xs text-neutral-500">
+                이 모임에 질문 {existingCount}개가 이미 있습니다.
+              </span>
+              <div className="flex gap-1 bg-neutral-100 rounded-lg p-1">
+                {([
+                  { v: "append",  label: "이어붙이기" },
+                  { v: "replace", label: "덮어쓰기" },
+                ] as const).map((o) => (
+                  <button
+                    key={o.v}
+                    type="button"
+                    onClick={() => setMode(o.v)}
+                    className={cn(
+                      "px-3 py-1 rounded-md text-xs font-medium transition-all cursor-pointer",
+                      mode === o.v ? "bg-white text-[#1C1A17] shadow-sm" : "text-neutral-500 hover:text-neutral-700"
+                    )}
+                  >
+                    {o.label}
+                  </button>
+                ))}
+              </div>
+              <span className="text-[11px] text-neutral-400">
+                {mode === "append"
+                  ? "기존 질문 뒤에 추가합니다. 중복은 자동으로 걸러집니다."
+                  : "기존 질문을 버리고 새로 만든 질문으로 교체합니다."}
+              </span>
+            </div>
+          )}
+
           <div className="p-5 flex items-center gap-3">
             <Button
               onClick={generate}
@@ -615,7 +717,7 @@ export default function AdminDiscussionGenerator({
               className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer gap-1.5"
             >
               <Sparkles className="w-4 h-4" />
-              {generating ? "생성 중..." : "AI 질문 생성"}
+              {generating ? "생성 중..." : existingCount > 0 ? (mode === "append" ? "질문 이어붙이기" : "질문 덮어쓰기") : "AI 질문 생성"}
             </Button>
             <button
               type="button"
@@ -634,7 +736,7 @@ export default function AdminDiscussionGenerator({
       {tab === "list" && (
         <div className="space-y-3">
           {discussions.map((d) => (
-            <DiscussionCard key={d.id} d={d} onTogglePublic={togglePublic} onSaveQuestions={saveQuestions} />
+            <DiscussionCard key={d.id} d={d} onTogglePublic={togglePublic} onSaveQuestions={saveQuestions} onDelete={deleteDiscussion} />
           ))}
           {discussions.length === 0 && (
             <div className="bg-white/60 rounded-xl border border-dashed border-[#DDD5C8] px-6 py-8 text-center">
@@ -727,7 +829,7 @@ export default function AdminDiscussionGenerator({
             </pre>
           </div>
           <div className="pt-3 border-t border-neutral-100 flex justify-between items-center text-xs text-neutral-400">
-            <span>{provider === "claude" ? "Claude" : "OpenAI"} · {model} · 독후감 {selectedIds.size}편 포함</span>
+            <span>{PROVIDERS[provider].label} · {model} · 독후감 {selectedIds.size}편 포함</span>
             <button onClick={() => setPreviewOpen(false)} className="text-neutral-500 hover:text-neutral-800 cursor-pointer">닫기</button>
           </div>
         </DialogContent>
