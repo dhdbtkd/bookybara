@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Sparkles, Eye, EyeOff, ChevronDown, Search, BookOpen, Pencil, Trash2, Check, X } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { Sparkles, Eye, EyeOff, ChevronDown, Search, BookOpen, Pencil, Trash2, Check, X, RefreshCw, ShieldCheck } from "lucide-react";
 import { Icon } from "@iconify/react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -29,6 +29,21 @@ type ModelInfo = {
   outputPrice: number;
   /** provider 전환 시 고를 모델. 목록 순서가 바뀌어도 안 깨지도록 위치 대신 플래그로 지정한다. */
   default?: boolean;
+  /** 자체 서버 목록에서만 채운다. 제공자별 소제목을 붙이기 위한 값. */
+  group?: string;
+  /** 실호출 확인 결과. 확인 전이면 undefined. */
+  available?: boolean | null;
+  reason?: string;
+};
+
+/** /api/discussion/models 응답 한 건. */
+type OracleModel = {
+  id: string;
+  label: string;
+  ownedBy: string;
+  group: string;
+  available: boolean | null;
+  reason?: string;
 };
 
 type Provider = "claude" | "claude-oracle" | "openai";
@@ -40,6 +55,9 @@ const PROVIDERS: Record<Provider, { label: string; icon: string; env: string; me
   openai:          { label: "OpenAI",    icon: "simple-icons:openai",    env: "OPENAI_API_KEY",                      metered: true  },
 };
 
+/** 자체 서버 목록을 못 받았을 때, 그리고 목록에 있으면 기본으로 고를 모델. */
+const ORACLE_DEFAULT_MODEL = "claude-opus-5";
+
 const MODELS: Record<Provider, ModelInfo[]> = {
   claude: [
     { value: "claude-opus-5",     label: "Claude Opus 5",     badge: "권장",     inputPrice: 5,  outputPrice: 25, default: true },
@@ -48,17 +66,10 @@ const MODELS: Record<Provider, ModelInfo[]> = {
     { value: "claude-sonnet-4-6", label: "Claude Sonnet 4.6", inputPrice: 3,  outputPrice: 15 },
     { value: "claude-haiku-4-5",  label: "Claude Haiku 4.5",  badge: "빠름",     inputPrice: 1,  outputPrice: 5  },
   ],
-  // 자체 서버 프록시가 실제로 노출하는 id. 별칭 대신 정확한 id 를 쓴다.
-  // 구독으로 나가므로 토큰 단가는 0 이다.
-  // 프록시에 실제로 요청을 보내 200 을 확인한 id 만 싣는다.
-  // claude-fable-5 는 구독에 포함되지 않아 429(크레딧 필요)로 거절되고,
-  // 별칭 claude-haiku-4-5 는 400 이라 날짜가 붙은 id 를 써야 한다.
+  // 자체 서버는 목록을 /api/discussion/models 에서 받아온다(ORACLE_DEFAULT_MODEL 참고).
+  // 서버가 내려갔을 때만 이 폴백을 쓴다. 구독으로 나가므로 토큰 단가는 0 이다.
   "claude-oracle": [
-    { value: "claude-opus-5",             label: "Claude Opus 5",     badge: "권장", inputPrice: 0, outputPrice: 0, default: true },
-    { value: "claude-sonnet-5",           label: "Claude Sonnet 5",   inputPrice: 0, outputPrice: 0 },
-    { value: "claude-sonnet-4-6",         label: "Claude Sonnet 4.6", inputPrice: 0, outputPrice: 0 },
-    { value: "claude-opus-4-6",           label: "Claude Opus 4.6",   inputPrice: 0, outputPrice: 0 },
-    { value: "claude-haiku-4-5-20251001", label: "Claude Haiku 4.5",  badge: "빠름", inputPrice: 0, outputPrice: 0 },
+    { value: ORACLE_DEFAULT_MODEL, label: "Claude Opus 5", badge: "권장", inputPrice: 0, outputPrice: 0, default: true },
   ],
   openai: [
     { value: "gpt-5.4",      label: "GPT-5.4",       inputPrice: 2.50,  outputPrice: 15.00 },
@@ -255,6 +266,13 @@ export default function AdminDiscussionGenerator({
   const [provider, setProvider] = useState<Provider>("claude");
   const [model, setModel] = useState("claude-opus-5");
   const [generating, setGenerating] = useState(false);
+
+  // ── 자체 서버 모델 목록 ──
+  // 서버에 로그인된 계정이 바뀌면 쓸 수 있는 모델도 바뀐다. 코드에 박지 않고 받아온다.
+  const [oracleModels, setOracleModels] = useState<OracleModel[] | null>(null);
+  const [oracleError, setOracleError] = useState<string | null>(null);
+  const [loadingOracle, setLoadingOracle] = useState(false);
+  const [probing, setProbing] = useState(false);
   const [mode, setMode] = useState<"append" | "replace">("append");
 
   // ── 모달 ──
@@ -316,11 +334,57 @@ export default function AdminDiscussionGenerator({
     }
   }, [selectedBookId, allReviews]);
 
-  // provider 변경 → 기본 모델
+  // 자체 서버 목록 조회. probe=1 이면 각 모델에 실제로 찔러보고 사용 가능 여부까지 채운다.
+  const loadOracleModels = useCallback(async (probe: boolean) => {
+    const setBusy = probe ? setProbing : setLoadingOracle;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/discussion/models${probe ? "?probe=1" : ""}`);
+      const body = await res.json();
+      if (!res.ok) throw new Error(body?.error ?? `HTTP ${res.status}`);
+      setOracleModels(body.models as OracleModel[]);
+      setOracleError(null);
+      return body.models as OracleModel[];
+    } catch (e) {
+      // 목록을 못 받아도 폴백 모델로 생성은 되어야 한다. 막지 않고 알리기만 한다.
+      setOracleError(e instanceof Error ? e.message : String(e));
+      return null;
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  // 자체 서버를 처음 고르는 순간 한 번만 받아온다.
   useEffect(() => {
-    const list = MODELS[provider];
-    setModel((list.find((m) => m.default) ?? list[0]).value);
-  }, [provider]);
+    if (provider !== "claude-oracle" || oracleModels || loadingOracle) return;
+    loadOracleModels(false);
+  }, [provider, oracleModels, loadingOracle, loadOracleModels]);
+
+  // 현재 provider 에서 고를 수 있는 모델. 자체 서버는 받아온 목록이 있으면 그걸 쓴다.
+  const modelOptions: ModelInfo[] = useMemo(() => {
+    if (provider !== "claude-oracle" || !oracleModels) return MODELS[provider];
+    if (oracleModels.length === 0) return MODELS[provider];
+    return oracleModels.map((m) => ({
+      value: m.id,
+      label: m.label,
+      badge: m.id === ORACLE_DEFAULT_MODEL ? "권장" : undefined,
+      inputPrice: 0,
+      outputPrice: 0,
+      default: m.id === ORACLE_DEFAULT_MODEL,
+      group: m.group,
+      available: m.available,
+      reason: m.reason,
+    }));
+  }, [provider, oracleModels]);
+
+  // 고를 수 있는 목록이 바뀌면(provider 전환, 자체 서버 목록 도착) 기본 모델로 맞춘다.
+  // 이미 고른 모델이 새 목록에도 있으면 그대로 둔다.
+  useEffect(() => {
+    setModel((current) => {
+      if (modelOptions.some((m) => m.value === current)) return current;
+      return (modelOptions.find((m) => m.default) ?? modelOptions[0])?.value ?? "";
+    });
+  }, [modelOptions]);
 
   // 현재 표시할 독후감 (책 선택 시 필터)
   const visibleReviews = selectedBookId !== null
@@ -613,61 +677,119 @@ export default function AdminDiscussionGenerator({
                 ))}
               </div>
 
+              {provider === "claude-oracle" && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => loadOracleModels(false)}
+                    disabled={loadingOracle || probing}
+                    className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-md border border-neutral-200 hover:border-neutral-400 transition-colors cursor-pointer text-neutral-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <RefreshCw className={cn("w-3 h-3", loadingOracle && "animate-spin")} />
+                    목록 새로고침
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => loadOracleModels(true)}
+                    disabled={loadingOracle || probing}
+                    className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-md border border-neutral-200 hover:border-neutral-400 transition-colors cursor-pointer text-neutral-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <ShieldCheck className={cn("w-3 h-3", probing && "animate-pulse")} />
+                    {probing ? "확인 중" : "사용 가능 확인"}
+                  </button>
+                  <span className="text-[11px] text-neutral-400">
+                    {oracleModels
+                      ? `서버가 서빙하는 모델 ${oracleModels.length}개`
+                      : loadingOracle
+                        ? "목록 불러오는 중…"
+                        : "목록 미조회"}
+                  </span>
+                </div>
+              )}
+
+              {oracleError && provider === "claude-oracle" && (
+                <p className="text-[11px] text-[#8B3A2A] bg-[#8B3A2A]/5 border border-[#8B3A2A]/20 rounded-lg px-3 py-2">
+                  {oracleError} — 아래 폴백 목록으로 계속 생성할 수 있습니다.
+                </p>
+              )}
+
               <div className="space-y-1.5">
-                {MODELS[provider].map((m) => {
+                {modelOptions.map((m, i) => {
                   const reviewsText = visibleReviews.filter((r) => selectedIds.has(r.id)).map((r) => r.content).join(" ");
                   const cost = estimateCost(reviewsText, m);
                   const isSelected = model === m.value;
+                  // 확인 결과 거절된 모델은 고르지 못하게 막는다. 고르면 생성이 실패한다.
+                  const blocked = m.available === false;
+                  // 제공자가 바뀌는 지점에만 소제목을 넣는다.
+                  const heading = m.group && m.group !== modelOptions[i - 1]?.group ? m.group : null;
                   return (
-                    <button
-                      key={m.value}
-                      type="button"
-                      onClick={() => setModel(m.value)}
-                      className={cn(
-                        "w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg border text-left transition-all cursor-pointer",
-                        isSelected
-                          ? "border-[#1C1A17] bg-[#1C1A17] text-white"
-                          : "border-neutral-200 bg-white hover:border-neutral-400 text-[#1C1A17]"
+                    <div key={m.value}>
+                      {heading && (
+                        <p className="text-[9px] font-bold tracking-widest uppercase text-neutral-400 mt-3 mb-1.5 first:mt-0">
+                          {heading}
+                        </p>
                       )}
-                    >
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <Icon
-                          icon={PROVIDERS[provider].icon}
-                          className={cn("w-4 h-4 flex-shrink-0", isSelected ? "text-white/70" : "text-neutral-400")}
-                        />
-                        <span className="text-sm font-medium truncate">{m.label}</span>
-                        {m.badge && (
-                          <span className={cn(
-                            "text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full flex-shrink-0",
-                            isSelected ? "bg-white/20 text-white" : "bg-neutral-100 text-neutral-500"
-                          )}>
-                            {m.badge}
-                          </span>
+                      <button
+                        type="button"
+                        onClick={() => setModel(m.value)}
+                        disabled={blocked}
+                        title={blocked ? m.reason : undefined}
+                        className={cn(
+                          "w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg border text-left transition-all cursor-pointer",
+                          blocked
+                            ? "border-neutral-200 bg-neutral-50 text-neutral-400 cursor-not-allowed"
+                            : isSelected
+                              ? "border-[#1C1A17] bg-[#1C1A17] text-white"
+                              : "border-neutral-200 bg-white hover:border-neutral-400 text-[#1C1A17]"
                         )}
-                      </div>
-                      <div className="flex items-center gap-3 flex-shrink-0 ml-3">
-                        <div className="text-right w-[88px]">
-                          {PROVIDERS[provider].metered ? (
-                            <>
-                              <p className={cn("text-[10px]", isSelected ? "text-white/60" : "text-neutral-400")}>
-                                입력 {formatInputPrice(m.inputPrice)}
-                              </p>
-                              <p className={cn("text-[10px] mt-0.5", isSelected ? "text-white/40" : "text-neutral-300")}>예상 비용</p>
-                              <p className={cn("text-[11px] font-semibold", isSelected ? "text-white" : "text-[#8B3A2A]")}>
-                                {reviewsText.length > 0 ? `≈ ${formatCost(cost)}` : "—"}
-                              </p>
-                            </>
-                          ) : (
-                            <>
-                              <p className={cn("text-[10px]", isSelected ? "text-white/60" : "text-neutral-400")}>자체 서버</p>
-                              <p className={cn("text-[10px] mt-0.5", isSelected ? "text-white/40" : "text-neutral-300")}>추가 비용</p>
-                              <p className={cn("text-[11px] font-semibold", isSelected ? "text-white" : "text-[#8B3A2A]")}>없음</p>
-                            </>
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <Icon
+                            icon={PROVIDERS[provider].icon}
+                            className={cn("w-4 h-4 flex-shrink-0", isSelected && !blocked ? "text-white/70" : "text-neutral-400")}
+                          />
+                          <span className="text-sm font-medium truncate">{m.label}</span>
+                          {m.badge && !blocked && (
+                            <span className={cn(
+                              "text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full flex-shrink-0",
+                              isSelected ? "bg-white/20 text-white" : "bg-neutral-100 text-neutral-500"
+                            )}>
+                              {m.badge}
+                            </span>
+                          )}
+                          {m.available === true && (
+                            <Check className="w-3 h-3 flex-shrink-0 text-[#2A6B5E]" />
+                          )}
+                          {blocked && (
+                            <span className="text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full flex-shrink-0 bg-[#8B3A2A]/10 text-[#8B3A2A]">
+                              사용 불가
+                            </span>
                           )}
                         </div>
-                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0" />}
-                      </div>
-                    </button>
+                        <div className="flex items-center gap-3 flex-shrink-0 ml-3">
+                          <div className="text-right w-[88px]">
+                            {PROVIDERS[provider].metered ? (
+                              <>
+                                <p className={cn("text-[10px]", isSelected ? "text-white/60" : "text-neutral-400")}>
+                                  입력 {formatInputPrice(m.inputPrice)}
+                                </p>
+                                <p className={cn("text-[10px] mt-0.5", isSelected ? "text-white/40" : "text-neutral-300")}>예상 비용</p>
+                                <p className={cn("text-[11px] font-semibold", isSelected ? "text-white" : "text-[#8B3A2A]")}>
+                                  {reviewsText.length > 0 ? `≈ ${formatCost(cost)}` : "—"}
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <p className={cn("text-[10px]", isSelected && !blocked ? "text-white/60" : "text-neutral-400")}>자체 서버</p>
+                                <p className={cn("text-[10px] mt-0.5", isSelected && !blocked ? "text-white/40" : "text-neutral-300")}>추가 비용</p>
+                                <p className={cn("text-[11px] font-semibold", isSelected && !blocked ? "text-white" : "text-[#8B3A2A]")}>없음</p>
+                              </>
+                            )}
+                          </div>
+                          {isSelected && !blocked && <div className="w-1.5 h-1.5 rounded-full bg-white flex-shrink-0" />}
+                        </div>
+                      </button>
+                    </div>
                   );
                 })}
               </div>

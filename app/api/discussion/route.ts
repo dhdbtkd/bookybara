@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import OpenAI from "openai";
 import { isAdminAuthenticated } from "@/lib/auth";
+import { MissingEnvError, requireEnv } from "@/lib/env";
 import { createClient } from "@/utils/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -23,20 +24,6 @@ const DEFAULT_MODEL: Record<Provider, string> = {
 
 function isProvider(v: unknown): v is Provider {
   return PROVIDERS.includes(v as Provider);
-}
-
-/** 환경변수 누락은 호출 전에 막고, 어느 변수인지 그대로 알려준다. */
-class MissingEnvError extends Error {
-  constructor(name: string) {
-    super(`${name}가 설정되지 않았습니다.`);
-  }
-}
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  // 스캐폴딩 기본값(your_..._here)은 미설정으로 취급한다.
-  if (!value || /^your_.*_here$/.test(value)) throw new MissingEnvError(name);
-  return value;
 }
 
 export const MODES = ["append", "replace"] as const;
@@ -86,8 +73,9 @@ async function complete(provider: Provider, model: string, prompt: string): Prom
     max_tokens: 1024,
     messages: [{ role: "user", content: prompt }],
   });
+  // 자체 서버를 거치면 thinking 블록이 앞에 붙어 온다. 첫 블록만 보면 본문을 통째로 놓친다.
   return {
-    text: res.content[0].type === "text" ? res.content[0].text : "",
+    text: res.content.filter((b) => b.type === "text").map((b) => b.text).join(""),
     inputTokens: res.usage.input_tokens,
     outputTokens: res.usage.output_tokens,
   };
