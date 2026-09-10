@@ -86,6 +86,30 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* ── bookybara 팔레트 ──────────────────────────────
+     하드코딩된 hex 를 토큰으로 올린 것이다. 값은 기존과 동일하다.
+     새 색을 늘리기 전에 여기 있는 걸 먼저 쓴다. */
+  --color-ink: #1C1A17;        /* 본문, 최전경 */
+  --color-brick: #8B3A2A;      /* 액센트 하나. 늘리지 않는다 */
+  --color-pine: #2A6B5E;       /* 공개/성공 상태 */
+  --color-sand: #E8DDD0;       /* 기본 보더 */
+  --color-cream: #F0EAE0;      /* 페이지 바탕 */
+  --color-parchment: #F8F4EF;  /* 카드 위 옅은 면 */
+  --color-linen: #FDFAF7;      /* 펼침 패널 바탕 */
+  --color-bark: #5C4A3A;       /* 아바타 이니셜 */
+  --color-brick-300: #E8856A;  /* 어두운 바 위의 brick */
+
+  /* 따뜻한 회갈색 계열. 기존에 7종이 뒤섞여 있던 걸 3단계로 줄였다. */
+  --color-stone-400: #C8BEB4;
+  --color-stone-500: #9C8E7E;
+  --color-stone-600: #8B7B6B;
+
+  /* ── 이징 ──────────────────────────────────────────
+     CSS 기본 곡선은 약하다. 진입/이탈은 ease-out, 화면 안 이동은 ease-in-out. */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: 'Paperozi', sans-serif;
@@ -238,5 +262,16 @@
   }
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* 움직임은 없애되 색 전환은 남긴다. 이해를 돕는 전환까지 끄면 오히려 불친절하다. */
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
   }
 }

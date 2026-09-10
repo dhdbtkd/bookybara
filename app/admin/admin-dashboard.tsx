@@ -483,7 +483,7 @@ export default function AdminDashboard() {
       style={{ width: "100vw", marginLeft: "calc(50% - 50vw)", minHeight: "calc(100vh - 3.5rem)" }}
     >
       {/* ── Sidebar ── */}
-      <aside className="hidden md:flex w-52 bg-[#1C1A17] sticky top-14 h-[calc(100vh-3.5rem)] flex-col flex-shrink-0">
+      <aside className="hidden md:flex w-52 bg-ink sticky top-14 h-[calc(100vh-3.5rem)] flex-col flex-shrink-0">
         <div className="px-5 py-5 border-b border-white/10">
           <p className="text-[9px] font-bold tracking-[0.22em] uppercase text-white/30 mb-1">독서모임</p>
           <p className="text-white text-lg" style={{ fontFamily: "var(--font-playfair)", fontStyle: "italic" }}>
@@ -497,9 +497,9 @@ export default function AdminDashboard() {
               key={id}
               onClick={() => handleSetActive(id)}
               className={cn(
-                "w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all cursor-pointer",
+                "w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]",
                 active === id
-                  ? "bg-[#8B3A2A] text-white font-medium"
+                  ? "bg-brick text-white font-medium"
                   : "text-white/50 hover:text-white/90 hover:bg-white/8"
               )}
             >
@@ -512,7 +512,7 @@ export default function AdminDashboard() {
         <div className="p-3 border-t border-white/10">
           <button
             onClick={logout}
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-white/35 hover:text-white/80 hover:bg-white/8 rounded-lg transition-colors cursor-pointer"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-white/35 hover:text-white/80 hover:bg-white/8 rounded-lg transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]"
           >
             <LogOut className="w-4 h-4" />
             로그아웃
@@ -538,24 +538,24 @@ export default function AdminDashboard() {
                 { label: "멤버 수", value: members.length, icon: <Users className="w-5 h-5" />, color: "#2A4A8B" },
                 { label: "독후감 수", value: reviews.length, icon: <FileText className="w-5 h-5" />, color: "#6B4A2A" },
               ].map(({ label, value, icon, color }) => (
-                <div key={label} className="bg-white rounded-xl border border-[#E8DDD0] p-5">
+                <div key={label} className="bg-white rounded-xl border border-sand p-5">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-medium text-neutral-400">{label}</span>
                     <span style={{ color }} className="opacity-70">{icon}</span>
                   </div>
-                  <p className="text-3xl font-bold text-[#1C1A17]">{value}</p>
+                  <p className="text-3xl font-bold text-ink tabular-nums">{value}</p>
                 </div>
               ))}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-white rounded-xl border border-[#E8DDD0] p-5">
-                <h3 className="text-sm font-semibold text-[#1C1A17] mb-3">예정된 모임</h3>
+              <div className="bg-white rounded-xl border border-sand p-5">
+                <h3 className="text-sm font-semibold text-ink mb-3">예정된 모임</h3>
                 {upcomingMeetings.length > 0 ? (
                   <div className="space-y-2">
                     {upcomingMeetings.slice(0, 3).map((m) => (
                       <div key={m.id} className="flex items-center justify-between text-sm">
-                        <span className="text-[#1C1A17] font-medium">{m.title}</span>
+                        <span className="text-ink font-medium">{m.title}</span>
                         <span className="text-neutral-400 text-xs">{format(new Date(m.date), "M월 d일 (EEE)", { locale: ko })}</span>
                       </div>
                     ))}
@@ -563,8 +563,8 @@ export default function AdminDashboard() {
                 ) : <p className="text-sm text-neutral-400">예정된 모임이 없습니다.</p>}
               </div>
 
-              <div className="bg-white rounded-xl border border-[#E8DDD0] p-5">
-                <h3 className="text-sm font-semibold text-[#1C1A17] mb-3">도서 후보 현황</h3>
+              <div className="bg-white rounded-xl border border-sand p-5">
+                <h3 className="text-sm font-semibold text-ink mb-3">도서 후보 현황</h3>
                 {[
                   { label: "대기중", status: "pending", color: "#8B7B6B" },
                   { label: "선정됨", status: "selected", color: "#2A6B5E" },
@@ -610,9 +610,9 @@ export default function AdminDashboard() {
                     {selectedNewMeetingBooks.length > 0 && (
                       <div className="flex flex-wrap gap-1.5">
                         {selectedNewMeetingBooks.map((b) => (
-                          <span key={b.id} className="flex items-center gap-1 text-xs bg-[#F0EAE0] text-[#1C1A17] rounded-full px-2.5 py-1">
+                          <span key={b.id} className="flex items-center gap-1 text-xs bg-cream text-ink rounded-full px-2.5 py-1">
                             {b.title}
-                            <button type="button" onClick={() => setMeetingForm((p) => ({ ...p, book_ids: p.book_ids.filter((id) => id !== b.id) }))} className="text-neutral-400 hover:text-neutral-700 cursor-pointer ml-0.5">✕</button>
+                            <button type="button" onClick={() => setMeetingForm((p) => ({ ...p, book_ids: p.book_ids.filter((id) => id !== b.id) }))} className="text-neutral-400 hover:text-neutral-700 cursor-pointer ml-0.5 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">✕</button>
                           </span>
                         ))}
                       </div>
@@ -622,7 +622,7 @@ export default function AdminDashboard() {
                       tabIndex={0}
                       onClick={() => setNewMeetingBookModalOpen(true)}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setNewMeetingBookModalOpen(true); }}
-                      className="w-full flex items-center gap-2 border rounded-md px-3 py-2 text-sm text-left hover:bg-neutral-50 transition-colors cursor-pointer"
+                      className="w-full flex items-center gap-2 border rounded-md px-3 py-2 text-sm text-left hover:bg-neutral-50 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]"
                     >
                       <span className="text-neutral-400">{selectedNewMeetingBooks.length > 0 ? "책 추가..." : "책 선택 (선택사항)"}</span>
                     </div>
@@ -631,7 +631,7 @@ export default function AdminDashboard() {
                 <Field label="참석자">
                   <MemberMultiSelect members={members} selected={meetingAttendees} onChange={setMeetingAttendees} />
                 </Field>
-                <Button type="submit" className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer">
+                <Button type="submit" className="bg-ink hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">
                   <Plus className="w-4 h-4 mr-1.5" /> 등록
                 </Button>
               </form>
@@ -673,7 +673,7 @@ export default function AdminDashboard() {
                 type="button"
                 variant="outline"
                 onClick={() => setCategoryModalOpen(true)}
-                className="cursor-pointer"
+                className="cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]"
               >
                 카테고리 관리
               </Button>
@@ -685,9 +685,9 @@ export default function AdminDashboard() {
                 </DialogHeader>
                 <form onSubmit={addCategory} className="flex gap-2 items-center">
                   <input type="color" value={newCategoryColor} onChange={(e) => setNewCategoryColor(e.target.value)}
-                    className="w-8 h-8 rounded border cursor-pointer flex-shrink-0 p-0.5" title="색상 선택" />
+                    className="w-8 h-8 rounded border cursor-pointer flex-shrink-0 p-0.5 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]" title="색상 선택" />
                   <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="카테고리 이름" className="flex-1" maxLength={20} />
-                  <Button type="submit" size="sm" className="bg-[#1C1A17] hover:bg-[#8B3A2A] cursor-pointer">추가</Button>
+                  <Button type="submit" size="sm" className="bg-ink hover:bg-brick cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">추가</Button>
                 </form>
                 <div className="flex flex-col gap-1.5 mt-1">
                   {categories.map((c) => (
@@ -695,20 +695,20 @@ export default function AdminDashboard() {
                       {editingCategoryId === c.id ? (
                         <div className="flex gap-2 items-center">
                           <input type="color" value={editCategoryForm.color} onChange={(e) => setEditCategoryForm((p) => ({ ...p, color: e.target.value }))}
-                            className="w-8 h-8 rounded border cursor-pointer flex-shrink-0 p-0.5" />
+                            className="w-8 h-8 rounded border cursor-pointer flex-shrink-0 p-0.5 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]" />
                           <Input value={editCategoryForm.name} onChange={(e) => setEditCategoryForm((p) => ({ ...p, name: e.target.value }))} className="flex-1 h-8 text-sm" maxLength={20}
                             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); updateCategory(c.id); } if (e.key === "Escape") setEditingCategoryId(null); }} autoFocus />
-                          <Button type="button" size="sm" onClick={() => updateCategory(c.id)} className="bg-[#1C1A17] hover:bg-[#8B3A2A] cursor-pointer h-8 px-3 text-xs">저장</Button>
-                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditingCategoryId(null)} className="cursor-pointer h-8 px-2 text-xs">취소</Button>
+                          <Button type="button" size="sm" onClick={() => updateCategory(c.id)} className="bg-ink hover:bg-brick cursor-pointer h-8 px-3 text-xs transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">저장</Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditingCategoryId(null)} className="cursor-pointer h-8 px-2 text-xs transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">취소</Button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-2 rounded-lg px-3 py-1.5 hover:bg-neutral-50 group">
                           <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: c.color }} />
                           <span className="flex-1 text-sm font-medium" style={{ color: c.color }}>{c.name}</span>
                           <button onClick={() => { setEditingCategoryId(c.id); setEditCategoryForm({ name: c.name, color: c.color }); }}
-                            className="opacity-0 group-hover:opacity-60 hover:!opacity-100 cursor-pointer text-xs text-neutral-500 transition-opacity">수정</button>
+                            className="opacity-0 group-hover:opacity-60 hover:!opacity-100 cursor-pointer text-xs text-neutral-500 transition-opacity motion-safe:active:scale-[0.97]">수정</button>
                           <button onClick={() => deleteCategory(c.id)}
-                            className="opacity-0 group-hover:opacity-40 hover:!opacity-100 cursor-pointer text-xs text-neutral-400 transition-opacity">✕</button>
+                            className="opacity-0 group-hover:opacity-40 hover:!opacity-100 cursor-pointer text-xs text-neutral-400 transition-opacity motion-safe:active:scale-[0.97]">✕</button>
                         </div>
                       )}
                     </div>
@@ -721,7 +721,7 @@ export default function AdminDashboard() {
               <Button
                 type="button"
                 onClick={() => setBookModalOpen(true)}
-                className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer"
+                className="bg-ink hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]"
               >
                 <Plus className="w-4 h-4 mr-1.5" /> 새 도서 등록
               </Button>
@@ -754,7 +754,7 @@ export default function AdminDashboard() {
                       />
                       {bookSearch && (
                         <button type="button" onClick={() => { setBookSearch(""); setBookSearchResults([]); setBookSearchOpen(false); }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer">
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
                           <X className="w-4 h-4" />
                         </button>
                       )}
@@ -769,14 +769,14 @@ export default function AdminDashboard() {
                               {bookSearchResults.map((b, i) => (
                                 <li key={i}>
                                   <button type="button" onClick={() => selectBookFromSearch(b)}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#F8F5F0] text-left transition-colors cursor-pointer">
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-parchment text-left transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">
                                     {b.thumbnail ? (
                                       <img src={b.thumbnail} alt={b.title} className="w-8 h-11 object-cover rounded flex-shrink-0" />
                                     ) : (
                                       <div className="w-8 h-11 bg-neutral-100 rounded flex-shrink-0" />
                                     )}
                                     <div className="min-w-0">
-                                      <p className="text-sm font-medium text-[#1C1A17] truncate">{b.title}</p>
+                                      <p className="text-sm font-medium text-ink truncate">{b.title}</p>
                                       <p className="text-xs text-neutral-500 truncate">{b.authors.join(", ")}</p>
                                     </div>
                                   </button>
@@ -856,7 +856,7 @@ export default function AdminDashboard() {
                                     setSelectedCoverSource(key);
                                     applySelection(key, selectedDescSource);
                                   }}
-                                  className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border-2 transition-colors ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent" : `cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent hover:border-neutral-300"}`}`}
+                                  className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:enabled:active:scale-[0.97] ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent" : `cursor-pointer ${selected ? "border-brick bg-white" : "border-transparent hover:border-neutral-300"}`}`}
                                 >
                                   {url ? (
                                     <img src={url} alt={label} className="w-10 h-14 object-cover rounded shadow-sm" />
@@ -865,7 +865,7 @@ export default function AdminDashboard() {
                                       {keyMissing ? "키없음" : "없음"}
                                     </div>
                                   )}
-                                  <span className={selected ? "text-[#8B3A2A] font-semibold" : "text-neutral-400"}>{label}</span>
+                                  <span className={selected ? "text-brick font-semibold" : "text-neutral-400"}>{label}</span>
                                 </button>
                               );
                             })}
@@ -888,9 +888,9 @@ export default function AdminDashboard() {
                                     setSelectedDescSource(key);
                                     applySelection(selectedCoverSource, key);
                                   }}
-                                  className={`text-left px-2.5 py-2 rounded-lg border-2 transition-colors ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent bg-white" : `cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent bg-white hover:border-neutral-300"}`}`}
+                                  className={`text-left px-2.5 py-2 rounded-lg border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:enabled:active:scale-[0.97] ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent bg-white" : `cursor-pointer ${selected ? "border-brick bg-white" : "border-transparent bg-white hover:border-neutral-300"}`}`}
                                 >
-                                  <span className={`font-semibold ${selected ? "text-[#8B3A2A]" : "text-neutral-400"}`}>{label}</span>
+                                  <span className={`font-semibold ${selected ? "text-brick" : "text-neutral-400"}`}>{label}</span>
                                   {keyMissing
                                     ? <span className="ml-2 text-amber-500">API 키 없음 (NAVER_CLIENT_ID/SECRET)</span>
                                     : desc
@@ -927,8 +927,8 @@ export default function AdminDashboard() {
                   </Field>
                 </div>
                 <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t border-neutral-100 mt-2">
-                  <Button type="button" variant="outline" onClick={() => setBookModalOpen(false)} className="cursor-pointer">취소</Button>
-                  <Button type="submit" disabled={bookDetailFetching || !bookForm.title || !bookForm.author || !bookForm.category_id} className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                  <Button type="button" variant="outline" onClick={() => setBookModalOpen(false)} className="cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">취소</Button>
+                  <Button type="submit" disabled={bookDetailFetching || !bookForm.title || !bookForm.author || !bookForm.category_id} className="bg-ink hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed motion-safe:active:scale-[0.97]">
                     {bookDetailFetching ? (
                       <><span className="w-4 h-4 mr-1.5 inline-block animate-spin rounded-full border-2 border-white border-t-transparent" /> 정보 가져오는 중...</>
                     ) : (
@@ -945,7 +945,7 @@ export default function AdminDashboard() {
               <div className="space-y-2">
                 {booksLoading ? (
                   Array.from({ length: 4 }).map((_, i) => (
-                    <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl border border-[#E8DDD0] bg-white">
+                    <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl border border-sand bg-white">
                       <Skeleton width={36} height={52} borderRadius={6} />
                       <div className="flex-1">
                         <Skeleton width="50%" height={14} />
@@ -984,7 +984,7 @@ export default function AdminDashboard() {
             <FormCard title="새 멤버 추가">
               <form onSubmit={addMember} className="flex gap-2">
                 <Input value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} placeholder="멤버 이름" className="flex-1" maxLength={20} />
-                <Button type="submit" className="bg-[#1C1A17] hover:bg-[#8B3A2A] cursor-pointer">
+                <Button type="submit" className="bg-ink hover:bg-brick cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
                   <Plus className="w-4 h-4 mr-1.5" /> 추가
                 </Button>
               </form>
@@ -993,16 +993,16 @@ export default function AdminDashboard() {
             <div>
               <p className="text-xs font-bold tracking-widest uppercase text-neutral-400 mb-3">멤버 목록 ({members.length}명)</p>
               {members.length > 0 ? (
-                <div className="bg-white rounded-xl border border-[#E8DDD0] divide-y divide-[#F0EAE0]">
+                <div className="bg-white rounded-xl border border-sand divide-y divide-cream">
                   {members.map((m) => (
                     <div key={m.id} className="flex items-center justify-between px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#E8DDD0] flex items-center justify-center text-xs font-semibold text-[#8B7B6B]">
+                        <div className="w-8 h-8 rounded-full bg-sand flex items-center justify-center text-xs font-semibold text-stone-600">
                           {m.name[0]}
                         </div>
-                        <span className="text-sm font-medium text-[#1C1A17]">{m.name}</span>
+                        <span className="text-sm font-medium text-ink">{m.name}</span>
                       </div>
-                      <button onClick={() => deleteMember(m.id)} className="p-1.5 text-neutral-300 hover:text-red-400 transition-colors cursor-pointer rounded-md hover:bg-red-50">
+                      <button onClick={() => deleteMember(m.id)} className="p-1.5 text-neutral-300 hover:text-red-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer rounded-md hover:bg-red-50 motion-safe:active:scale-[0.97]">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -1025,7 +1025,7 @@ export default function AdminDashboard() {
             <Button
               type="button"
               onClick={() => setCandidateModalOpen(true)}
-              className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer"
+              className="bg-ink hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]"
             >
               <Plus className="w-4 h-4 mr-1.5" /> 후보 도서 등록
             </Button>
@@ -1056,7 +1056,7 @@ export default function AdminDashboard() {
                       />
                       {candidateSearch && (
                         <button type="button" onClick={() => { setCandidateSearch(""); setCandidateSearchResults([]); setCandidateSearchOpen(false); setCandidateForm((p) => ({ ...p, title: "", author: "", cover_url: "" })); }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer">
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
                           <X className="w-4 h-4" />
                         </button>
                       )}
@@ -1071,14 +1071,14 @@ export default function AdminDashboard() {
                               {candidateSearchResults.map((b, i) => (
                                 <li key={i}>
                                   <button type="button" onClick={() => selectCandidateFromSearch(b)}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#F8F5F0] text-left transition-colors cursor-pointer">
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-parchment text-left transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">
                                     {b.thumbnail ? (
                                       <img src={b.thumbnail} alt={b.title} className="w-8 h-11 object-cover rounded flex-shrink-0" />
                                     ) : (
                                       <div className="w-8 h-11 bg-neutral-100 rounded flex-shrink-0" />
                                     )}
                                     <div className="min-w-0">
-                                      <p className="text-sm font-medium text-[#1C1A17] truncate">{b.title}</p>
+                                      <p className="text-sm font-medium text-ink truncate">{b.title}</p>
                                       <p className="text-xs text-neutral-500 truncate">{b.authors.join(", ")}</p>
                                     </div>
                                   </button>
@@ -1107,9 +1107,9 @@ export default function AdminDashboard() {
                             type="button"
                             onClick={() => setCandidateForm((p) => ({ ...p, proposed_by: p.proposed_by === m.name ? "" : m.name }))}
                             className={cn(
-                              "px-3 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer",
+                              "px-3 py-1.5 rounded-full text-sm font-medium border transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]",
                               candidateForm.proposed_by === m.name
-                                ? "bg-[#1C1A17] text-white border-[#1C1A17]"
+                                ? "bg-ink text-white border-ink"
                                 : "bg-white text-neutral-400 border-neutral-200 hover:border-neutral-400 hover:text-neutral-600"
                             )}
                           >
@@ -1170,7 +1170,7 @@ export default function AdminDashboard() {
                               return (
                                 <button key={key} type="button" disabled={keyMissing}
                                   onClick={() => { setCandidateCoverSource(key); applySelection(key, candidateDescSource); }}
-                                  className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border-2 transition-colors ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent" : `cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent hover:border-neutral-300"}`}`}
+                                  className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:enabled:active:scale-[0.97] ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent" : `cursor-pointer ${selected ? "border-brick bg-white" : "border-transparent hover:border-neutral-300"}`}`}
                                 >
                                   {url ? (
                                     <img src={url} alt={label} className="w-10 h-14 object-cover rounded shadow-sm" />
@@ -1179,7 +1179,7 @@ export default function AdminDashboard() {
                                       {keyMissing ? "키없음" : "없음"}
                                     </div>
                                   )}
-                                  <span className={selected ? "text-[#8B3A2A] font-semibold" : "text-neutral-400"}>{label}</span>
+                                  <span className={selected ? "text-brick font-semibold" : "text-neutral-400"}>{label}</span>
                                 </button>
                               );
                             })}
@@ -1195,9 +1195,9 @@ export default function AdminDashboard() {
                               return (
                                 <button key={key} type="button" disabled={keyMissing}
                                   onClick={() => { setCandidateDescSource(key); applySelection(candidateCoverSource, key); }}
-                                  className={`text-left px-2.5 py-2 rounded-lg border-2 transition-colors ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent bg-white" : `cursor-pointer ${selected ? "border-[#8B3A2A] bg-white" : "border-transparent bg-white hover:border-neutral-300"}`}`}
+                                  className={`text-left px-2.5 py-2 rounded-lg border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:enabled:active:scale-[0.97] ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent bg-white" : `cursor-pointer ${selected ? "border-brick bg-white" : "border-transparent bg-white hover:border-neutral-300"}`}`}
                                 >
-                                  <span className={`font-semibold ${selected ? "text-[#8B3A2A]" : "text-neutral-400"}`}>{label}</span>
+                                  <span className={`font-semibold ${selected ? "text-brick" : "text-neutral-400"}`}>{label}</span>
                                   {keyMissing
                                     ? <span className="ml-2 text-amber-500">API 키 없음</span>
                                     : desc
@@ -1231,8 +1231,8 @@ export default function AdminDashboard() {
                   </Field>
                 </div>
                 <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t border-neutral-100 mt-2">
-                    <Button type="button" variant="outline" onClick={() => setCandidateModalOpen(false)} className="cursor-pointer">취소</Button>
-                    <Button type="submit" disabled={candidateDetailFetching || !candidateForm.title || !candidateForm.author || !candidateForm.proposed_by} className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
+                    <Button type="button" variant="outline" onClick={() => setCandidateModalOpen(false)} className="cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">취소</Button>
+                    <Button type="submit" disabled={candidateDetailFetching || !candidateForm.title || !candidateForm.author || !candidateForm.proposed_by} className="bg-ink hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed motion-safe:active:scale-[0.97]">
                       <Plus className="w-4 h-4 mr-1.5" /> 등록
                     </Button>
                   </div>
@@ -1250,18 +1250,18 @@ export default function AdminDashboard() {
                   };
                   const s = statusMap[c.status] ?? statusMap.pending;
                   return (
-                    <div key={c.id} className="bg-white rounded-xl border border-[#E8DDD0] px-5 py-4 flex items-center gap-4">
+                    <div key={c.id} className="bg-white rounded-xl border border-sand px-5 py-4 flex items-center gap-4">
                       <div className="w-1.5 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
                       {c.cover_url_hires ?? c.cover_url ? (
                         <img src={c.cover_url_hires ?? c.cover_url!} alt={c.title} className="w-8 h-11 object-cover rounded flex-shrink-0" />
                       ) : (
-                        <div className="w-8 h-11 rounded bg-[#E8DDD0] flex-shrink-0 flex items-center justify-center">
-                          <BookOpen className="w-3.5 h-3.5 text-[#B8A898]" />
+                        <div className="w-8 h-11 rounded bg-sand flex-shrink-0 flex items-center justify-center">
+                          <BookOpen className="w-3.5 h-3.5 text-stone-400" />
                         </div>
                       )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
-                          <span className="font-semibold text-sm text-[#1C1A17]">{c.title}</span>
+                          <span className="font-semibold text-sm text-ink">{c.title}</span>
                           <span className="text-xs text-neutral-400">{c.author}</span>
                         </div>
                         <p className="text-xs text-neutral-400">제안: {c.proposed_by}</p>
@@ -1272,19 +1272,19 @@ export default function AdminDashboard() {
                       <div className="flex gap-1 flex-shrink-0">
                         {c.status !== "selected" && (
                           <button onClick={() => updateCandidateStatus(c.id, "selected")}
-                            className="px-2.5 py-1 text-xs rounded-md border border-[#2A6B5E] text-[#2A6B5E] hover:bg-[#2A6B5E] hover:text-white transition-colors cursor-pointer">
+                            className="px-2.5 py-1 text-xs rounded-md border border-pine text-pine hover:bg-pine hover:text-white transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">
                             선정
                           </button>
                         )}
                         {c.status !== "rejected" && (
                           <button onClick={() => updateCandidateStatus(c.id, "rejected")}
-                            className="px-2.5 py-1 text-xs rounded-md border border-neutral-200 text-neutral-400 hover:border-red-300 hover:text-red-400 transition-colors cursor-pointer">
+                            className="px-2.5 py-1 text-xs rounded-md border border-neutral-200 text-neutral-400 hover:border-red-300 hover:text-red-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">
                             탈락
                           </button>
                         )}
                         {c.status !== "pending" && (
                           <button onClick={() => updateCandidateStatus(c.id, "pending")}
-                            className="px-2.5 py-1 text-xs rounded-md border border-neutral-200 text-neutral-400 hover:bg-neutral-50 transition-colors cursor-pointer">
+                            className="px-2.5 py-1 text-xs rounded-md border border-neutral-200 text-neutral-400 hover:bg-neutral-50 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">
                             대기
                           </button>
                         )}
@@ -1318,45 +1318,45 @@ export default function AdminDashboard() {
           function ReviewRow({ r }: { r: Review }) {
             const isEditing = editingReview?.id === r.id;
             return (
-              <div key={r.id} className="bg-white rounded-xl border border-[#E8DDD0] px-5 py-4">
+              <div key={r.id} className="bg-white rounded-xl border border-sand px-5 py-4">
                 {isEditing ? (
                   <div className="space-y-3">
                     <div className="flex gap-2">
                       <input
-                        className="text-sm border border-[#D4C5B0] rounded-lg px-3 py-1.5 w-36 focus:outline-none focus:ring-1 focus:ring-[#8B3A2A]"
+                        className="text-sm border border-stone-400 rounded-lg px-3 py-1.5 w-36 focus:outline-none focus:ring-1 focus:ring-brick"
                         value={editingReview!.author_name}
                         onChange={(e) => setEditingReview((p) => p && ({ ...p, author_name: e.target.value }))}
                         placeholder="작성자"
                       />
                     </div>
                     <textarea
-                      className="w-full text-sm border border-[#D4C5B0] rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-[#8B3A2A]"
+                      className="w-full text-sm border border-stone-400 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-brick"
                       rows={4}
                       value={editingReview!.content}
                       onChange={(e) => setEditingReview((p) => p && ({ ...p, content: e.target.value }))}
                     />
                     <div className="flex gap-2">
-                      <button onClick={saveReview} className="px-3 py-1.5 bg-[#1C1A17] text-white text-xs rounded-lg hover:bg-[#8B3A2A] transition-colors cursor-pointer">저장</button>
-                      <button onClick={() => setEditingReview(null)} className="px-3 py-1.5 bg-neutral-100 text-xs rounded-lg hover:bg-neutral-200 transition-colors cursor-pointer">취소</button>
+                      <button onClick={saveReview} className="px-3 py-1.5 bg-ink text-white text-xs rounded-lg hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">저장</button>
+                      <button onClick={() => setEditingReview(null)} className="px-3 py-1.5 bg-neutral-100 text-xs rounded-lg hover:bg-neutral-200 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">취소</button>
                     </div>
                   </div>
                 ) : (
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
-                        {r.books && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-[#F0EAE0] text-[#8B7B6B]">{r.books.title}</span>}
-                        <span className="font-semibold text-sm text-[#1C1A17]">{r.author_name}</span>
+                        {r.books && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cream text-stone-600">{r.books.title}</span>}
+                        <span className="font-semibold text-sm text-ink">{r.author_name}</span>
                       </div>
                       <p className="text-sm text-neutral-400 line-clamp-2 leading-relaxed">{r.content}</p>
                     </div>
                     <div className="flex gap-1 flex-shrink-0 mt-0.5">
                       <button
                         onClick={() => setEditingReview({ id: r.id, author_name: r.author_name, content: r.content })}
-                        className="p-1.5 text-neutral-300 hover:text-[#8B3A2A] transition-colors cursor-pointer rounded-md hover:bg-[#F0EAE0]"
+                        className="p-1.5 text-neutral-300 hover:text-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer rounded-md hover:bg-cream motion-safe:active:scale-[0.97]"
                       >
                         <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                       </button>
-                      <button onClick={() => deleteReview(r.id)} className="p-1.5 text-neutral-300 hover:text-red-400 transition-colors cursor-pointer rounded-md hover:bg-red-50">
+                      <button onClick={() => deleteReview(r.id)} className="p-1.5 text-neutral-300 hover:text-red-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer rounded-md hover:bg-red-50 motion-safe:active:scale-[0.97]">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -1371,12 +1371,12 @@ export default function AdminDashboard() {
               <SectionHeader icon={<FileText className="w-5 h-5" />} title="독후감" description={`총 ${reviews.length}개의 독후감을 조회하고 관리합니다.`} />
 
               {/* 서브 탭 */}
-              <div className="flex gap-1 bg-[#F0EAE0] rounded-xl p-1">
+              <div className="flex gap-1 bg-cream rounded-xl p-1">
                 {([["gathering", "모임별"], ["book", "도서별"], ["member", "참석자별"]] as const).map(([id, label]) => (
                   <button
                     key={id}
                     onClick={() => setReviewView(id)}
-                    className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${reviewView === id ? "bg-white text-[#1C1A17] shadow-sm" : "text-[#9C8E7E] hover:text-[#1C1A17]"}`}
+                    className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer ${reviewView === id ? "bg-white text-ink shadow-sm" : "text-stone-500 hover:text-ink"}`}
                   >
                     {label}
                   </button>
@@ -1391,23 +1391,23 @@ export default function AdminDashboard() {
                       {meetings.filter((m) => byMeeting.has(String(m.id))).map((m) => {
                         const mrs = byMeeting.get(String(m.id)) ?? [];
                         return (
-                          <div key={m.id} className="border border-[#E8DDD0] rounded-xl overflow-hidden">
-                            <div className="bg-[#F8F4EF] px-5 py-3 flex items-center justify-between">
+                          <div key={m.id} className="border border-sand rounded-xl overflow-hidden">
+                            <div className="bg-parchment px-5 py-3 flex items-center justify-between">
                               <div>
-                                <p className="font-semibold text-sm text-[#1C1A17]">{m.title}</p>
-                                <p className="text-[11px] text-[#9C8E7E] mt-0.5">{m.date} · 독후감 {mrs.length}개</p>
+                                <p className="font-semibold text-sm text-ink">{m.title}</p>
+                                <p className="text-[11px] text-stone-500 mt-0.5">{m.date} · 독후감 {mrs.length}개</p>
                               </div>
                             </div>
-                            <div className="divide-y divide-[#F0EAE0] px-4 py-2 space-y-2">
+                            <div className="divide-y divide-cream px-4 py-2 space-y-2">
                               {mrs.map((r) => <ReviewRow key={r.id} r={r} />)}
                             </div>
                           </div>
                         );
                       })}
                       {byMeeting.has("__none__") && (
-                        <div className="border border-dashed border-[#D4C5B0] rounded-xl overflow-hidden">
-                          <div className="bg-[#F8F4EF] px-5 py-3">
-                            <p className="font-semibold text-sm text-[#9C8E7E]">모임 미지정</p>
+                        <div className="border border-dashed border-stone-400 rounded-xl overflow-hidden">
+                          <div className="bg-parchment px-5 py-3">
+                            <p className="font-semibold text-sm text-stone-500">모임 미지정</p>
                           </div>
                           <div className="px-4 py-2 space-y-2">
                             {(byMeeting.get("__none__") ?? []).map((r) => <ReviewRow key={r.id} r={r} />)}
@@ -1421,15 +1421,15 @@ export default function AdminDashboard() {
                   {reviewView === "book" && (
                     <div className="space-y-4">
                       {Array.from(byBook.entries()).map(([bookTitle, brs]) => (
-                        <div key={bookTitle} className="border border-[#E8DDD0] rounded-xl overflow-hidden">
-                          <div className="bg-[#F8F4EF] px-5 py-3 flex items-center gap-3">
+                        <div key={bookTitle} className="border border-sand rounded-xl overflow-hidden">
+                          <div className="bg-parchment px-5 py-3 flex items-center gap-3">
                             {brs[0]?.books?.cover_url_hires || brs[0]?.books?.cover_url ? (
                               // eslint-disable-next-line @next/next/no-img-element
                               <img src={brs[0].books!.cover_url_hires ?? brs[0].books!.cover_url!} alt="" className="w-8 h-11 object-cover rounded-md flex-shrink-0" />
                             ) : null}
                             <div>
-                              <p className="font-semibold text-sm text-[#1C1A17]">{bookTitle}</p>
-                              <p className="text-[11px] text-[#9C8E7E] mt-0.5">독후감 {brs.length}개</p>
+                              <p className="font-semibold text-sm text-ink">{bookTitle}</p>
+                              <p className="text-[11px] text-stone-500 mt-0.5">독후감 {brs.length}개</p>
                             </div>
                           </div>
                           <div className="px-4 py-2 space-y-2">
@@ -1444,14 +1444,14 @@ export default function AdminDashboard() {
                   {reviewView === "member" && (
                     <div className="space-y-4">
                       {Array.from(byMember.entries()).sort((a, b) => b[1].length - a[1].length).map(([name, mrs]) => (
-                        <div key={name} className="border border-[#E8DDD0] rounded-xl overflow-hidden">
-                          <div className="bg-[#F8F4EF] px-5 py-3 flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-[#D4C5B0] flex items-center justify-center flex-shrink-0">
-                              <span className="text-xs font-bold text-[#5C4A3A]">{name.slice(0, 2)}</span>
+                        <div key={name} className="border border-sand rounded-xl overflow-hidden">
+                          <div className="bg-parchment px-5 py-3 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-stone-400 flex items-center justify-center flex-shrink-0">
+                              <span className="text-xs font-bold text-bark">{name.slice(0, 2)}</span>
                             </div>
                             <div>
-                              <p className="font-semibold text-sm text-[#1C1A17]">{name}</p>
-                              <p className="text-[11px] text-[#9C8E7E] mt-0.5">독후감 {mrs.length}개</p>
+                              <p className="font-semibold text-sm text-ink">{name}</p>
+                              <p className="text-[11px] text-stone-500 mt-0.5">독후감 {mrs.length}개</p>
                             </div>
                           </div>
                           <div className="px-4 py-2 space-y-2">
@@ -1483,12 +1483,12 @@ export default function AdminDashboard() {
                 <Field label="내용">
                   <Textarea value={annForm.content} onChange={(e) => setAnnForm((p) => ({ ...p, content: e.target.value }))} rows={3} className="resize-none" />
                 </Field>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className="flex items-center gap-2 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
                   <input type="checkbox" checked={annForm.is_pinned} onChange={(e) => setAnnForm((p) => ({ ...p, is_pinned: e.target.checked }))}
-                    className="w-4 h-4 rounded border-neutral-300 cursor-pointer" />
+                    className="w-4 h-4 rounded border-neutral-300 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]" />
                   <span className="text-sm text-neutral-600">상단 고정</span>
                 </label>
-                <Button type="submit" className="bg-[#1C1A17] hover:bg-[#8B3A2A] transition-colors cursor-pointer">
+                <Button type="submit" className="bg-ink hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">
                   <Plus className="w-4 h-4 mr-1.5" /> 등록
                 </Button>
               </form>
@@ -1497,19 +1497,19 @@ export default function AdminDashboard() {
             <div>
               <p className="text-xs font-bold tracking-widest uppercase text-neutral-400 mb-3">등록된 공지 ({announcements.length})</p>
               {announcements.length > 0 ? (
-                <div className="bg-white rounded-xl border border-[#E8DDD0] divide-y divide-[#F0EAE0]">
+                <div className="bg-white rounded-xl border border-sand divide-y divide-cream">
                   {announcements.map((a) => (
                     <div key={a.id} className="flex items-start justify-between px-5 py-4 gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           {a.is_pinned && (
-                            <span className="text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full bg-[#8B3A2A]/10 text-[#8B3A2A]">고정</span>
+                            <span className="text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full bg-brick/10 text-brick">고정</span>
                           )}
-                          <span className="font-semibold text-sm text-[#1C1A17]">{a.title}</span>
+                          <span className="font-semibold text-sm text-ink">{a.title}</span>
                         </div>
                         <p className="text-sm text-neutral-400 line-clamp-1">{a.content}</p>
                       </div>
-                      <button onClick={() => deleteAnn(a.id)} className="p-1.5 text-neutral-300 hover:text-red-400 transition-colors cursor-pointer rounded-md hover:bg-red-50 flex-shrink-0">
+                      <button onClick={() => deleteAnn(a.id)} className="p-1.5 text-neutral-300 hover:text-red-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer rounded-md hover:bg-red-50 flex-shrink-0 motion-safe:active:scale-[0.97]">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -1547,7 +1547,7 @@ export default function AdminDashboard() {
 
       {/* ── 모바일 하단 내비게이션 ── */}
       <div
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#1C1A17] border-t border-white/10 overflow-x-auto"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-ink border-t border-white/10 overflow-x-auto"
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="flex">
@@ -1556,8 +1556,8 @@ export default function AdminDashboard() {
               key={id}
               onClick={() => handleSetActive(id)}
               className={cn(
-                "flex flex-col items-center gap-1 px-3 py-2.5 flex-1 min-w-[56px] text-[9px] font-medium transition-colors cursor-pointer whitespace-nowrap",
-                active === id ? "text-[#E8856A]" : "text-white/40"
+                "flex flex-col items-center gap-1 px-3 py-2.5 flex-1 min-w-[56px] text-[9px] font-medium transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer whitespace-nowrap motion-safe:active:scale-[0.97]",
+                active === id ? "text-brick-300" : "text-white/40"
               )}
             >
               <Icon className="w-4.5 h-4.5 flex-shrink-0" style={{ width: 18, height: 18 }} />
@@ -1617,23 +1617,23 @@ function BookPickerModal({
                     type="button"
                     onClick={() => onSelect(b.id)}
                     className={cn(
-                      "relative flex items-start gap-3 p-3 rounded-xl border text-left transition-all cursor-pointer",
+                      "relative flex items-start gap-3 p-3 rounded-xl border text-left transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]",
                       isSelected
-                        ? "border-[#8B3A2A] bg-[#8B3A2A]/5 ring-1 ring-[#8B3A2A]/30"
-                        : "border-[#E8DDD0] hover:border-[#C8B8A8] bg-white"
+                        ? "border-brick bg-brick/5 ring-1 ring-brick/30"
+                        : "border-sand hover:border-stone-400 bg-white"
                     )}
                   >
-                    <div className="w-10 h-14 flex-shrink-0 rounded overflow-hidden bg-[#F0EAE0] shadow-sm">
+                    <div className="w-10 h-14 flex-shrink-0 rounded overflow-hidden bg-cream shadow-sm">
                       {b.cover_url_hires ?? b.cover_url
                         ? <img src={b.cover_url_hires ?? b.cover_url!} alt={b.title} className="w-full h-full object-cover" />
-                        : <div className="w-full h-full flex items-center justify-center"><BookCopy className="w-4 h-4 text-[#C8BEB4]" /></div>}
+                        : <div className="w-full h-full flex items-center justify-center"><BookCopy className="w-4 h-4 text-stone-400" /></div>}
                     </div>
                     <div className="flex-1 min-w-0 pr-5">
-                      <p className="text-sm font-semibold text-[#1C1A17] leading-snug line-clamp-2">{b.title}</p>
+                      <p className="text-sm font-semibold text-ink leading-snug line-clamp-2">{b.title}</p>
                       <p className="text-xs text-neutral-400 mt-0.5 truncate">{b.author}</p>
                     </div>
                     {isSelected && (
-                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[#8B3A2A] flex items-center justify-center">
+                      <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-brick flex items-center justify-center">
                         <Check className="w-3 h-3 text-white" />
                       </div>
                     )}
@@ -1643,8 +1643,8 @@ function BookPickerModal({
             </div>
           )}
         </div>
-        <div className="pt-2 border-t border-[#F0EAE0] flex justify-end items-center">
-          <Button variant="outline" onClick={onClose} className="cursor-pointer">확인</Button>
+        <div className="pt-2 border-t border-cream flex justify-end items-center">
+          <Button variant="outline" onClick={onClose} className="cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">확인</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -1655,12 +1655,12 @@ function BookPickerModal({
 
 function SectionHeader({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
   return (
-    <div className="flex items-start gap-3 pb-2 border-b border-[#E8DDD0]">
-      <div className="w-9 h-9 rounded-lg bg-[#1C1A17] flex items-center justify-center text-white flex-shrink-0 mt-0.5">
+    <div className="flex items-start gap-3 pb-2 border-b border-sand">
+      <div className="w-9 h-9 rounded-lg bg-ink flex items-center justify-center text-white flex-shrink-0 mt-0.5">
         {icon}
       </div>
       <div>
-        <h2 className="text-lg font-semibold text-[#1C1A17]">{title}</h2>
+        <h2 className="text-lg font-semibold text-ink">{title}</h2>
         <p className="text-sm text-neutral-400 mt-0.5">{description}</p>
       </div>
     </div>
@@ -1669,7 +1669,7 @@ function SectionHeader({ icon, title, description }: { icon: React.ReactNode; ti
 
 function FormCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-[#E8DDD0] p-5">
+    <div className="bg-white rounded-xl border border-sand p-5">
       <h3 className="text-xs font-bold tracking-[0.15em] uppercase text-neutral-400 mb-4">{title}</h3>
       {children}
     </div>
@@ -1687,7 +1687,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function EmptyState({ text }: { text: string }) {
   return (
-    <div className="bg-white/60 rounded-xl border border-dashed border-[#DDD5C8] px-6 py-8 text-center">
+    <div className="bg-white/60 rounded-xl border border-dashed border-stone-400 px-6 py-8 text-center">
       <p className="text-sm text-neutral-400">{text}</p>
     </div>
   );
@@ -1696,7 +1696,7 @@ function EmptyState({ text }: { text: string }) {
 function SavedIndicator({ saved }: { saved: boolean }) {
   return (
     <span className={cn(
-      "flex items-center gap-1 text-xs text-[#2A6B5E] transition-opacity duration-500",
+      "flex items-center gap-1 text-xs text-pine transition-opacity duration-500",
       saved ? "opacity-100" : "opacity-0"
     )}>
       <CheckCircle2 className="w-3.5 h-3.5" />
@@ -1773,30 +1773,30 @@ function MeetingAdminRow({
   const currentBooks = books.filter((b) => currentBookIds.includes(b.id));
 
   return (
-    <div className="bg-white rounded-xl border border-[#E8DDD0] overflow-visible">
+    <div className="bg-white rounded-xl border border-sand overflow-visible">
       <div className="flex items-center gap-3 px-4 py-3">
-        <button className="flex-1 text-left flex items-center gap-3 cursor-pointer min-w-0" onClick={() => setExpanded((p) => !p)}>
-          <div className="w-2 h-2 rounded-full bg-[#8B3A2A] flex-shrink-0" />
-          <span className="font-medium text-sm text-[#1C1A17] truncate">{currentTitle}</span>
+        <button className="flex-1 text-left flex items-center gap-3 cursor-pointer min-w-0 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]" onClick={() => setExpanded((p) => !p)}>
+          <div className="w-2 h-2 rounded-full bg-brick flex-shrink-0" />
+          <span className="font-medium text-sm text-ink truncate">{currentTitle}</span>
           <span className="text-xs text-neutral-400 flex-shrink-0">
             {format(new Date(currentDate + "T00:00:00"), "yyyy년 M/d (EEE)", { locale: ko })}
           </span>
           {currentBooks.length > 0
-            ? currentBooks.map((b) => <span key={b.id} className="text-[10px] px-2 py-0.5 rounded-full bg-[#F0EAE0] text-[#8B7B6B] flex-shrink-0">{b.title}</span>)
+            ? currentBooks.map((b) => <span key={b.id} className="text-[10px] px-2 py-0.5 rounded-full bg-cream text-stone-600 flex-shrink-0">{b.title}</span>)
             : <span className="text-[10px] text-neutral-300 flex-shrink-0">책 미지정</span>}
         </button>
         <div className="flex items-center gap-1 flex-shrink-0">
-          <button onClick={() => setExpanded((p) => !p)} className="p-1.5 hover:bg-neutral-100 rounded-md cursor-pointer text-neutral-400 transition-colors">
+          <button onClick={() => setExpanded((p) => !p)} className="p-1.5 hover:bg-neutral-100 rounded-md cursor-pointer text-neutral-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
-          <button onClick={onDelete} className="p-1.5 hover:bg-red-50 rounded-md cursor-pointer text-neutral-300 hover:text-red-400 transition-colors">
+          <button onClick={onDelete} className="p-1.5 hover:bg-red-50 rounded-md cursor-pointer text-neutral-300 hover:text-red-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {expanded && (
-        <div className="border-t border-[#F0EAE0] px-4 py-4 bg-[#FDFAF7] space-y-5 rounded-b-xl">
+        <div className="border-t border-cream px-4 py-4 bg-linen space-y-5 rounded-b-xl">
           {/* 모임명 + 날짜 */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
@@ -1826,9 +1826,9 @@ function MeetingAdminRow({
             {currentBooks.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {currentBooks.map((b) => (
-                  <span key={b.id} className="flex items-center gap-1 text-xs bg-[#F0EAE0] text-[#1C1A17] rounded-full px-2.5 py-1">
+                  <span key={b.id} className="flex items-center gap-1 text-xs bg-cream text-ink rounded-full px-2.5 py-1">
                     {b.title}
-                    <button type="button" onClick={() => handleBookToggle(b.id)} className="text-neutral-400 hover:text-neutral-700 cursor-pointer ml-0.5">✕</button>
+                    <button type="button" onClick={() => handleBookToggle(b.id)} className="text-neutral-400 hover:text-neutral-700 cursor-pointer ml-0.5 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">✕</button>
                   </span>
                 ))}
               </div>
@@ -1836,7 +1836,7 @@ function MeetingAdminRow({
             <button
               type="button"
               onClick={() => setBookModalOpen(true)}
-              className="w-full flex items-center gap-2.5 border rounded-lg px-3 py-2.5 text-sm text-left hover:bg-white transition-colors cursor-pointer bg-white/60"
+              className="w-full flex items-center gap-2.5 border rounded-lg px-3 py-2.5 text-sm text-left hover:bg-white transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer bg-white/60 motion-safe:active:scale-[0.97]"
             >
               <span className="text-neutral-400 text-xs">{currentBooks.length > 0 ? "책 추가..." : "책 선택 (클릭하여 변경)"}</span>
             </button>
@@ -1916,16 +1916,16 @@ function BookAdminRow({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-[#E8DDD0] overflow-visible">
+    <div className="bg-white rounded-xl border border-sand overflow-visible">
       <div className="flex items-center gap-3 px-4 py-3">
-        <div className="w-9 h-[52px] flex-shrink-0 rounded-md overflow-hidden bg-[#F0EAE0] shadow-sm">
+        <div className="w-9 h-[52px] flex-shrink-0 rounded-md overflow-hidden bg-cream shadow-sm">
           {book.cover_url_hires ?? book.cover_url
             ? <img src={book.cover_url_hires ?? book.cover_url!} alt={book.title} className="w-full h-full object-cover" />
-            : <div className="w-full h-full flex items-center justify-center"><BookCopy className="w-4 h-4 text-[#C8BEB4]" /></div>}
+            : <div className="w-full h-full flex items-center justify-center"><BookCopy className="w-4 h-4 text-stone-400" /></div>}
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-medium text-sm text-[#1C1A17] truncate">{book.title}</span>
+            <span className="font-medium text-sm text-ink truncate">{book.title}</span>
             <span className="text-xs text-neutral-400">{book.author}</span>
             {cat && (
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: cat.color + "22", color: cat.color }}>
@@ -1936,18 +1936,18 @@ function BookAdminRow({
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
           <button onClick={() => setExpanded((p) => !p)}
-            className="p-1.5 hover:bg-neutral-100 rounded-md cursor-pointer text-neutral-400 transition-colors">
+            className="p-1.5 hover:bg-neutral-100 rounded-md cursor-pointer text-neutral-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
           <button onClick={onDelete}
-            className="p-1.5 hover:bg-red-50 rounded-md cursor-pointer text-neutral-300 hover:text-red-400 transition-colors">
+            className="p-1.5 hover:bg-red-50 rounded-md cursor-pointer text-neutral-300 hover:text-red-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
 
       {expanded && (
-        <div className="border-t border-[#F0EAE0] px-4 py-4 bg-[#FDFAF7] space-y-3 rounded-b-xl">
+        <div className="border-t border-cream px-4 py-4 bg-linen space-y-3 rounded-b-xl">
           <div className="flex items-center justify-end h-5">
             <SavedIndicator saved={saved} />
           </div>
@@ -2002,7 +2002,7 @@ function AttendeeOrderItem({
       transition={{ layout: { type: "spring", stiffness: 400, damping: 30 }, opacity: { duration: 0.15 } }}
       className={cn(
         "flex items-center gap-2 px-3 py-2 rounded-lg border bg-white select-none",
-        "border-[#E8DDD0]"
+        "border-sand"
       )}
       style={{ position: "relative" }}
       as="div"
@@ -2016,13 +2016,13 @@ function AttendeeOrderItem({
       <span className="w-5 text-center text-[11px] font-mono text-neutral-400 flex-shrink-0">
         {pos ?? "—"}
       </span>
-      <span className="flex-1 text-sm font-medium text-[#1C1A17]">{name}</span>
+      <span className="flex-1 text-sm font-medium text-ink">{name}</span>
       <div className="flex gap-0.5 flex-shrink-0">
         <button
           type="button"
           onClick={onMoveUp}
           disabled={isFirst}
-          className="p-1 text-neutral-300 hover:text-neutral-600 disabled:opacity-20 cursor-pointer disabled:cursor-default"
+          className="p-1 text-neutral-300 hover:text-neutral-600 disabled:opacity-20 cursor-pointer disabled:cursor-default transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]"
         >
           <ChevronUp className="w-3.5 h-3.5" />
         </button>
@@ -2030,7 +2030,7 @@ function AttendeeOrderItem({
           type="button"
           onClick={onMoveDown}
           disabled={isLast}
-          className="p-1 text-neutral-300 hover:text-neutral-600 disabled:opacity-20 cursor-pointer disabled:cursor-default"
+          className="p-1 text-neutral-300 hover:text-neutral-600 disabled:opacity-20 cursor-pointer disabled:cursor-default transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]"
         >
           <ChevronDown className="w-3.5 h-3.5" />
         </button>
@@ -2039,8 +2039,8 @@ function AttendeeOrderItem({
         type="button"
         onClick={onToggle}
         className={cn(
-          "w-5 h-5 rounded border-2 flex-shrink-0 transition-all cursor-pointer flex items-center justify-center",
-          on ? "bg-[#1C1A17] border-[#1C1A17]" : "border-neutral-300 bg-white"
+          "w-5 h-5 rounded border-2 flex-shrink-0 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer flex items-center justify-center motion-safe:active:scale-[0.97]",
+          on ? "bg-ink border-ink" : "border-neutral-300 bg-white"
         )}
       >
         {on && <Check className="w-3 h-3 text-white" />}
@@ -2124,26 +2124,26 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
                   type="button"
                   onClick={() => setSelectedMeetingId(String(m.id))}
                   className={cn(
-                    "w-full text-left rounded-xl border transition-all cursor-pointer overflow-hidden group",
+                    "w-full text-left rounded-xl border transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer overflow-hidden group motion-safe:active:scale-[0.97]",
                     isSelected
-                      ? "border-[#8B3A2A] ring-1 ring-[#8B3A2A]/30 bg-white"
-                      : "border-[#E8DDD0] bg-white hover:border-[#C8B8A8]"
+                      ? "border-brick ring-1 ring-brick/30 bg-white"
+                      : "border-sand bg-white hover:border-stone-400"
                   )}
                 >
                   <div className="flex items-stretch gap-0">
                     {/* 책 표지 스트립 */}
-                    <div className="w-14 flex-shrink-0 bg-[#F0EAE0] relative overflow-hidden">
+                    <div className="w-14 flex-shrink-0 bg-cream relative overflow-hidden">
                       {cover ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={cover} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
-                          <BookCopy className="w-5 h-5 text-[#C8BEB4]" />
+                          <BookCopy className="w-5 h-5 text-stone-400" />
                         </div>
                       )}
                       {isSelected && (
-                        <div className="absolute inset-0 bg-[#8B3A2A]/20 flex items-center justify-center">
-                          <div className="w-5 h-5 rounded-full bg-[#8B3A2A] flex items-center justify-center">
+                        <div className="absolute inset-0 bg-brick/20 flex items-center justify-center">
+                          <div className="w-5 h-5 rounded-full bg-brick flex items-center justify-center">
                             <Check className="w-3 h-3 text-white" />
                           </div>
                         </div>
@@ -2156,11 +2156,11 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
                         {format(new Date(m.date + "T00:00:00"), "yyyy년 M월 d일 (EEE)", { locale: ko })}
                         {m.location && <span className="ml-1.5">· {m.location}</span>}
                       </p>
-                      <p className={cn("text-sm font-semibold leading-snug", isSelected ? "text-[#8B3A2A]" : "text-[#1C1A17]")}>
+                      <p className={cn("text-sm font-semibold leading-snug", isSelected ? "text-brick" : "text-ink")}>
                         {m.title}
                       </p>
                       {m.books.length > 0 && (
-                        <p className="text-[11px] text-[#9C8E7E] mt-1 leading-snug line-clamp-1">
+                        <p className="text-[11px] text-stone-500 mt-1 leading-snug line-clamp-1">
                           {m.books.map((b) => b.title).join(" · ")}
                         </p>
                       )}
@@ -2183,7 +2183,7 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-xs text-neutral-400">{selected.size}/{order.length}명 선택 · 드래그 또는 화살표로 순서 변경</p>
-                <button type="button" onClick={toggleAll} className="text-xs text-[#8B3A2A] hover:underline cursor-pointer">
+                <button type="button" onClick={toggleAll} className="text-xs text-brick hover:underline cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
                   {selected.size === order.length ? "전체 해제" : "전체 선택"}
                 </button>
               </div>
@@ -2224,21 +2224,21 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
       {selectedMeetingId && orderedSelected.length > 0 && (
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4 flex-wrap">
-            <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-neutral-600">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-neutral-600 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
               <input
                 type="checkbox"
                 checked={includeQuestions}
                 onChange={(e) => setIncludeQuestions(e.target.checked)}
-                className="w-4 h-4 accent-[#8B3A2A] cursor-pointer"
+                className="w-4 h-4 accent-brick cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]"
               />
               AI 토론 질문 포함
             </label>
-            <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-neutral-600">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-neutral-600 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
               <input
                 type="checkbox"
                 checked={randomize}
                 onChange={(e) => setRandomize(e.target.checked)}
-                className="w-4 h-4 accent-[#8B3A2A] cursor-pointer"
+                className="w-4 h-4 accent-brick cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]"
               />
               <Shuffle className="w-3.5 h-3.5" />
               랜덤 순서
