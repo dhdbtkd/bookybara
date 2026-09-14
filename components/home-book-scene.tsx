@@ -3,6 +3,55 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
 
+const BRAND_BROWN = new THREE.Color("#8B3A2A");
+const WARM_RIM = new THREE.Color("#ffe5c8");
+
+function coverPalette(image: CanvasImageSource) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 48;
+  canvas.height = 68;
+  const context = canvas.getContext("2d", { willReadFrequently: true });
+  if (!context) return null;
+
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+  const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+  let red = 0;
+  let green = 0;
+  let blue = 0;
+  let weightTotal = 0;
+
+  for (let y = 0; y < canvas.height; y += 1) {
+    for (let x = 0; x < canvas.width; x += 1) {
+      const edge = x < 10 || y < 3 || y >= canvas.height - 3;
+      if (!edge) continue;
+      const offset = (y * canvas.width + x) * 4;
+      if (pixels[offset + 3] < 128) continue;
+      // The left edge matters most because it visually continues into the spine.
+      const weight = x < 10 ? 2 : 1;
+      red += pixels[offset] * weight;
+      green += pixels[offset + 1] * weight;
+      blue += pixels[offset + 2] * weight;
+      weightTotal += weight;
+    }
+  }
+  if (!weightTotal) return null;
+
+  const sampled = new THREE.Color(`rgb(${Math.round(red / weightTotal)}, ${Math.round(green / weightTotal)}, ${Math.round(blue / weightTotal)})`);
+  const hsl = { h: 0, s: 0, l: 0 };
+  sampled.getHSL(hsl);
+  const jacket = new THREE.Color().setHSL(
+    hsl.h,
+    THREE.MathUtils.clamp(hsl.s * 0.78, 0.06, 0.48),
+    THREE.MathUtils.clamp(hsl.l * 0.76, 0.22, 0.48),
+  ).lerp(BRAND_BROWN, 0.12);
+
+  return {
+    jacket,
+    back: jacket.clone().multiplyScalar(0.72),
+    bounce: jacket.clone().lerp(WARM_RIM, 0.68),
+  };
+}
+
 export default function HomeBookScene({ coverUrl }: { coverUrl: string | null }) {
   const host = useRef<HTMLDivElement>(null);
 
@@ -25,7 +74,7 @@ export default function HomeBookScene({ coverUrl }: { coverUrl: string | null })
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 50);
     camera.position.z = 6.1;
-    scene.add(new THREE.HemisphereLight(0xfffbf3, 0x6b3b2b, 1.45));
+    scene.add(new THREE.HemisphereLight(0xfffbf3, 0x4a4541, 1.35));
     const keyLight = new THREE.SpotLight(0xfff1d6, 38, 14, Math.PI / 5, 0.72, 1.25);
     keyLight.position.set(-3.2, 4.5, 5.5);
     keyLight.castShadow = true;
@@ -34,26 +83,32 @@ export default function HomeBookScene({ coverUrl }: { coverUrl: string | null })
     keyLight.shadow.camera.far = 14;
     keyLight.shadow.bias = -0.0004;
     scene.add(keyLight);
-    const rimLight = new THREE.SpotLight(0x9b4634, 28, 11, Math.PI / 4, 0.85, 1.4);
+    const rimLight = new THREE.SpotLight(0xffe5c8, 19, 11, Math.PI / 4, 0.85, 1.4);
     rimLight.position.set(3.8, 1.2, -2.6);
     scene.add(rimLight);
-    const fillLight = new THREE.PointLight(0xffcf9f, 7, 9, 1.6);
+    const fillLight = new THREE.PointLight(0xffead4, 4.5, 9, 1.6);
     fillLight.position.set(2.6, -1.1, 3.8);
     scene.add(fillLight);
+    const coverBounce = new THREE.PointLight(0x8b3a2a, 2.8, 7, 1.8);
+    coverBounce.position.set(-2.1, -0.4, 2.8);
+    scene.add(coverBounce);
 
     const textures: THREE.Texture[] = [];
-    function book(color: string, width: number, height: number, depth: number) {
+    function book(width: number, height: number, depth: number) {
       const group = new THREE.Group();
       const paper = new THREE.MeshStandardMaterial({ color: "#fff8df", roughness: 0.88 });
-      const jacket = new THREE.MeshPhysicalMaterial({ color, roughness: 0.46, clearcoat: 0.22, clearcoatRoughness: 0.35 });
+      const frontEdge = new THREE.MeshPhysicalMaterial({ color: BRAND_BROWN, roughness: 0.56, clearcoat: 0.12, clearcoatRoughness: 0.48 });
+      const back = frontEdge.clone();
+      const spineMaterial = frontEdge.clone();
       const block = new THREE.Mesh(new THREE.BoxGeometry(width - 0.06, height - 0.09, depth), paper);
       group.add(block);
-      for (const z of [-depth / 2 - 0.022, depth / 2 + 0.022]) {
-        const cover = new THREE.Mesh(new THREE.BoxGeometry(width, height, 0.045), jacket);
-        cover.position.z = z;
-        group.add(cover);
-      }
-      const spine = new THREE.Mesh(new THREE.BoxGeometry(0.085, height, depth + 0.09), jacket);
+      const backCover = new THREE.Mesh(new THREE.BoxGeometry(width, height, 0.045), back);
+      backCover.position.z = -depth / 2 - 0.022;
+      group.add(backCover);
+      const frontCover = new THREE.Mesh(new THREE.BoxGeometry(width, height, 0.045), frontEdge);
+      frontCover.position.z = depth / 2 + 0.022;
+      group.add(frontCover);
+      const spine = new THREE.Mesh(new THREE.BoxGeometry(0.085, height, depth + 0.09), spineMaterial);
       spine.position.x = -width / 2 + 0.02;
       group.add(spine);
       // Fine paper edges make the book read as a physical object at an angle.
@@ -62,10 +117,11 @@ export default function HomeBookScene({ coverUrl }: { coverUrl: string | null })
         edge.position.set(0, height / 2 - 0.042, -depth / 2 + depth * i / 16);
         group.add(edge);
       }
-      return group;
+      return { group, frontEdge, back, spineMaterial };
     }
 
-    const main = book("#8B3A2A", 1.85, 2.65, 0.32);
+    const bookParts = book(1.85, 2.65, 0.32);
+    const main = bookParts.group;
     main.position.set(0, 0.03, 0.3);
     main.rotation.set(-0.13, -0.36, -0.08);
     main.traverse(object => {
@@ -96,10 +152,10 @@ export default function HomeBookScene({ coverUrl }: { coverUrl: string | null })
     textures.push(placeholder);
     const frontMaterial = new THREE.MeshPhysicalMaterial({
       map: placeholder,
-      roughness: 0.42,
-      clearcoat: 0.28,
-      clearcoatRoughness: 0.3,
-      sheen: 0.12,
+      roughness: 0.52,
+      clearcoat: 0.14,
+      clearcoatRoughness: 0.46,
+      sheen: 0.08,
       sheenColor: new THREE.Color("#fff1d6"),
     });
     const front = new THREE.Mesh(new THREE.PlaneGeometry(1.84, 2.64), frontMaterial);
@@ -133,6 +189,17 @@ export default function HomeBookScene({ coverUrl }: { coverUrl: string | null })
       texture.colorSpace = THREE.SRGBColorSpace;
       texture.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
       textures.push(texture); frontMaterial.map = texture; frontMaterial.needsUpdate = true;
+      try {
+        const palette = coverPalette(texture.image as CanvasImageSource);
+        if (palette) {
+          bookParts.frontEdge.color.copy(palette.jacket);
+          bookParts.back.color.copy(palette.back);
+          bookParts.spineMaterial.color.copy(palette.jacket);
+          coverBounce.color.copy(palette.bounce);
+        }
+      } catch {
+        // The brand-brown fallback still reads naturally if pixel access is unavailable.
+      }
       render();
     }, undefined, () => { /* Keep our original cover if the remote cover is unavailable. */ });
     const resize = new ResizeObserver(() => {

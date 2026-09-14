@@ -86,6 +86,7 @@ export default async function HomePage() {
     <div>
       <HomeHero
         book={bookInfo ? {
+          id: bookInfo.id,
           title: bookInfo.title,
           author: bookInfo.author,
           coverUrl: bookInfo.cover_url_hires ?? bookInfo.cover_url,

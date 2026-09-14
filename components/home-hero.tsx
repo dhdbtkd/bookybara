@@ -8,7 +8,7 @@ import styles from "./home-hero.module.css";
 const BookScene = dynamic(() => import("./home-book-scene"), { ssr: false });
 
 type Props = {
-  book: { title: string; author: string; coverUrl: string | null } | null;
+  book: { id: number; title: string; author: string; coverUrl: string | null } | null;
   meeting: { id: number; date: string; location: string | null; dday: string | null } | null;
   attendees: number;
   reviews: number;
@@ -25,7 +25,7 @@ export default function HomeHero({ book, meeting, attendees, reviews }: Props) {
         <div className={styles.visual}>
           <div className={styles.scene} role="img" aria-label={book ? `이번 모임 도서, ${book.title}의 입체 표지` : "함께 읽을 책을 기다리는 책피바라의 책"}>
             <div className={styles.fallback} aria-hidden="true"><span>BOOK<br />YBARA</span><small>우리들의 독서모임</small></div>
-            <BookScene coverUrl={book?.coverUrl ?? null} />
+            <BookScene coverUrl={book?.coverUrl ? `/api/books/${book.id}/cover` : null} />
           </div>
           <div className={styles.bookLabel}>
             <span className={styles.tag}>{meeting ? "이번에 함께 읽어요" : "다음 이야기를 기다리며"}</span>
