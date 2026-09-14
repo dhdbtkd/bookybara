@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, Suspense } from "react";
+import { useEffect, useState, useCallback, useRef, useId, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import Skeleton from "react-loading-skeleton";
@@ -12,6 +12,14 @@ import { cn } from "@/lib/utils";
 import { BookOpen, CalendarDays, MapPin, ChevronLeft, ChevronDown, Save } from "lucide-react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 type Draft = { authorName: string; content: string; savedAt: string };
 function draftKey(meetingId: string, bookId: string) {
@@ -36,14 +44,53 @@ function MeetingSelector({ meetings, selectedId, onChange, compact }: {
   compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const listId = useId();
   const selected = meetings.find((m) => String(m.id) === selectedId);
   const today = new Date().toISOString().split("T")[0];
+
+  const openMenu = useCallback((preferLast = false) => {
+    const selectedIndex = meetings.findIndex((m) => String(m.id) === selectedId);
+    setActiveIndex(selectedIndex >= 0 ? selectedIndex : preferLast ? meetings.length - 1 : 0);
+    setOpen(true);
+  }, [meetings, selectedId]);
+
+  const closeMenu = useCallback((restoreFocus = false) => {
+    setOpen(false);
+    if (restoreFocus) requestAnimationFrame(() => triggerRef.current?.focus());
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const frame = requestAnimationFrame(() => optionRefs.current[activeIndex]?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, [open, activeIndex]);
+
+  function moveFocus(nextIndex: number) {
+    if (meetings.length === 0) return;
+    const wrapped = (nextIndex + meetings.length) % meetings.length;
+    setActiveIndex(wrapped);
+    optionRefs.current[wrapped]?.focus();
+  }
 
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        aria-label={compact ? "모임 변경" : "모임 선택"}
+        onClick={() => open ? closeMenu() : openMenu()}
+        onKeyDown={(event) => {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            openMenu(event.key === "ArrowUp");
+          }
+        }}
         className={cn(
           "flex items-center gap-1.5 cursor-pointer transition-colors",
           compact
@@ -62,16 +109,45 @@ function MeetingSelector({ meetings, selectedId, onChange, compact }: {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className={cn(
+          <div className="fixed inset-0 z-40" aria-hidden="true" onMouseDown={() => closeMenu()} />
+          <div
+            id={listId}
+            role="listbox"
+            aria-label="모임 목록"
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                closeMenu(true);
+              } else if (event.key === "ArrowDown") {
+                event.preventDefault();
+                moveFocus(activeIndex + 1);
+              } else if (event.key === "ArrowUp") {
+                event.preventDefault();
+                moveFocus(activeIndex - 1);
+              } else if (event.key === "Home") {
+                event.preventDefault();
+                moveFocus(0);
+              } else if (event.key === "End") {
+                event.preventDefault();
+                moveFocus(meetings.length - 1);
+              } else if (event.key === "Tab") {
+                closeMenu();
+              }
+            }}
+            className={cn(
             "absolute z-50 mt-1 bg-white border border-neutral-200 rounded-xl shadow-lg overflow-y-auto min-w-[240px] max-h-64",
             compact ? "left-0" : "w-full"
           )}>
-            {meetings.map((m) => (
+            {meetings.map((m, index) => (
               <button
                 key={m.id}
+                ref={(node) => { optionRefs.current[index] = node; }}
                 type="button"
-                onClick={() => { onChange(String(m.id)); setOpen(false); }}
+                role="option"
+                aria-selected={String(m.id) === selectedId}
+                tabIndex={index === activeIndex ? 0 : -1}
+                onFocus={() => setActiveIndex(index)}
+                onClick={() => { onChange(String(m.id)); closeMenu(true); }}
                 className={cn(
                   "w-full text-left px-4 py-2.5 text-sm hover:bg-[#F8F5F0] transition-colors cursor-pointer flex items-center gap-2",
                   String(m.id) === selectedId && "bg-[#F8F5F0]"
@@ -173,9 +249,12 @@ function NewReviewForm() {
   const [loadingAttendees, setLoadingAttendees] = useState(false);
   const [savedIndicator, setSavedIndicator] = useState(false);
   const [restoreDraft, setRestoreDraft] = useState<Draft | null>(null);
+  const [pendingMeetingId, setPendingMeetingId] = useState<string | null>(null);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const [editorInitialText, setEditorInitialText] = useState<string | undefined>(undefined);
   const [editorKey, setEditorKey] = useState(0);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedIndicatorTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Initial load: all meetings + all books (fallback)
   useEffect(() => {
@@ -192,7 +271,7 @@ function NewReviewForm() {
       setAllBooks(bs);
 
       // Auto-select meeting
-      let initId = initMeetingId ?? (upcoming[0] ? String(upcoming[0].id) : past[0] ? String(past[0].id) : "");
+      const initId = initMeetingId ?? (upcoming[0] ? String(upcoming[0].id) : past[0] ? String(past[0].id) : "");
       setSelectedMeetingId(initId);
       setLoading(false);
     });
@@ -228,6 +307,47 @@ function NewReviewForm() {
     setCharCount(text.length);
   }, []);
 
+  const saveDraft = useCallback((showIndicator = true) => {
+    if (!selectedMeetingId || !selectedBookId) return;
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    const key = draftKey(selectedMeetingId, selectedBookId);
+    if (!content.trim() && !authorName.trim()) {
+      localStorage.removeItem(key);
+      return;
+    }
+    const draft: Draft = { authorName, content, savedAt: new Date().toISOString() };
+    localStorage.setItem(key, JSON.stringify(draft));
+    if (!showIndicator) return;
+    setSavedIndicator(true);
+    if (savedIndicatorTimer.current) clearTimeout(savedIndicatorTimer.current);
+    savedIndicatorTimer.current = setTimeout(() => setSavedIndicator(false), 2000);
+  }, [authorName, content, selectedBookId, selectedMeetingId]);
+
+  function applyMeetingChange(id: string) {
+    setRestoreDraft(null);
+    setEditorInitialText(undefined);
+    setEditorKey((key) => key + 1);
+    setContent("");
+    setCharCount(0);
+    setPendingMeetingId(null);
+    setSelectedMeetingId(id);
+  }
+
+  function requestMeetingChange(id: string) {
+    if (id === selectedMeetingId) return;
+    if (content.trim() || authorName.trim()) {
+      saveDraft(false);
+      setPendingMeetingId(id);
+      return;
+    }
+    applyMeetingChange(id);
+  }
+
+  function handleBack() {
+    saveDraft(false);
+    router.back();
+  }
+
   // Check for existing draft when meetingId + bookId are set
   useEffect(() => {
     if (!selectedMeetingId || !selectedBookId) return;
@@ -242,45 +362,70 @@ function NewReviewForm() {
     }
   }, [selectedMeetingId, selectedBookId]);
 
-  // Autosave to localStorage (debounced 3s)
+  // Autosave to localStorage (debounced 3s), then synchronously flush on exit.
   useEffect(() => {
     if (!selectedMeetingId || !selectedBookId) return;
     if (!content.trim() && !authorName.trim()) return;
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
-    autosaveTimer.current = setTimeout(() => {
-      const draft: Draft = { authorName, content, savedAt: new Date().toISOString() };
-      localStorage.setItem(draftKey(selectedMeetingId, selectedBookId), JSON.stringify(draft));
-      setSavedIndicator(true);
-      setTimeout(() => setSavedIndicator(false), 2000);
-    }, 3000);
+    autosaveTimer.current = setTimeout(() => saveDraft(), 3000);
     return () => { if (autosaveTimer.current) clearTimeout(autosaveTimer.current); };
-  }, [content, authorName, selectedMeetingId, selectedBookId]);
+  }, [content, authorName, selectedMeetingId, selectedBookId, saveDraft]);
+
+  useEffect(() => {
+    const onPageHide = () => saveDraft(false);
+    window.addEventListener("pagehide", onPageHide);
+    return () => window.removeEventListener("pagehide", onPageHide);
+  }, [saveDraft]);
+
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    const onResize = () => setKeyboardOpen(window.innerHeight - viewport.height > 150);
+    viewport.addEventListener("resize", onResize);
+    return () => viewport.removeEventListener("resize", onResize);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitting) return;
     if (!authorName.trim()) { toast.error("작성자를 선택해주세요."); return; }
     if (!selectedBookId) { toast.error("책을 선택해주세요."); return; }
     if (!content.trim()) { toast.error("독후감 내용을 입력해주세요."); return; }
 
     setSubmitting(true);
-    const res = await fetch("/api/reviews", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        book_id: Number(selectedBookId),
-        meeting_id: selectedMeetingId ? Number(selectedMeetingId) : null,
-        author_name: authorName.trim(),
-        content,
-      }),
-    });
+    saveDraft(false);
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          book_id: Number(selectedBookId),
+          meeting_id: selectedMeetingId ? Number(selectedMeetingId) : null,
+          author_name: authorName.trim(),
+          content,
+        }),
+      });
 
-    if (res.ok) {
+      if (!res.ok) {
+        const payload = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(payload?.error ?? "잠시 후 다시 시도해주세요.");
+      }
+
       localStorage.removeItem(draftKey(selectedMeetingId, selectedBookId));
       toast.success("독후감이 등록되었습니다!");
       router.push(selectedMeetingId ? `/meetings/${selectedMeetingId}` : "/reviews");
-    } else {
-      const { error } = await res.json();
-      toast.error(error ?? "오류가 발생했습니다.");
+    } catch (error) {
+      const description = error instanceof Error && error.message !== "Failed to fetch"
+        ? error.message
+        : "네트워크 연결을 확인하고 다시 시도해주세요.";
+      toast.error("독후감을 등록하지 못했습니다.", {
+        description,
+        action: {
+          label: "다시 등록",
+          onClick: () => document.querySelector<HTMLFormElement>("#review-form")?.requestSubmit(),
+        },
+      });
+    } finally {
       setSubmitting(false);
     }
   }
@@ -300,6 +445,9 @@ function NewReviewForm() {
             type="button"
             onClick={() => {
               setAuthorName(restoreDraft.authorName);
+              setCustomName(!attendees.some((attendee) => attendee.name === restoreDraft.authorName));
+              setContent(restoreDraft.content);
+              setCharCount(restoreDraft.content.length);
               setEditorInitialText(restoreDraft.content);
               setEditorKey((k) => k + 1);
               setStep("write");
@@ -330,14 +478,36 @@ function NewReviewForm() {
   const booksForPicker = meetingBooks.length > 0 ? meetingBooks : allBooks;
   const selectedBook = booksForPicker.find((b) => String(b.id) === selectedBookId) ?? null;
   const attendees = selectedMeeting?.attendees ?? [];
+  const pendingMeeting = meetings.find((m) => String(m.id) === pendingMeetingId) ?? null;
+
+  const meetingChangeDialog = (
+    <Dialog open={pendingMeetingId !== null} onOpenChange={(open) => !open && setPendingMeetingId(null)}>
+      <DialogContent showCloseButton={false} className="p-5 sm:p-6">
+        <DialogHeader>
+          <DialogTitle className="text-base font-bold text-[#1C1A17]">모임을 변경할까요?</DialogTitle>
+          <DialogDescription className="leading-relaxed">
+            지금 작성한 내용은 현재 모임의 초안으로 저장됩니다.
+            {pendingMeeting && <span className="mt-1 block font-medium text-neutral-700">{pendingMeeting.title}으로 이동합니다.</span>}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="-mx-5 -mb-5 px-5 sm:-mx-6 sm:-mb-6 sm:px-6">
+          <Button type="button" variant="outline" onClick={() => setPendingMeetingId(null)}>계속 작성</Button>
+          <Button type="button" className="bg-[#1C1A17] hover:bg-[#8B3A2A]" onClick={() => pendingMeetingId && applyMeetingChange(pendingMeetingId)}>
+            초안 저장 후 변경
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 
   // ── Step: book selection ──
   if (step === "book") {
     return (
       <div className="w-full flex flex-col flex-1 min-h-0 gap-5">
         {restoreDraftModal}
+        {meetingChangeDialog}
         <div className="flex items-center gap-2 flex-shrink-0">
-          <button onClick={() => router.back()} className="p-1 text-neutral-400 hover:text-neutral-700 cursor-pointer transition-colors">
+          <button type="button" aria-label="이전 화면으로 돌아가기" onClick={handleBack} className="p-1 text-neutral-400 hover:text-neutral-700 cursor-pointer transition-colors">
             <ChevronLeft className="w-4 h-4" />
           </button>
           <p className="text-xs text-neutral-400 uppercase tracking-widest font-semibold">독후감 쓰기</p>
@@ -346,7 +516,7 @@ function NewReviewForm() {
         {/* 모임 선택 */}
         <div className="flex-shrink-0 space-y-1.5">
           <p className="text-xs font-semibold text-neutral-400 uppercase tracking-widest">모임</p>
-          <MeetingSelector meetings={meetings} selectedId={selectedMeetingId} onChange={setSelectedMeetingId} />
+          <MeetingSelector meetings={meetings} selectedId={selectedMeetingId} onChange={requestMeetingChange} />
         </div>
 
         <div className="flex-shrink-0">
@@ -384,8 +554,9 @@ function NewReviewForm() {
   return (
     <div className="w-full flex flex-col gap-4">
       {restoreDraftModal}
+      {meetingChangeDialog}
       <div className="flex items-center gap-2 flex-shrink-0">
-        <button onClick={() => router.back()} className="p-1 text-neutral-400 hover:text-neutral-700 cursor-pointer transition-colors">
+        <button type="button" aria-label="이전 화면으로 돌아가기" onClick={handleBack} className="p-1 text-neutral-400 hover:text-neutral-700 cursor-pointer transition-colors">
           <ChevronLeft className="w-4 h-4" />
         </button>
         <p className="text-xs text-neutral-400 uppercase tracking-widest font-semibold">독후감 쓰기</p>
@@ -421,7 +592,7 @@ function NewReviewForm() {
           </div>
 
           {/* 모임 (드롭다운으로 변경 가능) */}
-          <MeetingSelector meetings={meetings} selectedId={selectedMeetingId} onChange={setSelectedMeetingId} compact />
+          <MeetingSelector meetings={meetings} selectedId={selectedMeetingId} onChange={requestMeetingChange} compact />
 
           {selectedMeeting?.location && (
             <span className="flex items-center gap-1 text-xs text-neutral-400">
@@ -467,9 +638,9 @@ function NewReviewForm() {
       </form>
 
       {/* 플로팅 버튼 바 */}
-      <div className="fixed bottom-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none" style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}>
+      <div className={cn("fixed bottom-6 left-0 right-0 z-50 justify-center px-4 pointer-events-none", keyboardOpen ? "hidden" : "flex")} style={{ bottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}>
         <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md border border-white/60 shadow-xl shadow-black/10 rounded-2xl px-2 py-2 pointer-events-auto">
-          <Button type="button" variant="ghost" onClick={() => router.back()} className="cursor-pointer rounded-xl text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 px-5">
+          <Button type="button" variant="ghost" onClick={handleBack} className="cursor-pointer rounded-xl text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 px-5">
             취소
           </Button>
           <Button
