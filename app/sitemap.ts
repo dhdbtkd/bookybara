@@ -20,7 +20,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: siteUrl, lastModified: now, changeFrequency: "daily", priority: 1 },
     { url: `${siteUrl}/meetings`, lastModified: now, changeFrequency: "weekly", priority: 0.9 },
-    { url: `${siteUrl}/reviews`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
     { url: `${siteUrl}/candidates`, lastModified: now, changeFrequency: "weekly", priority: 0.6 },
     { url: `${siteUrl}/discussion`, lastModified: now, changeFrequency: "weekly", priority: 0.5 },
     { url: `${siteUrl}/archive`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
@@ -28,26 +27,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     const supabase = publicClient();
-    const [meetingsRes, reviewsRes] = await Promise.all([
-      supabase.from("meetings").select("id, date").order("date", { ascending: false }),
-      supabase.from("reviews").select("id, created_at").order("created_at", { ascending: false }),
-    ]);
+    const { data: meetingRows } = await supabase
+      .from("meetings")
+      .select("id, date")
+      .order("date", { ascending: false });
 
-    const meetings: MetadataRoute.Sitemap = (meetingsRes.data ?? []).map((m) => ({
+    const meetings: MetadataRoute.Sitemap = (meetingRows ?? []).map((m) => ({
       url: `${siteUrl}/meetings/${m.id}`,
       lastModified: new Date(`${m.date}T00:00:00`),
       changeFrequency: "weekly" as const,
       priority: 0.8,
     }));
 
-    const reviews: MetadataRoute.Sitemap = (reviewsRes.data ?? []).map((r) => ({
-      url: `${siteUrl}/reviews/${r.id}`,
-      lastModified: r.created_at ? new Date(r.created_at) : now,
-      changeFrequency: "monthly" as const,
-      priority: 0.7,
-    }));
-
-    return [...staticRoutes, ...meetings, ...reviews];
+    // 독후감(/reviews/*)은 noindex 라 사이트맵에 넣지 않는다.
+    return [...staticRoutes, ...meetings];
   } catch {
     // DB 가 흔들려도 사이트맵 자체는 살아 있어야 한다.
     return staticRoutes;
