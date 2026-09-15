@@ -35,6 +35,8 @@ export const metadata: Metadata = {
     follow: true,
     googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
   },
+  // Search Console 소유 확인. 지우면 확인이 풀린다.
+  verification: { google: "XzJ_QklYniqOja5QnOFeKo7UiS0NdpYXsuJ72Fde9H0" },
   openGraph: {
     type: "website",
     locale: "ko_KR",
