@@ -1,3 +1,9 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
+
 import { createClient } from "@/utils/supabase/server";
 import { format, differenceInCalendarDays } from "date-fns";
 import { ko } from "date-fns/locale";

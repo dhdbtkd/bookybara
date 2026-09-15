@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "모임 일정",
+  description: "책피바라 독서모임의 다가오는 일정과 지난 모임 기록을 확인하세요.",
+  alternates: { canonical: "/meetings" },
+};
+
 import { createClient } from "@/utils/supabase/server";
 import MeetingsView from "./_meetings-view";
 

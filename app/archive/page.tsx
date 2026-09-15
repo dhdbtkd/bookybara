@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "아카이브",
+  description: "책피바라가 지금까지 함께 읽은 책과 모임 기록입니다.",
+  alternates: { canonical: "/archive" },
+};
+
 import { createClient } from "@/utils/supabase/server";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";

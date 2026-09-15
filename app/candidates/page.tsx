@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "책 리스트",
+  description: "책피바라 멤버들이 다음에 함께 읽자고 제안한 책 후보 목록입니다.",
+  alternates: { canonical: "/candidates" },
+};
+
 import { createClient } from "@/utils/supabase/server";
 import BooksView from "./_books-view";
 

@@ -6,6 +6,7 @@ import IntroSplash from "@/components/intro-splash";
 import { Toaster } from "@/components/ui/sonner";
 import ScrollToTop from "@/components/scroll-to-top";
 import PwaInstallPrompt from "@/components/pwa-install-prompt";
+import { siteDescription, siteName, siteUrl } from "@/lib/site";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
@@ -19,17 +20,34 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "책피바라",
-  description: "우리들의 독서모임",
+  // 상대 경로 OG·canonical 이 이 주소를 기준으로 절대 주소가 된다.
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: `${siteName} · 우리들의 독서모임`,
+    // 하위 페이지는 제 이름만 쓰고 꼬리표는 여기서 붙인다.
+    template: `%s · ${siteName}`,
+  },
+  description: siteDescription,
+  applicationName: siteName,
+  keywords: ["독서모임", "독후감", "책 추천", "북클럽", siteName],
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+  },
   openGraph: {
-    title: "책피바라",
-    description: "우리들의 독서모임",
-    images: [{ url: "/og.png" }],
+    type: "website",
+    locale: "ko_KR",
+    siteName,
+    url: "/",
+    title: `${siteName} · 우리들의 독서모임`,
+    description: siteDescription,
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: siteName }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "책피바라",
-    description: "우리들의 독서모임",
+    title: `${siteName} · 우리들의 독서모임`,
+    description: siteDescription,
     images: ["/og.png"],
   },
 };

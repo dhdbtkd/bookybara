@@ -1,3 +1,11 @@
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "토론 질문",
+  description: "모임에서 나눌 토론 질문을 모았습니다.",
+  alternates: { canonical: "/discussion" },
+};
+
 import { createClient } from "@/utils/supabase/server";
 import MotionPage from "@/components/motion-page";
 import { Suspense } from "react";
