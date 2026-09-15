@@ -103,6 +103,7 @@
   --color-stone-400: #C8BEB4;
   --color-stone-500: #9C8E7E;
   --color-stone-600: #8B7B6B;
+  --color-stone-700: #6B5E52;  /* 본문 옆 보조 텍스트. 회색 대신 쓴다 */
 
   /* ── 이징 ──────────────────────────────────────────
      CSS 기본 곡선은 약하다. 진입/이탈은 ease-out, 화면 안 이동은 ease-in-out. */
@@ -253,6 +254,49 @@
 }
 
 @layer utilities {
+  /* ── 누를 수 있는 것 하나의 반응 ──────────────────────
+     색 전환은 200ms, 눌림 피드백은 120ms. 피드백은 누르는 즉시여야 한다.
+     admin 전역에 같은 문자열을 82번 반복하던 걸 여기로 올렸다. */
+  .tap {
+    transition-property: color, background-color, border-color, box-shadow, scale;
+    transition-duration: 200ms;
+    transition-timing-function: var(--ease-out-strong);
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .tap:active:not(:disabled):not([aria-disabled="true"]) {
+      scale: 0.97;
+      transition-duration: 120ms;
+    }
+  }
+
+  /* 라벨(작은 대문자 머리말) 한 종류.
+     9·10·12px × tracking 3종 × neutral/stone 혼용이던 걸 하나로 모았다.
+     색은 ink 를 묽힌 값이라 회색이 끼어들지 않고, 대비도 회색보다 낫다. */
+  .eyebrow {
+    font-size: 0.625rem;
+    line-height: 1.2;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: color-mix(in oklab, var(--color-ink) 62%, transparent);
+  }
+  .eyebrow-invert {
+    color: color-mix(in oklab, white 45%, transparent);
+  }
+
+  /* 관리자 화면의 모바일 입력 크기.
+     기본 컨트롤이 32px라 손가락으로 누르기엔 작다. 좁은 화면에서만 40px로 올린다. */
+  @media (max-width: 767px) {
+    .admin-shell [data-slot="input"],
+    .admin-shell [data-slot="textarea"],
+    .admin-shell [data-slot="button"] {
+      min-height: 2.5rem;
+    }
+    .admin-shell [data-slot="textarea"] {
+      min-height: 4rem;
+    }
+  }
+
   .scrollbar-none {
     scrollbar-width: none;
     -ms-overflow-style: none;

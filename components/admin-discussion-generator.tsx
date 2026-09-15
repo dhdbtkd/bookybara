@@ -159,26 +159,26 @@ function DiscussionCard({
     <div className="bg-white rounded-xl border border-sand p-5">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <p className="text-[9px] font-bold tracking-widest uppercase text-neutral-400 mb-0.5">모임</p>
+          <p className="text-[9px] font-bold tracking-widest uppercase text-stone-600 mb-0.5">모임</p>
           <p className="font-semibold text-sm text-ink">{d.meetings?.title ?? "—"}</p>
         </div>
         <div className="flex items-center gap-2">
           <span className={cn(
             "text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-full",
-            d.is_public ? "bg-pine/10 text-pine" : "bg-neutral-100 text-neutral-400"
+            d.is_public ? "bg-pine/10 text-pine" : "bg-cream text-stone-600"
           )}>
             {d.is_public ? "공개" : "비공개"}
           </span>
           <button
             onClick={() => onTogglePublic(d.id, d.is_public)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-neutral-200 hover:bg-neutral-50 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer text-neutral-500 motion-safe:active:scale-[0.97]"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-sand hover:bg-parchment tap cursor-pointer text-stone-700"
           >
             {d.is_public ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
             {d.is_public ? "비공개로" : "공개로"}
           </button>
           <button
             onClick={() => setConfirmingDelete(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-neutral-200 hover:bg-brick/5 hover:border-brick/30 hover:text-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer text-neutral-500 motion-safe:active:scale-[0.97]"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border border-sand hover:bg-brick/5 hover:border-brick/30 hover:text-brick tap cursor-pointer text-stone-700"
           >
             <Trash2 className="w-3 h-3" />
             삭제
@@ -197,18 +197,18 @@ function DiscussionCard({
                   onChange={(e) => setEditText(e.target.value)}
                   rows={3}
                   autoFocus
-                  className="w-full text-sm text-neutral-700 border border-brick/40 rounded-lg px-3 py-2 resize-none outline-none focus:ring-1 focus:ring-brick/40 leading-relaxed"
+                  className="w-full text-sm text-ink border border-brick/40 rounded-lg px-3 py-2 resize-none outline-none focus:ring-1 focus:ring-brick/40 leading-relaxed"
                 />
                 <div className="flex gap-2">
                   <button
                     onClick={() => saveEdit(i)}
-                    className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-ink text-white text-xs font-medium cursor-pointer hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]"
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-lg bg-ink text-white text-xs font-medium cursor-pointer hover:bg-brick tap"
                   >
                     <Check className="w-3 h-3" />저장
                   </button>
                   <button
                     onClick={cancelEdit}
-                    className="inline-flex items-center gap-1 px-3 py-1 rounded-lg border border-neutral-200 text-xs text-neutral-500 cursor-pointer hover:bg-neutral-50 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]"
+                    className="inline-flex items-center gap-1 px-3 py-1 rounded-lg border border-sand text-xs text-stone-700 cursor-pointer hover:bg-parchment tap"
                   >
                     <X className="w-3 h-3" />취소
                   </button>
@@ -216,18 +216,18 @@ function DiscussionCard({
               </div>
             ) : (
               <div className="flex-1 flex items-start justify-between gap-2">
-                <span className="leading-relaxed text-neutral-600">{q}</span>
+                <span className="leading-relaxed text-stone-700">{q}</span>
                 <div className="flex items-center gap-1 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button
                     onClick={() => startEdit(i)}
-                    className="p-1.5 rounded-md hover:bg-neutral-100 text-neutral-400 hover:text-neutral-600 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]"
+                    className="p-1.5 rounded-md hover:bg-cream text-stone-600 hover:text-stone-700 cursor-pointer tap"
                     title="수정"
                   >
                     <Pencil className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => deleteQuestion(i)}
-                    className="p-1.5 rounded-md hover:bg-red-50 text-neutral-300 hover:text-red-400 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]"
+                    className="p-1.5 rounded-md hover:bg-red-50 text-stone-400 hover:text-red-400 cursor-pointer tap"
                     title="삭제"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -239,7 +239,7 @@ function DiscussionCard({
         ))}
       </ol>
       {qs.length === 0 && (
-        <p className="text-xs text-neutral-400 text-center py-3">모든 질문이 삭제되었습니다.</p>
+        <p className="text-xs text-stone-600 text-center py-3">모든 질문이 삭제되었습니다.</p>
       )}
 
       <ConfirmModal
@@ -513,7 +513,7 @@ export default function AdminDiscussionGenerator({
   return (
     <div className="space-y-6">
       {/* ── 탭 헤더 ── */}
-      <div className="flex gap-1 bg-neutral-100 rounded-lg p-1 w-fit">
+      <div className="flex gap-1 bg-cream rounded-lg p-1 w-fit">
         {([
           { id: "generate", label: "질문 생성" },
           { id: "list",     label: `생성 목록 ${discussions.length > 0 ? `(${discussions.length})` : ""}` },
@@ -523,8 +523,8 @@ export default function AdminDiscussionGenerator({
             type="button"
             onClick={() => setTab(t.id)}
             className={cn(
-              "px-5 py-2 rounded-md text-sm font-medium transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]",
-              tab === t.id ? "bg-white text-ink shadow-sm" : "text-neutral-500 hover:text-neutral-700"
+              "px-5 py-2 rounded-md text-sm font-medium tap cursor-pointer",
+              tab === t.id ? "bg-white text-ink shadow-sm" : "text-stone-700 hover:text-ink"
             )}
           >
             {t.label}
@@ -538,36 +538,36 @@ export default function AdminDiscussionGenerator({
 
           {/* 1. 모임 선택 */}
           <div className="p-5 border-b border-cream">
-            <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-400 mb-3">1. 모임 선택</p>
+            <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-stone-600 mb-3">1. 모임 선택</p>
             <button
               type="button"
               onClick={() => { setMeetingSearch(""); setMeetingPickerOpen(true); }}
-              className="w-full flex items-center justify-between border border-neutral-200 rounded-lg px-3 py-2.5 text-sm bg-white hover:border-neutral-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer text-left motion-safe:active:scale-[0.97]"
+              className="w-full flex items-center justify-between border border-sand rounded-lg px-3 py-2.5 text-sm bg-white hover:border-stone-500 tap cursor-pointer text-left"
             >
               {selectedMeeting ? (
                 <span className="text-ink font-medium truncate">
                   {format(new Date(selectedMeeting.date), "yyyy.M.d", { locale: ko })} — {selectedMeeting.title}
                 </span>
               ) : (
-                <span className="text-neutral-400">모임을 선택하세요</span>
+                <span className="text-stone-600">모임을 선택하세요</span>
               )}
-              <ChevronDown className="w-4 h-4 text-neutral-400 flex-shrink-0 ml-2" />
+              <ChevronDown className="w-4 h-4 text-stone-600 flex-shrink-0 ml-2" />
             </button>
           </div>
 
           {/* 2. 책 선택 (책이 2권 이상일 때만) */}
           {selectedMeeting && selectedMeeting.books.length >= 2 && (
             <div className="p-5 border-b border-cream">
-              <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-400 mb-3">2. 책 선택</p>
+              <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-stone-600 mb-3">2. 책 선택</p>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
                   onClick={() => setSelectedBookId(null)}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]",
+                    "flex items-center gap-2 px-3 py-2 rounded-lg border text-sm tap cursor-pointer",
                     selectedBookId === null
                       ? "border-ink bg-ink text-white"
-                      : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
+                      : "border-sand bg-white text-stone-700 hover:border-stone-500"
                   )}
                 >
                   전체
@@ -578,10 +578,10 @@ export default function AdminDiscussionGenerator({
                     type="button"
                     onClick={() => setSelectedBookId(b.id)}
                     className={cn(
-                      "flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]",
+                      "flex items-center gap-2 px-3 py-2 rounded-lg border text-sm tap cursor-pointer",
                       selectedBookId === b.id
                         ? "border-ink bg-ink text-white"
-                        : "border-neutral-200 bg-white text-neutral-600 hover:border-neutral-400"
+                        : "border-sand bg-white text-stone-700 hover:border-stone-500"
                     )}
                   >
                     {(b.cover_url_hires ?? b.cover_url) && (
@@ -601,27 +601,27 @@ export default function AdminDiscussionGenerator({
           {/* 3. 독후감 선택 */}
           <div className="p-5 border-b border-cream">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-400">
+              <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-stone-600">
                 {(selectedMeeting?.books?.length ?? 0) >= 2 ? "3." : "2."} 독후감 선택
               </p>
               {visibleReviews.length > 0 && (
-                <button type="button" onClick={toggleAll} className="text-xs text-brick hover:underline cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
+                <button type="button" onClick={toggleAll} className="text-xs text-brick hover:underline cursor-pointer tap">
                   {selectedIds.size === visibleReviews.length ? "전체 해제" : "전체 선택"}
                 </button>
               )}
             </div>
 
             {!meetingId ? (
-              <p className="text-xs text-neutral-300 py-2">모임을 먼저 선택해주세요.</p>
+              <p className="text-xs text-stone-400 py-2">모임을 먼저 선택해주세요.</p>
             ) : loadingReviews ? (
-              <p className="text-xs text-neutral-400 py-2">불러오는 중...</p>
+              <p className="text-xs text-stone-600 py-2">불러오는 중...</p>
             ) : visibleReviews.length === 0 ? (
-              <p className="text-xs text-neutral-400 py-2">
+              <p className="text-xs text-stone-600 py-2">
                 {selectedBookId !== null ? "이 책에 해당하는 독후감이 없습니다." : "이 모임에 독후감이 없습니다."} 독후감 없이 진행합니다.
               </p>
             ) : (
               <div>
-                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-2">
                   {visibleReviews.map((r) => {
                     const selected = selectedIds.has(r.id);
                     return (
@@ -630,14 +630,14 @@ export default function AdminDiscussionGenerator({
                         type="button"
                         onClick={() => toggleReview(r.id)}
                         className={cn(
-                          "flex items-center gap-1.5 px-3 py-2.5 rounded-lg border text-sm transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer truncate motion-safe:active:scale-[0.97]",
+                          "flex items-center gap-1.5 px-3 py-2.5 rounded-lg border text-sm tap cursor-pointer truncate",
                           selected
-                            ? "border-neutral-400 text-ink font-semibold"
-                            : "border-neutral-200 text-neutral-300 font-normal"
+                            ? "border-stone-500 text-ink font-semibold"
+                            : "border-sand text-stone-600 font-normal"
                         )}
                       >
                         <span className={cn("flex-shrink-0 w-3.5 h-3.5 rounded-sm border flex items-center justify-center",
-                          selected ? "border-ink bg-ink" : "border-neutral-200"
+                          selected ? "border-ink bg-ink" : "border-sand"
                         )}>
                           {selected && <svg viewBox="0 0 10 8" className="w-2 h-2 text-white fill-none stroke-current stroke-[1.5]"><polyline points="1,4 4,7 9,1"/></svg>}
                         </span>
@@ -646,7 +646,7 @@ export default function AdminDiscussionGenerator({
                     );
                   })}
                 </div>
-                <p className="text-[11px] text-neutral-400 mt-2">{selectedIds.size}/{visibleReviews.length}편 선택됨</p>
+                <p className="text-[11px] text-stone-600 mt-2">{selectedIds.size}/{visibleReviews.length}편 선택됨</p>
               </div>
             )}
           </div>
@@ -654,31 +654,31 @@ export default function AdminDiscussionGenerator({
           {/* 4. AI 설정 */}
           <div className="p-5 border-b border-cream">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-neutral-400">
+              <p className="text-[10px] font-bold tracking-[0.15em] uppercase text-stone-600">
                 {(selectedMeeting?.books?.length ?? 0) >= 2 ? "4." : "3."} AI 설정
               </p>
               <button
                 type="button"
                 onClick={() => setCurrencyKRW((v) => !v)}
-                className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase px-2 py-1 rounded-md border border-neutral-200 hover:border-neutral-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer text-neutral-500 motion-safe:active:scale-[0.97]"
+                className="flex items-center gap-1 text-[10px] font-bold tracking-widest uppercase px-2 py-1 rounded-md border border-sand hover:border-stone-500 tap cursor-pointer text-stone-700"
               >
                 {currencyKRW ? "₩ KRW" : "$ USD"}
-                {currencyKRW && usdToKrw === null && <span className="text-neutral-300 ml-1">로딩중</span>}
+                {currencyKRW && usdToKrw === null && <span className="text-stone-400 ml-1">로딩중</span>}
                 {currencyKRW && usdToKrw !== null && (
-                  <span className="text-neutral-300 ml-1 normal-case font-normal">≈{Math.round(usdToKrw).toLocaleString()}원</span>
+                  <span className="text-stone-400 ml-1 normal-case font-normal">≈{Math.round(usdToKrw).toLocaleString()}원</span>
                 )}
               </button>
             </div>
             <div className="space-y-4">
-              <div className="flex gap-1 bg-neutral-100 rounded-lg p-1 w-fit">
+              <div className="flex gap-1 bg-cream rounded-lg p-1 w-fit">
                 {(Object.keys(PROVIDERS) as Provider[]).map((p) => (
                   <button
                     key={p}
                     type="button"
                     onClick={() => setProvider(p)}
                     className={cn(
-                      "flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]",
-                      provider === p ? "bg-white text-ink shadow-sm" : "text-neutral-500 hover:text-neutral-700"
+                      "flex items-center gap-1.5 px-4 py-1.5 rounded-md text-sm font-medium tap cursor-pointer",
+                      provider === p ? "bg-white text-ink shadow-sm" : "text-stone-700 hover:text-ink"
                     )}
                   >
                     <Icon icon={PROVIDERS[p].icon} className="w-3.5 h-3.5" />
@@ -696,7 +696,7 @@ export default function AdminDiscussionGenerator({
                     type="button"
                     onClick={() => loadOracleModels(false)}
                     disabled={loadingOracle || probing}
-                    className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-md border border-neutral-200 hover:border-neutral-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer text-neutral-500 disabled:opacity-40 disabled:cursor-not-allowed motion-safe:active:scale-[0.97]"
+                    className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-md border border-sand hover:border-stone-500 tap cursor-pointer text-stone-700 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <RefreshCw className={cn("w-3 h-3", loadingOracle && "animate-spin")} />
                     목록 새로고침
@@ -705,12 +705,12 @@ export default function AdminDiscussionGenerator({
                     type="button"
                     onClick={() => loadOracleModels(true)}
                     disabled={loadingOracle || probing}
-                    className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-md border border-neutral-200 hover:border-neutral-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer text-neutral-500 disabled:opacity-40 disabled:cursor-not-allowed motion-safe:active:scale-[0.97]"
+                    className="flex items-center gap-1.5 text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 rounded-md border border-sand hover:border-stone-500 tap cursor-pointer text-stone-700 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     <ShieldCheck className={cn("w-3 h-3", probing && "animate-pulse")} />
                     {probing ? "확인 중" : "사용 가능 확인"}
                   </button>
-                  <span className="text-[11px] text-neutral-400">
+                  <span className="text-[11px] text-stone-600">
                     {oracleModels
                       ? `서버가 서빙하는 모델 ${oracleModels.length}개`
                       : loadingOracle
@@ -738,7 +738,7 @@ export default function AdminDiscussionGenerator({
                   return (
                     <div key={m.value}>
                       {heading && (
-                        <p className="text-[9px] font-bold tracking-widest uppercase text-neutral-400 mt-3 mb-1.5 first:mt-0">
+                        <p className="text-[9px] font-bold tracking-widest uppercase text-stone-600 mt-3 mb-1.5 first:mt-0">
                           {heading}
                         </p>
                       )}
@@ -748,24 +748,24 @@ export default function AdminDiscussionGenerator({
                         disabled={blocked}
                         title={blocked ? m.reason : undefined}
                         className={cn(
-                          "w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg border text-left transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]",
+                          "w-full flex items-center justify-between px-3.5 py-2.5 rounded-lg border text-left tap cursor-pointer",
                           blocked
-                            ? "border-neutral-200 bg-neutral-50 text-neutral-400 cursor-not-allowed"
+                            ? "border-sand bg-parchment text-stone-600 cursor-not-allowed"
                             : isSelected
                               ? "border-ink bg-ink text-white"
-                              : "border-neutral-200 bg-white hover:border-neutral-400 text-ink"
+                              : "border-sand bg-white hover:border-stone-500 text-ink"
                         )}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
                           <Icon
                             icon={PROVIDERS[provider].icon}
-                            className={cn("w-4 h-4 flex-shrink-0", isSelected && !blocked ? "text-white/70" : "text-neutral-400")}
+                            className={cn("w-4 h-4 flex-shrink-0", isSelected && !blocked ? "text-white/70" : "text-stone-600")}
                           />
                           <span className="text-sm font-medium truncate">{m.label}</span>
                           {m.badge && !blocked && (
                             <span className={cn(
                               "text-[9px] font-bold tracking-widest uppercase px-1.5 py-0.5 rounded-full flex-shrink-0",
-                              isSelected ? "bg-white/20 text-white" : "bg-neutral-100 text-neutral-500"
+                              isSelected ? "bg-white/20 text-white" : "bg-cream text-stone-700"
                             )}>
                               {m.badge}
                             </span>
@@ -783,18 +783,18 @@ export default function AdminDiscussionGenerator({
                           <div className="text-right w-[88px]">
                             {PROVIDERS[provider].metered ? (
                               <>
-                                <p className={cn("text-[10px] tabular-nums", isSelected ? "text-white/60" : "text-neutral-400")}>
+                                <p className={cn("text-[10px] tabular-nums", isSelected ? "text-white/60" : "text-stone-600")}>
                                   입력 {formatInputPrice(m.inputPrice)}
                                 </p>
-                                <p className={cn("text-[10px] mt-0.5", isSelected ? "text-white/40" : "text-neutral-300")}>예상 비용</p>
+                                <p className={cn("text-[10px] mt-0.5", isSelected ? "text-white/40" : "text-stone-400")}>예상 비용</p>
                                 <p className={cn("text-[11px] font-semibold tabular-nums", isSelected ? "text-white" : "text-brick")}>
                                   {reviewsText.length > 0 ? `≈ ${formatCost(cost)}` : "—"}
                                 </p>
                               </>
                             ) : (
                               <>
-                                <p className={cn("text-[10px]", isSelected && !blocked ? "text-white/60" : "text-neutral-400")}>자체 서버</p>
-                                <p className={cn("text-[10px] mt-0.5", isSelected && !blocked ? "text-white/40" : "text-neutral-300")}>추가 비용</p>
+                                <p className={cn("text-[10px]", isSelected && !blocked ? "text-white/60" : "text-stone-600")}>자체 서버</p>
+                                <p className={cn("text-[10px] mt-0.5", isSelected && !blocked ? "text-white/40" : "text-stone-400")}>추가 비용</p>
                                 <p className={cn("text-[11px] font-semibold", isSelected && !blocked ? "text-white" : "text-brick")}>없음</p>
                               </>
                             )}
@@ -807,7 +807,7 @@ export default function AdminDiscussionGenerator({
                 })}
               </div>
 
-              <p className="text-[11px] text-neutral-400">
+              <p className="text-[11px] text-stone-600">
                 API 키는 서버 환경변수({PROVIDERS[provider].env})에서 읽어옵니다.
               </p>
             </div>
@@ -816,10 +816,10 @@ export default function AdminDiscussionGenerator({
           {/* 액션 버튼 */}
           {existingCount > 0 && (
             <div className="px-5 pb-1 flex items-center gap-3 flex-wrap">
-              <span className="text-xs text-neutral-500">
+              <span className="text-xs text-stone-700">
                 이 모임에 질문 {existingCount}개가 이미 있습니다.
               </span>
-              <div className="flex gap-1 bg-neutral-100 rounded-lg p-1">
+              <div className="flex gap-1 bg-cream rounded-lg p-1">
                 {([
                   { v: "append",  label: "이어붙이기" },
                   { v: "replace", label: "덮어쓰기" },
@@ -829,15 +829,15 @@ export default function AdminDiscussionGenerator({
                     type="button"
                     onClick={() => setMode(o.v)}
                     className={cn(
-                      "px-3 py-1 rounded-md text-xs font-medium transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]",
-                      mode === o.v ? "bg-white text-ink shadow-sm" : "text-neutral-500 hover:text-neutral-700"
+                      "px-3 py-1 rounded-md text-xs font-medium tap cursor-pointer",
+                      mode === o.v ? "bg-white text-ink shadow-sm" : "text-stone-700 hover:text-ink"
                     )}
                   >
                     {o.label}
                   </button>
                 ))}
               </div>
-              <span className="text-[11px] text-neutral-400">
+              <span className="text-[11px] text-stone-600">
                 {mode === "append"
                   ? "기존 질문 뒤에 추가합니다. 중복은 자동으로 걸러집니다."
                   : "기존 질문을 버리고 새로 만든 질문으로 교체합니다."}
@@ -849,7 +849,7 @@ export default function AdminDiscussionGenerator({
             <Button
               onClick={generate}
               disabled={generating || !canGenerate}
-              className="bg-ink hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer gap-1.5 motion-safe:active:scale-[0.97]"
+              className="bg-ink hover:bg-brick tap cursor-pointer gap-1.5"
             >
               <Sparkles className="w-4 h-4" />
               {generating ? "생성 중..." : existingCount > 0 ? (mode === "append" ? "질문 이어붙이기" : "질문 덮어쓰기") : "AI 질문 생성"}
@@ -858,7 +858,7 @@ export default function AdminDiscussionGenerator({
               type="button"
               onClick={() => setPreviewOpen(true)}
               disabled={!canGenerate}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm border border-neutral-200 rounded-lg text-neutral-500 hover:border-neutral-400 hover:text-neutral-700 disabled:opacity-30 disabled:cursor-not-allowed transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]"
+              className="flex items-center gap-1.5 px-4 py-2 text-sm border border-sand rounded-lg text-stone-700 hover:border-stone-500 hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed tap cursor-pointer"
             >
               <Eye className="w-4 h-4" />
               프롬프트 미리보기
@@ -875,7 +875,7 @@ export default function AdminDiscussionGenerator({
           ))}
           {discussions.length === 0 && (
             <div className="bg-white/60 rounded-xl border border-dashed border-stone-400 px-6 py-8 text-center">
-              <p className="text-sm text-neutral-400">생성된 토론 질문이 없습니다.</p>
+              <p className="text-sm text-stone-600">생성된 토론 질문이 없습니다.</p>
             </div>
           )}
         </div>
@@ -884,27 +884,27 @@ export default function AdminDiscussionGenerator({
       {/* ── 모임 선택 모달 ── */}
       <Dialog open={meetingPickerOpen} onOpenChange={setMeetingPickerOpen}>
         <DialogContent className="sm:max-w-none w-[min(1200px,95vw)] max-h-[88vh] flex flex-col p-0 gap-0">
-          <DialogHeader className="px-8 pt-7 pb-4 border-b border-neutral-100">
+          <DialogHeader className="px-8 pt-7 pb-4 border-b border-cream">
             <DialogTitle className="text-xl font-bold">모임 선택</DialogTitle>
           </DialogHeader>
-          <div className="px-8 py-4 border-b border-neutral-100">
+          <div className="px-8 py-4 border-b border-cream">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 pointer-events-none" />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-600 pointer-events-none" />
               <input
                 type="text"
                 placeholder="모임명, 도서명, 날짜로 검색..."
                 value={meetingSearch}
                 onChange={(e) => setMeetingSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 text-sm border border-neutral-200 rounded-xl focus:outline-none focus:border-ink focus:ring-2 focus:ring-brick/25 bg-white"
+                className="w-full pl-12 pr-4 py-3 text-sm border border-sand rounded-xl focus:outline-none focus:border-ink focus:ring-2 focus:ring-brick/25 bg-white"
                 autoFocus
               />
             </div>
           </div>
           <div className="flex-1 overflow-y-auto min-h-0 p-6">
             {filteredMeetings.length === 0 ? (
-              <p className="text-sm text-neutral-400 text-center py-12">검색 결과가 없습니다.</p>
+              <p className="text-sm text-stone-600 text-center py-12">검색 결과가 없습니다.</p>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {filteredMeetings.map((m) => {
                   const firstBook = m.books[0] ?? null;
                   const isSelected = meetingId === String(m.id);
@@ -914,10 +914,10 @@ export default function AdminDiscussionGenerator({
                       type="button"
                       onClick={() => { setMeetingId(String(m.id)); setMeetingPickerOpen(false); }}
                       className={cn(
-                        "flex items-center gap-4 px-5 py-4 rounded-xl text-left transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer border motion-safe:active:scale-[0.97]",
+                        "flex items-center gap-4 px-5 py-4 rounded-xl text-left tap cursor-pointer border",
                         isSelected
                           ? "bg-cream border-stone-400"
-                          : "bg-white border-neutral-100 hover:bg-neutral-50 hover:border-neutral-200"
+                          : "bg-white border-cream hover:bg-parchment hover:border-sand"
                       )}
                     >
                       <div className="flex-shrink-0 w-[44px] h-[62px] bg-sand overflow-hidden rounded shadow-sm">
@@ -930,12 +930,12 @@ export default function AdminDiscussionGenerator({
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-[10px] text-neutral-400 mb-0.5">
+                        <p className="text-[10px] text-stone-600 mb-0.5">
                           {format(new Date(m.date), "yyyy년 M월 d일", { locale: ko })}
                         </p>
                         <p className="text-sm font-semibold text-ink truncate">{m.title}</p>
                         {m.books.length > 0 && (
-                          <p className="text-xs text-neutral-400 truncate mt-0.5">{m.books.map((b) => b.title).join(", ")}</p>
+                          <p className="text-xs text-stone-600 truncate mt-0.5">{m.books.map((b) => b.title).join(", ")}</p>
                         )}
                       </div>
                       {isSelected && <div className="w-2 h-2 rounded-full bg-brick flex-shrink-0" />}
@@ -945,9 +945,9 @@ export default function AdminDiscussionGenerator({
               </div>
             )}
           </div>
-          <div className="px-8 py-4 border-t border-neutral-100 flex justify-between items-center">
-            <span className="text-xs text-neutral-400">전체 {meetings.length}개 모임 · 날짜 최신순</span>
-            <button onClick={() => setMeetingPickerOpen(false)} className="text-sm text-neutral-500 hover:text-neutral-800 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">닫기</button>
+          <div className="px-8 py-4 border-t border-cream flex justify-between items-center">
+            <span className="text-xs text-stone-600">전체 {meetings.length}개 모임 · 날짜 최신순</span>
+            <button onClick={() => setMeetingPickerOpen(false)} className="text-sm text-stone-700 hover:text-ink cursor-pointer tap">닫기</button>
           </div>
         </DialogContent>
       </Dialog>
@@ -959,13 +959,13 @@ export default function AdminDiscussionGenerator({
             <DialogTitle className="text-base font-bold">프롬프트 미리보기</DialogTitle>
           </DialogHeader>
           <div className="flex-1 overflow-y-auto min-h-0">
-            <pre className="text-xs text-neutral-700 whitespace-pre-wrap leading-relaxed bg-neutral-50 rounded-lg p-4 border border-neutral-200">
+            <pre className="text-xs text-ink whitespace-pre-wrap leading-relaxed bg-parchment rounded-lg p-4 border border-sand">
               {promptPreview || "모임을 선택하면 프롬프트를 미리볼 수 있습니다."}
             </pre>
           </div>
-          <div className="pt-3 border-t border-neutral-100 flex justify-between items-center text-xs text-neutral-400">
+          <div className="pt-3 border-t border-cream flex justify-between items-center text-xs text-stone-600">
             <span>{PROVIDERS[provider].label} · {model} · 독후감 {selectedIds.size}편 포함</span>
-            <button onClick={() => setPreviewOpen(false)} className="text-neutral-500 hover:text-neutral-800 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">닫기</button>
+            <button onClick={() => setPreviewOpen(false)} className="text-stone-700 hover:text-ink cursor-pointer tap">닫기</button>
           </div>
         </DialogContent>
       </Dialog>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Badge } from "@/components/ui/badge";
+import { Check } from "lucide-react";
 
 type Member = { id: number; name: string };
 
@@ -16,7 +16,7 @@ export default function MemberMultiSelect({ members, selected, onChange }: Props
   }
 
   if (members.length === 0) {
-    return <p className="text-xs text-neutral-400">등록된 멤버가 없습니다. 먼저 멤버를 추가해주세요.</p>;
+    return <p className="text-xs text-stone-500">등록된 멤버가 없습니다. 먼저 멤버를 추가해주세요.</p>;
   }
 
   return (
@@ -29,24 +29,21 @@ export default function MemberMultiSelect({ members, selected, onChange }: Props
               key={m.id}
               type="button"
               onClick={() => toggle(m.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer ${
+              aria-pressed={isSelected}
+              className={`flex items-center gap-1.5 min-h-9 px-3.5 rounded-full text-sm font-medium border tap cursor-pointer ${
                 isSelected
-                  ? "bg-neutral-900 text-white border-neutral-900"
-                  : "bg-white text-neutral-300 border-neutral-200 hover:border-neutral-400 hover:text-neutral-500"
+                  ? "bg-ink text-white border-ink"
+                  : "bg-white text-stone-600 border-sand hover:border-stone-400 hover:text-ink"
               }`}
             >
-              {isSelected && (
-                <svg className="w-3 h-3 flex-shrink-0" viewBox="0 0 12 12" fill="none">
-                  <path d="M2 6l3 3 5-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              )}
+              {isSelected && <Check className="w-3.5 h-3.5 flex-shrink-0" />}
               {m.name}
             </button>
           );
         })}
       </div>
       {selected.length > 0 && (
-        <p className="text-xs text-neutral-400">{selected.length}명 선택됨</p>
+        <p className="text-xs text-stone-500">{selected.length}명 선택됨</p>
       )}
     </div>
   );

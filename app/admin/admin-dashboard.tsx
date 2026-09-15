@@ -19,10 +19,10 @@ import {
   LayoutDashboard, CalendarDays, BookOpen, Users, BookMarked,
   FileText, Megaphone, Sparkles, LogOut, Plus, Trash2,
   ChevronDown, ChevronUp, BookCopy, Eye, EyeOff, Check, Search, CheckCircle2, Loader2, X,
-  GripVertical, Shuffle,
+  GripVertical, Shuffle, Pencil,
 } from "lucide-react";
 import PdfDownloadButton from "@/components/pdf/pdf-download-button";
-import { Reorder, useDragControls } from "motion/react";
+import { AnimatePresence, Reorder, motion, useDragControls, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
@@ -82,6 +82,13 @@ export default function AdminDashboard() {
     router.replace(`/admin?tab=${id}`, { scroll: false });
   }
 
+  const reduceMotion = useReducedMotion();
+  // 화면 안에서 위치가 옮겨가는 표시자 — Apple 의 이동 기본값(감쇠 1.0, 응답 0.4)에 맞춘다.
+  const navTransition = reduceMotion
+    ? { duration: 0 }
+    : ({ type: "spring", bounce: 0, duration: 0.4 } as const);
+  const activeMenu = MENU.find((m) => m.id === active) ?? MENU[0];
+
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -126,22 +133,28 @@ export default function AdminDashboard() {
   const [annForm, setAnnForm] = useState({ title: "", content: "", is_pinned: false });
   const [selectedMeetingId, setSelectedMeetingId] = useState("");
   const [newMeetingBookModalOpen, setNewMeetingBookModalOpen] = useState(false);
-  const [booksLoading, setBooksLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   async function loadAll() {
-    const [b, cat, mem, m, r, a, c, d] = await Promise.all([
-      fetch("/api/books").then((r) => r.json()),
-      fetch("/api/categories").then((r) => r.json()),
-      fetch("/api/members").then((r) => r.json()),
-      fetch("/api/meetings").then((r) => r.json()),
-      fetch("/api/reviews").then((r) => r.json()),
-      fetch("/api/announcements").then((r) => r.json()),
-      fetch("/api/candidates").then((r) => r.json()),
-      fetch("/api/discussion").then((r) => r.json()),
-    ]);
-    setBooks(b); setCategories(cat); setMembers(mem); setMeetings(m);
-    setReviews(r); setAnnouncements(a); setCandidates(c); setDiscussions(d);
-    setBooksLoading(false);
+    try {
+      const [b, cat, mem, m, r, a, c, d] = await Promise.all([
+        fetch("/api/books").then((r) => r.json()),
+        fetch("/api/categories").then((r) => r.json()),
+        fetch("/api/members").then((r) => r.json()),
+        fetch("/api/meetings").then((r) => r.json()),
+        fetch("/api/reviews").then((r) => r.json()),
+        fetch("/api/announcements").then((r) => r.json()),
+        fetch("/api/candidates").then((r) => r.json()),
+        fetch("/api/discussion").then((r) => r.json()),
+      ]);
+      setBooks(b); setCategories(cat); setMembers(mem); setMeetings(m);
+      setReviews(r); setAnnouncements(a); setCandidates(c); setDiscussions(d);
+    } catch {
+      toast.error("데이터를 불러오지 못했습니다. 새로고침해주세요.");
+    } finally {
+      // 실패해도 스켈레톤에 갇히지 않게 한다
+      setLoading(false);
+    }
   }
 
   useEffect(() => { loadAll(); }, []);
@@ -326,8 +339,10 @@ export default function AdminDashboard() {
     if (res.ok) { toast.success("공지 등록 완료"); setAnnForm({ title: "", content: "", is_pinned: false }); loadAll(); }
   }
   async function deleteAnn(id: number) {
-    await fetch(`/api/announcements/${id}`, { method: "DELETE" });
-    toast.success("삭제 완료"); loadAll();
+    openConfirm("공지 삭제", "공지를 삭제할까요?", async () => {
+      await fetch(`/api/announcements/${id}`, { method: "DELETE" });
+      toast.success("삭제 완료"); loadAll();
+    });
   }
 
   // ── Candidates ──
@@ -479,13 +494,13 @@ export default function AdminDashboard() {
     />
     {/* 뷰포트 전체 너비로 탈출 (max-w-4xl 컨테이너 이탈) */}
     <div
-      className="flex items-start -mt-4 md:-mt-8"
+      className="admin-shell flex items-start -mt-4 md:-mt-8"
       style={{ width: "100vw", marginLeft: "calc(50% - 50vw)", minHeight: "calc(100vh - 3.5rem)" }}
     >
       {/* ── Sidebar ── */}
       <aside className="hidden md:flex w-52 bg-ink sticky top-14 h-[calc(100vh-3.5rem)] flex-col flex-shrink-0">
         <div className="px-5 py-5 border-b border-white/10">
-          <p className="text-[9px] font-bold tracking-[0.22em] uppercase text-white/30 mb-1">독서모임</p>
+          <p className="eyebrow eyebrow-invert mb-1">독서모임</p>
           <p className="text-white text-lg" style={{ fontFamily: "var(--font-playfair)", fontStyle: "italic" }}>
             관리자
           </p>
@@ -496,15 +511,23 @@ export default function AdminDashboard() {
             <button
               key={id}
               onClick={() => handleSetActive(id)}
+              aria-current={active === id ? "page" : undefined}
               className={cn(
-                "w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]",
+                "relative w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm tap cursor-pointer",
                 active === id
-                  ? "bg-brick text-white font-medium"
+                  ? "text-white font-medium"
                   : "text-white/50 hover:text-white/90 hover:bg-white/8"
               )}
             >
-              <Icon className="w-4 h-4 flex-shrink-0" />
-              {label}
+              {active === id && (
+                <motion.span
+                  layoutId="admin-sidebar-active"
+                  className="absolute inset-0 rounded-lg bg-brick"
+                  transition={navTransition}
+                />
+              )}
+              <Icon className="relative w-4 h-4 flex-shrink-0" />
+              <span className="relative">{label}</span>
             </button>
           ))}
         </nav>
@@ -512,7 +535,7 @@ export default function AdminDashboard() {
         <div className="p-3 border-t border-white/10">
           <button
             onClick={logout}
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-white/35 hover:text-white/80 hover:bg-white/8 rounded-lg transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]"
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-white/35 hover:text-white/80 hover:bg-white/8 rounded-lg tap cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             로그아웃
@@ -521,7 +544,33 @@ export default function AdminDashboard() {
       </aside>
 
       {/* ── Main content ── */}
-      <main className="flex-1 min-w-0 p-4 md:p-8 pb-24 md:pb-8">
+      <main className="flex-1 min-w-0 pb-28 md:pb-8">
+
+        {/* 모바일 상단 바 — 데스크탑 사이드바가 하던 '여기가 어디' + 로그아웃을 대신한다 */}
+        {/* 상단 바는 고정하지 않는다. 모바일에선 사이트 헤더가 스크롤 시 사라지는데,
+            여기를 sticky 로 두면 그 자리에 생긴 빈 띠로 본문이 비쳐 보인다.
+            상시 접근이 필요한 이동은 아래 탭 바가 맡는다. */}
+        <div className="md:hidden flex items-center justify-between gap-3 px-4 h-14 border-b border-sand bg-cream/80">
+          <div className="min-w-0">
+            <p className="eyebrow">관리자</p>
+            <p className="text-[15px] font-semibold text-ink truncate leading-tight mt-1">{activeMenu.label}</p>
+          </div>
+          <button
+            onClick={logout}
+            className="flex items-center gap-1.5 h-9 px-3 rounded-full border border-sand bg-white/70 text-xs font-semibold text-stone-600 tap cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            로그아웃
+          </button>
+        </div>
+
+        {/* 탭이 바뀐 걸 보여주는 짧은 진입.
+            JS 로 감추지 않고 CSS 애니메이션으로만 처리한다 —
+            초기 렌더가 하이드레이션을 기다리며 빈 화면으로 남는 걸 피하려는 것이다. */}
+        <div
+          key={active}
+          className="w-full max-w-6xl mx-auto p-4 md:p-8 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200"
+        >
 
         {/* ── 대시보드 ── */}
         {active === "dashboard" && (
@@ -533,17 +582,19 @@ export default function AdminDashboard() {
             />
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { label: "전체 도서", value: books.length, icon: <BookOpen className="w-5 h-5" />, color: "#8B3A2A" },
-                { label: "예정된 모임", value: upcomingMeetings.length, icon: <CalendarDays className="w-5 h-5" />, color: "#2A6B5E" },
-                { label: "멤버 수", value: members.length, icon: <Users className="w-5 h-5" />, color: "#2A4A8B" },
-                { label: "독후감 수", value: reviews.length, icon: <FileText className="w-5 h-5" />, color: "#6B4A2A" },
+                { label: "전체 도서", value: books.length, icon: <BookOpen className="w-5 h-5" />, color: "var(--color-brick)" },
+                { label: "예정된 모임", value: upcomingMeetings.length, icon: <CalendarDays className="w-5 h-5" />, color: "var(--color-pine)" },
+                { label: "멤버 수", value: members.length, icon: <Users className="w-5 h-5" />, color: "var(--color-stone-600)" },
+                { label: "독후감 수", value: reviews.length, icon: <FileText className="w-5 h-5" />, color: "var(--color-ink)" },
               ].map(({ label, value, icon, color }) => (
                 <div key={label} className="bg-white rounded-xl border border-sand p-5">
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-medium text-neutral-400">{label}</span>
+                    <span className="text-xs font-medium text-stone-600">{label}</span>
                     <span style={{ color }} className="opacity-70">{icon}</span>
                   </div>
-                  <p className="text-3xl font-bold text-ink tabular-nums">{value}</p>
+                  {loading
+                    ? <Skeleton width={48} height={30} />
+                    : <p className="text-3xl font-bold text-ink tabular-nums">{value}</p>}
                 </div>
               ))}
             </div>
@@ -556,24 +607,24 @@ export default function AdminDashboard() {
                     {upcomingMeetings.slice(0, 3).map((m) => (
                       <div key={m.id} className="flex items-center justify-between text-sm">
                         <span className="text-ink font-medium">{m.title}</span>
-                        <span className="text-neutral-400 text-xs">{format(new Date(m.date), "M월 d일 (EEE)", { locale: ko })}</span>
+                        <span className="text-stone-600 text-xs">{format(new Date(m.date), "M월 d일 (EEE)", { locale: ko })}</span>
                       </div>
                     ))}
                   </div>
-                ) : <p className="text-sm text-neutral-400">예정된 모임이 없습니다.</p>}
+                ) : <p className="text-sm text-stone-600">예정된 모임이 없습니다.</p>}
               </div>
 
               <div className="bg-white rounded-xl border border-sand p-5">
                 <h3 className="text-sm font-semibold text-ink mb-3">도서 후보 현황</h3>
                 {[
-                  { label: "대기중", status: "pending", color: "#8B7B6B" },
-                  { label: "선정됨", status: "selected", color: "#2A6B5E" },
-                  { label: "탈락", status: "rejected", color: "#8B3A2A" },
+                  { label: "대기중", status: "pending", color: "var(--color-stone-600)" },
+                  { label: "선정됨", status: "selected", color: "var(--color-pine)" },
+                  { label: "탈락", status: "rejected", color: "var(--color-brick)" },
                 ].map(({ label, status, color }) => {
                   const count = candidates.filter((c) => c.status === status).length;
                   return (
                     <div key={status} className="flex items-center justify-between text-sm mb-1.5">
-                      <span className="text-neutral-500">{label}</span>
+                      <span className="text-stone-700">{label}</span>
                       <span className="font-semibold" style={{ color }}>{count}권</span>
                     </div>
                   );
@@ -585,7 +636,7 @@ export default function AdminDashboard() {
 
         {/* ── 모임 관리 ── */}
         {active === "meetings" && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <SectionHeader
               icon={<CalendarDays className="w-5 h-5" />}
               title="모임 관리"
@@ -612,7 +663,7 @@ export default function AdminDashboard() {
                         {selectedNewMeetingBooks.map((b) => (
                           <span key={b.id} className="flex items-center gap-1 text-xs bg-cream text-ink rounded-full px-2.5 py-1">
                             {b.title}
-                            <button type="button" onClick={() => setMeetingForm((p) => ({ ...p, book_ids: p.book_ids.filter((id) => id !== b.id) }))} className="text-neutral-400 hover:text-neutral-700 cursor-pointer ml-0.5 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">✕</button>
+                            <button type="button" onClick={() => setMeetingForm((p) => ({ ...p, book_ids: p.book_ids.filter((id) => id !== b.id) }))} className="text-stone-600 hover:text-ink cursor-pointer ml-0.5 tap">✕</button>
                           </span>
                         ))}
                       </div>
@@ -622,23 +673,23 @@ export default function AdminDashboard() {
                       tabIndex={0}
                       onClick={() => setNewMeetingBookModalOpen(true)}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setNewMeetingBookModalOpen(true); }}
-                      className="w-full flex items-center gap-2 border rounded-md px-3 py-2 text-sm text-left hover:bg-neutral-50 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]"
+                      className="w-full flex items-center gap-2 border rounded-md px-3 py-2 text-sm text-left hover:bg-parchment tap cursor-pointer"
                     >
-                      <span className="text-neutral-400">{selectedNewMeetingBooks.length > 0 ? "책 추가..." : "책 선택 (선택사항)"}</span>
+                      <span className="text-stone-600">{selectedNewMeetingBooks.length > 0 ? "책 추가..." : "책 선택 (선택사항)"}</span>
                     </div>
                   </div>
                 </Field>
                 <Field label="참석자">
                   <MemberMultiSelect members={members} selected={meetingAttendees} onChange={setMeetingAttendees} />
                 </Field>
-                <Button type="submit" className="bg-ink hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">
+                <Button type="submit" className="bg-ink hover:bg-brick tap cursor-pointer">
                   <Plus className="w-4 h-4 mr-1.5" /> 등록
                 </Button>
               </form>
             </FormCard>
 
             <div>
-              <p className="text-xs font-bold tracking-widest uppercase text-neutral-400 mb-3">등록된 모임 ({meetings.length})</p>
+              <p className="eyebrow mb-3">등록된 모임 ({meetings.length})</p>
               <div className="space-y-2">
                 {meetings.map((m) => (
                   <MeetingAdminRow
@@ -661,7 +712,7 @@ export default function AdminDashboard() {
 
         {/* ── 도서 관리 ── */}
         {active === "books" && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <SectionHeader
               icon={<BookOpen className="w-5 h-5" />}
               title="도서 관리"
@@ -673,7 +724,7 @@ export default function AdminDashboard() {
                 type="button"
                 variant="outline"
                 onClick={() => setCategoryModalOpen(true)}
-                className="cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]"
+                className="cursor-pointer tap"
               >
                 카테고리 관리
               </Button>
@@ -685,9 +736,9 @@ export default function AdminDashboard() {
                 </DialogHeader>
                 <form onSubmit={addCategory} className="flex gap-2 items-center">
                   <input type="color" value={newCategoryColor} onChange={(e) => setNewCategoryColor(e.target.value)}
-                    className="w-8 h-8 rounded border cursor-pointer flex-shrink-0 p-0.5 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]" title="색상 선택" />
+                    className="w-8 h-8 rounded border cursor-pointer flex-shrink-0 p-0.5 tap" title="색상 선택" />
                   <Input value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="카테고리 이름" className="flex-1" maxLength={20} />
-                  <Button type="submit" size="sm" className="bg-ink hover:bg-brick cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">추가</Button>
+                  <Button type="submit" size="sm" className="bg-ink hover:bg-brick cursor-pointer tap">추가</Button>
                 </form>
                 <div className="flex flex-col gap-1.5 mt-1">
                   {categories.map((c) => (
@@ -695,25 +746,25 @@ export default function AdminDashboard() {
                       {editingCategoryId === c.id ? (
                         <div className="flex gap-2 items-center">
                           <input type="color" value={editCategoryForm.color} onChange={(e) => setEditCategoryForm((p) => ({ ...p, color: e.target.value }))}
-                            className="w-8 h-8 rounded border cursor-pointer flex-shrink-0 p-0.5 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]" />
+                            className="w-8 h-8 rounded border cursor-pointer flex-shrink-0 p-0.5 tap" />
                           <Input value={editCategoryForm.name} onChange={(e) => setEditCategoryForm((p) => ({ ...p, name: e.target.value }))} className="flex-1 h-8 text-sm" maxLength={20}
                             onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); updateCategory(c.id); } if (e.key === "Escape") setEditingCategoryId(null); }} autoFocus />
-                          <Button type="button" size="sm" onClick={() => updateCategory(c.id)} className="bg-ink hover:bg-brick cursor-pointer h-8 px-3 text-xs transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">저장</Button>
-                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditingCategoryId(null)} className="cursor-pointer h-8 px-2 text-xs transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">취소</Button>
+                          <Button type="button" size="sm" onClick={() => updateCategory(c.id)} className="bg-ink hover:bg-brick cursor-pointer h-8 px-3 text-xs tap">저장</Button>
+                          <Button type="button" size="sm" variant="ghost" onClick={() => setEditingCategoryId(null)} className="cursor-pointer h-8 px-2 text-xs tap">취소</Button>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2 rounded-lg px-3 py-1.5 hover:bg-neutral-50 group">
+                        <div className="flex items-center gap-2 rounded-lg px-3 py-1.5 hover:bg-parchment group">
                           <span className="w-3 h-3 rounded-sm flex-shrink-0" style={{ backgroundColor: c.color }} />
                           <span className="flex-1 text-sm font-medium" style={{ color: c.color }}>{c.name}</span>
                           <button onClick={() => { setEditingCategoryId(c.id); setEditCategoryForm({ name: c.name, color: c.color }); }}
-                            className="opacity-0 group-hover:opacity-60 hover:!opacity-100 cursor-pointer text-xs text-neutral-500 transition-opacity motion-safe:active:scale-[0.97]">수정</button>
+                            className="opacity-0 group-hover:opacity-60 hover:!opacity-100 cursor-pointer text-xs text-stone-700 transition-opacity">수정</button>
                           <button onClick={() => deleteCategory(c.id)}
-                            className="opacity-0 group-hover:opacity-40 hover:!opacity-100 cursor-pointer text-xs text-neutral-400 transition-opacity motion-safe:active:scale-[0.97]">✕</button>
+                            className="opacity-0 group-hover:opacity-40 hover:!opacity-100 cursor-pointer text-xs text-stone-600 transition-opacity">✕</button>
                         </div>
                       )}
                     </div>
                   ))}
-                  {categories.length === 0 && <p className="text-sm text-neutral-400">등록된 카테고리가 없습니다.</p>}
+                  {categories.length === 0 && <p className="text-sm text-stone-600">등록된 카테고리가 없습니다.</p>}
                 </div>
               </DialogContent>
             </Dialog>
@@ -721,7 +772,7 @@ export default function AdminDashboard() {
               <Button
                 type="button"
                 onClick={() => setBookModalOpen(true)}
-                className="bg-ink hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]"
+                className="bg-ink hover:bg-brick tap cursor-pointer"
               >
                 <Plus className="w-4 h-4 mr-1.5" /> 새 도서 등록
               </Button>
@@ -744,7 +795,7 @@ export default function AdminDashboard() {
                   {/* Kakao search */}
                   <Field label="도서 검색">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-600 pointer-events-none" />
                       <Input
                         value={bookSearch}
                         onChange={(e) => handleBookSearchChange(e.target.value)}
@@ -754,30 +805,30 @@ export default function AdminDashboard() {
                       />
                       {bookSearch && (
                         <button type="button" onClick={() => { setBookSearch(""); setBookSearchResults([]); setBookSearchOpen(false); }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-600 hover:text-stone-700 cursor-pointer tap">
                           <X className="w-4 h-4" />
                         </button>
                       )}
                       {bookSearchOpen && (bookSearching || bookSearchResults.length > 0) && (
-                        <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-200 rounded-xl shadow-lg overflow-hidden">
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-sand rounded-xl shadow-lg overflow-hidden">
                           {bookSearching ? (
-                            <div className="flex items-center justify-center gap-2 py-4 text-sm text-neutral-400">
+                            <div className="flex items-center justify-center gap-2 py-4 text-sm text-stone-600">
                               <Loader2 className="w-4 h-4 animate-spin" /> 검색 중...
                             </div>
                           ) : (
-                            <ul className="max-h-60 overflow-y-auto divide-y divide-neutral-100">
+                            <ul className="max-h-60 overflow-y-auto divide-y divide-cream">
                               {bookSearchResults.map((b, i) => (
                                 <li key={i}>
                                   <button type="button" onClick={() => selectBookFromSearch(b)}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-parchment text-left transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-parchment text-left tap cursor-pointer">
                                     {b.thumbnail ? (
                                       <img src={b.thumbnail} alt={b.title} className="w-8 h-11 object-cover rounded flex-shrink-0" />
                                     ) : (
-                                      <div className="w-8 h-11 bg-neutral-100 rounded flex-shrink-0" />
+                                      <div className="w-8 h-11 bg-cream rounded flex-shrink-0" />
                                     )}
                                     <div className="min-w-0">
                                       <p className="text-sm font-medium text-ink truncate">{b.title}</p>
-                                      <p className="text-xs text-neutral-500 truncate">{b.authors.join(", ")}</p>
+                                      <p className="text-xs text-stone-700 truncate">{b.authors.join(", ")}</p>
                                     </div>
                                   </button>
                                 </li>
@@ -798,7 +849,7 @@ export default function AdminDashboard() {
                     </Field>
                   </div>
                   {bookForm.isbn && (
-                    <p className="text-xs text-neutral-400">ISBN: <span className="font-mono">{bookForm.isbn}</span></p>
+                    <p className="text-xs text-stone-600">ISBN: <span className="font-mono">{bookForm.isbn}</span></p>
                   )}
                   <Field label="표지 URL">
                     <Input value={bookForm.cover_url} onChange={(e) => setBookForm((p) => ({ ...p, cover_url: e.target.value }))} placeholder="https://..." />
@@ -806,8 +857,8 @@ export default function AdminDashboard() {
 
                   {/* 소스 선택 UI */}
                   {bookDetailFetching && (
-                    <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-xs text-neutral-400 flex items-center gap-2">
-                      <span className="inline-block w-3.5 h-3.5 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-500 flex-shrink-0" />
+                    <div className="rounded-lg border border-sand bg-parchment px-3 py-2.5 text-xs text-stone-600 flex items-center gap-2">
+                      <span className="inline-block w-3.5 h-3.5 animate-spin rounded-full border-2 border-stone-400 border-t-stone-600 flex-shrink-0" />
                       교보·네이버·Google Books 조회 중...
                     </div>
                   )}
@@ -838,10 +889,10 @@ export default function AdminDashboard() {
                       }));
                     };
                     return (
-                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-xs space-y-3">
+                      <div className="rounded-lg border border-sand bg-parchment px-3 py-2.5 text-xs space-y-3">
                         {/* 표지 선택 */}
                         <div>
-                          <p className="font-semibold text-neutral-500 mb-1.5">표지 선택</p>
+                          <p className="font-semibold text-stone-700 mb-1.5">표지 선택</p>
                           <div className="flex gap-2">
                             {coverSources.map(({ key, label }) => {
                               const url = getImg(key);
@@ -856,16 +907,16 @@ export default function AdminDashboard() {
                                     setSelectedCoverSource(key);
                                     applySelection(key, selectedDescSource);
                                   }}
-                                  className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:enabled:active:scale-[0.97] ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent" : `cursor-pointer ${selected ? "border-brick bg-white" : "border-transparent hover:border-neutral-300"}`}`}
+                                  className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border-2 tap ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent" : `cursor-pointer ${selected ? "border-brick bg-white" : "border-transparent hover:border-stone-400"}`}`}
                                 >
                                   {url ? (
                                     <img src={url} alt={label} className="w-10 h-14 object-cover rounded shadow-sm" />
                                   ) : (
-                                    <div className="w-10 h-14 rounded bg-neutral-200 flex items-center justify-center text-neutral-400 text-center leading-tight px-1">
+                                    <div className="w-10 h-14 rounded bg-sand flex items-center justify-center text-stone-600 text-center leading-tight px-1">
                                       {keyMissing ? "키없음" : "없음"}
                                     </div>
                                   )}
-                                  <span className={selected ? "text-brick font-semibold" : "text-neutral-400"}>{label}</span>
+                                  <span className={selected ? "text-brick font-semibold" : "text-stone-600"}>{label}</span>
                                 </button>
                               );
                             })}
@@ -873,7 +924,7 @@ export default function AdminDashboard() {
                         </div>
                         {/* 소개 선택 */}
                         <div>
-                          <p className="font-semibold text-neutral-500 mb-1.5">소개 선택</p>
+                          <p className="font-semibold text-stone-700 mb-1.5">소개 선택</p>
                           <div className="flex flex-col gap-1.5">
                             {descSources.map(({ key, label }) => {
                               const desc = getDesc(key);
@@ -888,16 +939,16 @@ export default function AdminDashboard() {
                                     setSelectedDescSource(key);
                                     applySelection(selectedCoverSource, key);
                                   }}
-                                  className={`text-left px-2.5 py-2 rounded-lg border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:enabled:active:scale-[0.97] ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent bg-white" : `cursor-pointer ${selected ? "border-brick bg-white" : "border-transparent bg-white hover:border-neutral-300"}`}`}
+                                  className={`text-left px-2.5 py-2 rounded-lg border-2 tap ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent bg-white" : `cursor-pointer ${selected ? "border-brick bg-white" : "border-transparent bg-white hover:border-stone-400"}`}`}
                                 >
-                                  <span className={`font-semibold ${selected ? "text-brick" : "text-neutral-400"}`}>{label}</span>
+                                  <span className={`font-semibold ${selected ? "text-brick" : "text-stone-600"}`}>{label}</span>
                                   {keyMissing
                                     ? <span className="ml-2 text-amber-500">API 키 없음 (NAVER_CLIENT_ID/SECRET)</span>
                                     : desc
-                                      ? <span className="ml-2 text-neutral-500 line-clamp-1">{desc}</span>
+                                      ? <span className="ml-2 text-stone-700 line-clamp-1">{desc}</span>
                                       : key === "naver" && bookSources.naverError
                                         ? <span className="ml-2 text-red-400 line-clamp-1" title={bookSources.naverError}>오류: {bookSources.naverError}</span>
-                                        : <span className="ml-2 text-neutral-300">없음</span>
+                                        : <span className="ml-2 text-stone-400">없음</span>
                                   }
                                 </button>
                               );
@@ -926,9 +977,9 @@ export default function AdminDashboard() {
                     />
                   </Field>
                 </div>
-                <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t border-neutral-100 mt-2">
-                  <Button type="button" variant="outline" onClick={() => setBookModalOpen(false)} className="cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">취소</Button>
-                  <Button type="submit" disabled={bookDetailFetching || !bookForm.title || !bookForm.author || !bookForm.category_id} className="bg-ink hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed motion-safe:active:scale-[0.97]">
+                <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t border-cream mt-2">
+                  <Button type="button" variant="outline" onClick={() => setBookModalOpen(false)} className="cursor-pointer tap">취소</Button>
+                  <Button type="submit" disabled={bookDetailFetching || !bookForm.title || !bookForm.author || !bookForm.category_id} className="bg-ink hover:bg-brick tap cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                     {bookDetailFetching ? (
                       <><span className="w-4 h-4 mr-1.5 inline-block animate-spin rounded-full border-2 border-white border-t-transparent" /> 정보 가져오는 중...</>
                     ) : (
@@ -941,9 +992,9 @@ export default function AdminDashboard() {
             </Dialog>
 
             <div>
-              <p className="text-xs font-bold tracking-widest uppercase text-neutral-400 mb-3">등록된 도서 ({books.length})</p>
+              <p className="eyebrow mb-3">등록된 도서 ({books.length})</p>
               <div className="space-y-2">
-                {booksLoading ? (
+                {loading ? (
                   Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} className="flex items-center gap-3 px-4 py-3 rounded-xl border border-sand bg-white">
                       <Skeleton width={36} height={52} borderRadius={6} />
@@ -975,7 +1026,7 @@ export default function AdminDashboard() {
 
         {/* ── 멤버 관리 ── */}
         {active === "members" && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <SectionHeader
               icon={<Users className="w-5 h-5" />}
               title="멤버 관리"
@@ -984,14 +1035,14 @@ export default function AdminDashboard() {
             <FormCard title="새 멤버 추가">
               <form onSubmit={addMember} className="flex gap-2">
                 <Input value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} placeholder="멤버 이름" className="flex-1" maxLength={20} />
-                <Button type="submit" className="bg-ink hover:bg-brick cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
+                <Button type="submit" className="bg-ink hover:bg-brick cursor-pointer tap">
                   <Plus className="w-4 h-4 mr-1.5" /> 추가
                 </Button>
               </form>
             </FormCard>
 
             <div>
-              <p className="text-xs font-bold tracking-widest uppercase text-neutral-400 mb-3">멤버 목록 ({members.length}명)</p>
+              <p className="eyebrow mb-3">멤버 목록 ({members.length}명)</p>
               {members.length > 0 ? (
                 <div className="bg-white rounded-xl border border-sand divide-y divide-cream">
                   {members.map((m) => (
@@ -1002,7 +1053,7 @@ export default function AdminDashboard() {
                         </div>
                         <span className="text-sm font-medium text-ink">{m.name}</span>
                       </div>
-                      <button onClick={() => deleteMember(m.id)} className="p-1.5 text-neutral-300 hover:text-red-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer rounded-md hover:bg-red-50 motion-safe:active:scale-[0.97]">
+                      <button onClick={() => deleteMember(m.id)} className="w-9 h-9 inline-flex items-center justify-center text-stone-400 hover:text-red-400 tap cursor-pointer rounded-md hover:bg-red-50">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -1015,7 +1066,7 @@ export default function AdminDashboard() {
 
         {/* ── 도서 후보 ── */}
         {active === "candidates" && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <SectionHeader
               icon={<BookMarked className="w-5 h-5" />}
               title="도서 후보"
@@ -1025,7 +1076,7 @@ export default function AdminDashboard() {
             <Button
               type="button"
               onClick={() => setCandidateModalOpen(true)}
-              className="bg-ink hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]"
+              className="bg-ink hover:bg-brick tap cursor-pointer"
             >
               <Plus className="w-4 h-4 mr-1.5" /> 후보 도서 등록
             </Button>
@@ -1046,7 +1097,7 @@ export default function AdminDashboard() {
                 <div className="flex-1 overflow-y-auto space-y-4 pr-1 mt-2">
                   <Field label="도서 검색">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-600 pointer-events-none" />
                       <Input
                         value={candidateSearch}
                         onChange={(e) => handleCandidateSearchChange(e.target.value)}
@@ -1056,30 +1107,30 @@ export default function AdminDashboard() {
                       />
                       {candidateSearch && (
                         <button type="button" onClick={() => { setCandidateSearch(""); setCandidateSearchResults([]); setCandidateSearchOpen(false); setCandidateForm((p) => ({ ...p, title: "", author: "", cover_url: "" })); }}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-600 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-600 hover:text-stone-700 cursor-pointer tap">
                           <X className="w-4 h-4" />
                         </button>
                       )}
                       {candidateSearchOpen && (candidateSearching || candidateSearchResults.length > 0) && (
-                        <div className="absolute z-50 w-full mt-1 bg-white border border-neutral-200 rounded-xl shadow-lg overflow-hidden">
+                        <div className="absolute z-50 w-full mt-1 bg-white border border-sand rounded-xl shadow-lg overflow-hidden">
                           {candidateSearching ? (
-                            <div className="flex items-center justify-center gap-2 py-4 text-sm text-neutral-400">
+                            <div className="flex items-center justify-center gap-2 py-4 text-sm text-stone-600">
                               <Loader2 className="w-4 h-4 animate-spin" /> 검색 중...
                             </div>
                           ) : (
-                            <ul className="max-h-60 overflow-y-auto divide-y divide-neutral-100">
+                            <ul className="max-h-60 overflow-y-auto divide-y divide-cream">
                               {candidateSearchResults.map((b, i) => (
                                 <li key={i}>
                                   <button type="button" onClick={() => selectCandidateFromSearch(b)}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-parchment text-left transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">
+                                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-parchment text-left tap cursor-pointer">
                                     {b.thumbnail ? (
                                       <img src={b.thumbnail} alt={b.title} className="w-8 h-11 object-cover rounded flex-shrink-0" />
                                     ) : (
-                                      <div className="w-8 h-11 bg-neutral-100 rounded flex-shrink-0" />
+                                      <div className="w-8 h-11 bg-cream rounded flex-shrink-0" />
                                     )}
                                     <div className="min-w-0">
                                       <p className="text-sm font-medium text-ink truncate">{b.title}</p>
-                                      <p className="text-xs text-neutral-500 truncate">{b.authors.join(", ")}</p>
+                                      <p className="text-xs text-stone-700 truncate">{b.authors.join(", ")}</p>
                                     </div>
                                   </button>
                                 </li>
@@ -1090,7 +1141,7 @@ export default function AdminDashboard() {
                       )}
                     </div>
                   </Field>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <Field label="제목 *">
                       <Input value={candidateForm.title} onChange={(e) => setCandidateForm((p) => ({ ...p, title: e.target.value }))} placeholder="책 제목" />
                     </Field>
@@ -1107,10 +1158,10 @@ export default function AdminDashboard() {
                             type="button"
                             onClick={() => setCandidateForm((p) => ({ ...p, proposed_by: p.proposed_by === m.name ? "" : m.name }))}
                             className={cn(
-                              "px-3 py-1.5 rounded-full text-sm font-medium border transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]",
+                              "px-3 py-1.5 rounded-full text-sm font-medium border tap cursor-pointer",
                               candidateForm.proposed_by === m.name
                                 ? "bg-ink text-white border-ink"
-                                : "bg-white text-neutral-400 border-neutral-200 hover:border-neutral-400 hover:text-neutral-600"
+                                : "bg-white text-stone-600 border-sand hover:border-stone-500 hover:text-stone-700"
                             )}
                           >
                             {m.name}
@@ -1127,8 +1178,8 @@ export default function AdminDashboard() {
                   </Field>
                   {/* 소스 선택 UI */}
                   {candidateDetailFetching && (
-                    <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-xs text-neutral-400 flex items-center gap-2">
-                      <span className="inline-block w-3.5 h-3.5 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-500 flex-shrink-0" />
+                    <div className="rounded-lg border border-sand bg-parchment px-3 py-2.5 text-xs text-stone-600 flex items-center gap-2">
+                      <span className="inline-block w-3.5 h-3.5 animate-spin rounded-full border-2 border-stone-400 border-t-stone-600 flex-shrink-0" />
                       교보·네이버·Google Books 조회 중...
                     </div>
                   )}
@@ -1159,9 +1210,9 @@ export default function AdminDashboard() {
                       }));
                     };
                     return (
-                      <div className="rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-xs space-y-3">
+                      <div className="rounded-lg border border-sand bg-parchment px-3 py-2.5 text-xs space-y-3">
                         <div>
-                          <p className="font-semibold text-neutral-500 mb-1.5">표지 선택</p>
+                          <p className="font-semibold text-stone-700 mb-1.5">표지 선택</p>
                           <div className="flex gap-2">
                             {coverSources.map(({ key, label }) => {
                               const url = getImg(key);
@@ -1170,23 +1221,23 @@ export default function AdminDashboard() {
                               return (
                                 <button key={key} type="button" disabled={keyMissing}
                                   onClick={() => { setCandidateCoverSource(key); applySelection(key, candidateDescSource); }}
-                                  className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:enabled:active:scale-[0.97] ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent" : `cursor-pointer ${selected ? "border-brick bg-white" : "border-transparent hover:border-neutral-300"}`}`}
+                                  className={`flex flex-col items-center gap-1 p-1.5 rounded-lg border-2 tap ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent" : `cursor-pointer ${selected ? "border-brick bg-white" : "border-transparent hover:border-stone-400"}`}`}
                                 >
                                   {url ? (
                                     <img src={url} alt={label} className="w-10 h-14 object-cover rounded shadow-sm" />
                                   ) : (
-                                    <div className="w-10 h-14 rounded bg-neutral-200 flex items-center justify-center text-neutral-400 text-center leading-tight px-1">
+                                    <div className="w-10 h-14 rounded bg-sand flex items-center justify-center text-stone-600 text-center leading-tight px-1">
                                       {keyMissing ? "키없음" : "없음"}
                                     </div>
                                   )}
-                                  <span className={selected ? "text-brick font-semibold" : "text-neutral-400"}>{label}</span>
+                                  <span className={selected ? "text-brick font-semibold" : "text-stone-600"}>{label}</span>
                                 </button>
                               );
                             })}
                           </div>
                         </div>
                         <div>
-                          <p className="font-semibold text-neutral-500 mb-1.5">소개 선택</p>
+                          <p className="font-semibold text-stone-700 mb-1.5">소개 선택</p>
                           <div className="flex flex-col gap-1.5">
                             {descSources.map(({ key, label }) => {
                               const desc = getDesc(key);
@@ -1195,14 +1246,14 @@ export default function AdminDashboard() {
                               return (
                                 <button key={key} type="button" disabled={keyMissing}
                                   onClick={() => { setCandidateDescSource(key); applySelection(candidateCoverSource, key); }}
-                                  className={`text-left px-2.5 py-2 rounded-lg border-2 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:enabled:active:scale-[0.97] ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent bg-white" : `cursor-pointer ${selected ? "border-brick bg-white" : "border-transparent bg-white hover:border-neutral-300"}`}`}
+                                  className={`text-left px-2.5 py-2 rounded-lg border-2 tap ${keyMissing ? "opacity-40 cursor-not-allowed border-transparent bg-white" : `cursor-pointer ${selected ? "border-brick bg-white" : "border-transparent bg-white hover:border-stone-400"}`}`}
                                 >
-                                  <span className={`font-semibold ${selected ? "text-brick" : "text-neutral-400"}`}>{label}</span>
+                                  <span className={`font-semibold ${selected ? "text-brick" : "text-stone-600"}`}>{label}</span>
                                   {keyMissing
                                     ? <span className="ml-2 text-amber-500">API 키 없음</span>
                                     : desc
-                                      ? <span className="ml-2 text-neutral-500 line-clamp-1">{desc}</span>
-                                      : <span className="ml-2 text-neutral-300">없음</span>
+                                      ? <span className="ml-2 text-stone-700 line-clamp-1">{desc}</span>
+                                      : <span className="ml-2 text-stone-400">없음</span>
                                   }
                                 </button>
                               );
@@ -1230,9 +1281,9 @@ export default function AdminDashboard() {
                     />
                   </Field>
                 </div>
-                <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t border-neutral-100 mt-2">
-                    <Button type="button" variant="outline" onClick={() => setCandidateModalOpen(false)} className="cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">취소</Button>
-                    <Button type="submit" disabled={candidateDetailFetching || !candidateForm.title || !candidateForm.author || !candidateForm.proposed_by} className="bg-ink hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed motion-safe:active:scale-[0.97]">
+                <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t border-cream mt-2">
+                    <Button type="button" variant="outline" onClick={() => setCandidateModalOpen(false)} className="cursor-pointer tap">취소</Button>
+                    <Button type="submit" disabled={candidateDetailFetching || !candidateForm.title || !candidateForm.author || !candidateForm.proposed_by} className="bg-ink hover:bg-brick tap cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                       <Plus className="w-4 h-4 mr-1.5" /> 등록
                     </Button>
                   </div>
@@ -1244,13 +1295,13 @@ export default function AdminDashboard() {
               <div className="space-y-2">
                 {candidates.map((c) => {
                   const statusMap: Record<string, { label: string; color: string; bg: string }> = {
-                    pending: { label: "대기중", color: "#8B7B6B", bg: "#F5F0E8" },
-                    selected: { label: "선정됨", color: "#2A6B5E", bg: "#E8F5F2" },
-                    rejected: { label: "탈락", color: "#8B3A2A", bg: "#F5E8E8" },
+                    pending: { label: "대기중", color: "var(--color-stone-600)", bg: "color-mix(in oklab, var(--color-stone-600) 12%, white)" },
+                    selected: { label: "선정됨", color: "var(--color-pine)", bg: "color-mix(in oklab, var(--color-pine) 12%, white)" },
+                    rejected: { label: "탈락", color: "var(--color-brick)", bg: "color-mix(in oklab, var(--color-brick) 12%, white)" },
                   };
                   const s = statusMap[c.status] ?? statusMap.pending;
                   return (
-                    <div key={c.id} className="bg-white rounded-xl border border-sand px-5 py-4 flex items-center gap-4">
+                    <div key={c.id} className="bg-white rounded-xl border border-sand px-4 sm:px-5 py-4 flex flex-wrap items-center gap-x-4 gap-y-3">
                       <div className="w-1.5 h-10 rounded-full flex-shrink-0" style={{ backgroundColor: s.color }} />
                       {c.cover_url_hires ?? c.cover_url ? (
                         <img src={c.cover_url_hires ?? c.cover_url!} alt={c.title} className="w-8 h-11 object-cover rounded flex-shrink-0" />
@@ -1259,32 +1310,32 @@ export default function AdminDashboard() {
                           <BookOpen className="w-3.5 h-3.5 text-stone-400" />
                         </div>
                       )}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-0.5">
+                      <div className="flex-1 min-w-[8rem]">
+                        <div className="flex items-baseline gap-2 mb-0.5 flex-wrap">
                           <span className="font-semibold text-sm text-ink">{c.title}</span>
-                          <span className="text-xs text-neutral-400">{c.author}</span>
+                          <span className="text-xs text-stone-600">{c.author}</span>
                         </div>
-                        <p className="text-xs text-neutral-400">제안: {c.proposed_by}</p>
+                        <p className="text-xs text-stone-600">제안: {c.proposed_by}</p>
                       </div>
                       <span className="text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0" style={{ color: s.color, backgroundColor: s.bg }}>
                         {s.label}
                       </span>
-                      <div className="flex gap-1 flex-shrink-0">
+                      <div className="flex gap-1.5 flex-shrink-0 w-full sm:w-auto">
                         {c.status !== "selected" && (
                           <button onClick={() => updateCandidateStatus(c.id, "selected")}
-                            className="px-2.5 py-1 text-xs rounded-md border border-pine text-pine hover:bg-pine hover:text-white transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">
+                            className="flex-1 sm:flex-none min-h-9 px-3 text-xs rounded-lg border border-pine text-pine hover:bg-pine hover:text-white tap cursor-pointer">
                             선정
                           </button>
                         )}
                         {c.status !== "rejected" && (
                           <button onClick={() => updateCandidateStatus(c.id, "rejected")}
-                            className="px-2.5 py-1 text-xs rounded-md border border-neutral-200 text-neutral-400 hover:border-red-300 hover:text-red-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">
+                            className="flex-1 sm:flex-none min-h-9 px-3 text-xs rounded-lg border border-sand text-stone-600 hover:border-red-300 hover:text-red-400 tap cursor-pointer">
                             탈락
                           </button>
                         )}
                         {c.status !== "pending" && (
                           <button onClick={() => updateCandidateStatus(c.id, "pending")}
-                            className="px-2.5 py-1 text-xs rounded-md border border-neutral-200 text-neutral-400 hover:bg-neutral-50 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">
+                            className="flex-1 sm:flex-none min-h-9 px-3 text-xs rounded-lg border border-sand text-stone-600 hover:bg-parchment tap cursor-pointer">
                             대기
                           </button>
                         )}
@@ -1321,23 +1372,21 @@ export default function AdminDashboard() {
               <div key={r.id} className="bg-white rounded-xl border border-sand px-5 py-4">
                 {isEditing ? (
                   <div className="space-y-3">
-                    <div className="flex gap-2">
-                      <input
-                        className="text-sm border border-stone-400 rounded-lg px-3 py-1.5 w-36 focus:outline-none focus:ring-1 focus:ring-brick"
-                        value={editingReview!.author_name}
-                        onChange={(e) => setEditingReview((p) => p && ({ ...p, author_name: e.target.value }))}
-                        placeholder="작성자"
-                      />
-                    </div>
-                    <textarea
-                      className="w-full text-sm border border-stone-400 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-1 focus:ring-brick"
+                    <Input
+                      className="w-full sm:w-44 bg-white"
+                      value={editingReview!.author_name}
+                      onChange={(e) => setEditingReview((p) => p && ({ ...p, author_name: e.target.value }))}
+                      placeholder="작성자"
+                    />
+                    <Textarea
+                      className="w-full text-sm resize-none bg-white"
                       rows={4}
                       value={editingReview!.content}
                       onChange={(e) => setEditingReview((p) => p && ({ ...p, content: e.target.value }))}
                     />
                     <div className="flex gap-2">
-                      <button onClick={saveReview} className="px-3 py-1.5 bg-ink text-white text-xs rounded-lg hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">저장</button>
-                      <button onClick={() => setEditingReview(null)} className="px-3 py-1.5 bg-neutral-100 text-xs rounded-lg hover:bg-neutral-200 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">취소</button>
+                      <Button type="button" onClick={saveReview} className="bg-ink hover:bg-brick tap cursor-pointer">저장</Button>
+                      <Button type="button" variant="outline" onClick={() => setEditingReview(null)} className="tap cursor-pointer">취소</Button>
                     </div>
                   </div>
                 ) : (
@@ -1347,16 +1396,17 @@ export default function AdminDashboard() {
                         {r.books && <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-cream text-stone-600">{r.books.title}</span>}
                         <span className="font-semibold text-sm text-ink">{r.author_name}</span>
                       </div>
-                      <p className="text-sm text-neutral-400 line-clamp-2 leading-relaxed">{r.content}</p>
+                      <p className="text-sm text-stone-600 line-clamp-2 leading-relaxed">{r.content}</p>
                     </div>
                     <div className="flex gap-1 flex-shrink-0 mt-0.5">
                       <button
                         onClick={() => setEditingReview({ id: r.id, author_name: r.author_name, content: r.content })}
-                        className="p-1.5 text-neutral-300 hover:text-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer rounded-md hover:bg-cream motion-safe:active:scale-[0.97]"
+                        className="w-9 h-9 inline-flex items-center justify-center text-stone-400 hover:text-brick tap cursor-pointer rounded-md hover:bg-cream"
+                        aria-label="독후감 수정"
                       >
-                        <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        <Pencil className="w-3.5 h-3.5" />
                       </button>
-                      <button onClick={() => deleteReview(r.id)} className="p-1.5 text-neutral-300 hover:text-red-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer rounded-md hover:bg-red-50 motion-safe:active:scale-[0.97]">
+                      <button onClick={() => deleteReview(r.id)} className="w-9 h-9 inline-flex items-center justify-center text-stone-400 hover:text-red-400 tap cursor-pointer rounded-md hover:bg-red-50">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -1367,7 +1417,7 @@ export default function AdminDashboard() {
           }
 
           return (
-            <div className="space-y-6">
+            <div className="space-y-8">
               <SectionHeader icon={<FileText className="w-5 h-5" />} title="독후감" description={`총 ${reviews.length}개의 독후감을 조회하고 관리합니다.`} />
 
               {/* 서브 탭 */}
@@ -1376,9 +1426,20 @@ export default function AdminDashboard() {
                   <button
                     key={id}
                     onClick={() => setReviewView(id)}
-                    className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer ${reviewView === id ? "bg-white text-ink shadow-sm" : "text-stone-500 hover:text-ink"}`}
+                    aria-pressed={reviewView === id}
+                    className={cn(
+                      "relative flex-1 min-h-9 py-2 text-xs font-semibold rounded-lg tap cursor-pointer",
+                      reviewView === id ? "text-ink" : "text-stone-500 hover:text-ink"
+                    )}
                   >
-                    {label}
+                    {reviewView === id && (
+                      <motion.span
+                        layoutId="admin-review-tab"
+                        className="absolute inset-0 rounded-lg bg-white shadow-sm"
+                        transition={navTransition}
+                      />
+                    )}
+                    <span className="relative">{label}</span>
                   </button>
                 ))}
               </div>
@@ -1398,7 +1459,7 @@ export default function AdminDashboard() {
                                 <p className="text-[11px] text-stone-500 mt-0.5">{m.date} · 독후감 {mrs.length}개</p>
                               </div>
                             </div>
-                            <div className="divide-y divide-cream px-4 py-2 space-y-2">
+                            <div className="px-4 py-3 space-y-2">
                               {mrs.map((r) => <ReviewRow key={r.id} r={r} />)}
                             </div>
                           </div>
@@ -1409,7 +1470,7 @@ export default function AdminDashboard() {
                           <div className="bg-parchment px-5 py-3">
                             <p className="font-semibold text-sm text-stone-500">모임 미지정</p>
                           </div>
-                          <div className="px-4 py-2 space-y-2">
+                          <div className="px-4 py-3 space-y-2">
                             {(byMeeting.get("__none__") ?? []).map((r) => <ReviewRow key={r.id} r={r} />)}
                           </div>
                         </div>
@@ -1432,7 +1493,7 @@ export default function AdminDashboard() {
                               <p className="text-[11px] text-stone-500 mt-0.5">독후감 {brs.length}개</p>
                             </div>
                           </div>
-                          <div className="px-4 py-2 space-y-2">
+                          <div className="px-4 py-3 space-y-2">
                             {brs.map((r) => <ReviewRow key={r.id} r={r} />)}
                           </div>
                         </div>
@@ -1454,7 +1515,7 @@ export default function AdminDashboard() {
                               <p className="text-[11px] text-stone-500 mt-0.5">독후감 {mrs.length}개</p>
                             </div>
                           </div>
-                          <div className="px-4 py-2 space-y-2">
+                          <div className="px-4 py-3 space-y-2">
                             {mrs.map((r) => <ReviewRow key={r.id} r={r} />)}
                           </div>
                         </div>
@@ -1469,7 +1530,7 @@ export default function AdminDashboard() {
 
         {/* ── 공지사항 ── */}
         {active === "announcements" && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <SectionHeader
               icon={<Megaphone className="w-5 h-5" />}
               title="공지사항"
@@ -1483,19 +1544,19 @@ export default function AdminDashboard() {
                 <Field label="내용">
                   <Textarea value={annForm.content} onChange={(e) => setAnnForm((p) => ({ ...p, content: e.target.value }))} rows={3} className="resize-none" />
                 </Field>
-                <label className="flex items-center gap-2 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
+                <label className="flex items-center gap-2 cursor-pointer tap">
                   <input type="checkbox" checked={annForm.is_pinned} onChange={(e) => setAnnForm((p) => ({ ...p, is_pinned: e.target.checked }))}
-                    className="w-4 h-4 rounded border-neutral-300 cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]" />
-                  <span className="text-sm text-neutral-600">상단 고정</span>
+                    className="w-4 h-4 rounded border-stone-400 cursor-pointer" />
+                  <span className="text-sm text-stone-700">상단 고정</span>
                 </label>
-                <Button type="submit" className="bg-ink hover:bg-brick transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]">
+                <Button type="submit" className="bg-ink hover:bg-brick tap cursor-pointer">
                   <Plus className="w-4 h-4 mr-1.5" /> 등록
                 </Button>
               </form>
             </FormCard>
 
             <div>
-              <p className="text-xs font-bold tracking-widest uppercase text-neutral-400 mb-3">등록된 공지 ({announcements.length})</p>
+              <p className="eyebrow mb-3">등록된 공지 ({announcements.length})</p>
               {announcements.length > 0 ? (
                 <div className="bg-white rounded-xl border border-sand divide-y divide-cream">
                   {announcements.map((a) => (
@@ -1503,13 +1564,13 @@ export default function AdminDashboard() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           {a.is_pinned && (
-                            <span className="text-[9px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full bg-brick/10 text-brick">고정</span>
+                            <span className="eyebrow px-2 py-0.5 rounded-full bg-brick/10 !text-brick">고정</span>
                           )}
                           <span className="font-semibold text-sm text-ink">{a.title}</span>
                         </div>
-                        <p className="text-sm text-neutral-400 line-clamp-1">{a.content}</p>
+                        <p className="text-sm text-stone-600 line-clamp-1">{a.content}</p>
                       </div>
-                      <button onClick={() => deleteAnn(a.id)} className="p-1.5 text-neutral-300 hover:text-red-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer rounded-md hover:bg-red-50 flex-shrink-0 motion-safe:active:scale-[0.97]">
+                      <button onClick={() => deleteAnn(a.id)} className="w-9 h-9 flex-shrink-0 inline-flex items-center justify-center text-stone-400 hover:text-red-400 tap cursor-pointer rounded-md hover:bg-red-50">
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -1522,7 +1583,7 @@ export default function AdminDashboard() {
 
         {/* ── 토론 질문 AI ── */}
         {active === "discussion" && (
-          <div className="space-y-6">
+          <div className="space-y-8">
             <SectionHeader
               icon={<Sparkles className="w-5 h-5" />}
               title="토론 질문 AI"
@@ -1534,6 +1595,7 @@ export default function AdminDashboard() {
 
         {/* ── PDF 생성 ── */}
         {active === "pdf" && <PdfSection meetings={meetings} />}
+        </div>
       </main>
 
       {/* ── 새 모임 등록 - 책 선택 모달 ── */}
@@ -1546,28 +1608,75 @@ export default function AdminDashboard() {
       />
 
       {/* ── 모바일 하단 내비게이션 ── */}
-      <div
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-ink border-t border-white/10 overflow-x-auto"
-        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-      >
-        <div className="flex">
-          {MENU.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => handleSetActive(id)}
-              className={cn(
-                "flex flex-col items-center gap-1 px-3 py-2.5 flex-1 min-w-[56px] text-[9px] font-medium transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer whitespace-nowrap motion-safe:active:scale-[0.97]",
-                active === id ? "text-brick-300" : "text-white/40"
-              )}
-            >
-              <Icon className="w-4.5 h-4.5 flex-shrink-0" style={{ width: 18, height: 18 }} />
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <MobileTabBar active={active} onSelect={handleSetActive} transition={navTransition} />
     </div>
     </>
+  );
+}
+
+// 펼침 패널 공통 전환. 높이는 transform 으로 대체할 수 없는 아코디언에서만 쓴다.
+function useAccordionTransition() {
+  const reduceMotion = useReducedMotion();
+  return reduceMotion
+    ? { duration: 0 }
+    : ({ duration: 0.22, ease: [0.23, 1, 0.32, 1] } as const);
+}
+
+// ── 모바일 하단 탭 바 ──
+// 메뉴가 9개라 한 화면에 다 들어가지 않는다. 가로 스크롤은 유지하되
+// (1) 선택된 탭을 항상 가운데로 끌어오고 (2) 어디에 있는지 표시자로 보여준다.
+function MobileTabBar({
+  active, onSelect, transition,
+}: {
+  active: SectionId;
+  onSelect: (id: SectionId) => void;
+  transition: object;
+}) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Partial<Record<SectionId, HTMLButtonElement | null>>>({});
+  const reduceMotion = useReducedMotion();
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    const item = itemRefs.current[active];
+    if (!scroller || !item) return;
+    const left = item.offsetLeft - (scroller.clientWidth - item.clientWidth) / 2;
+    scroller.scrollTo({ left, behavior: reduceMotion ? "auto" : "smooth" });
+  }, [active, reduceMotion]);
+
+  return (
+    <nav
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-ink/95 supports-[backdrop-filter]:bg-ink/85 backdrop-blur-lg border-t border-white/10 pb-safe"
+      aria-label="관리자 메뉴"
+    >
+      <div ref={scrollerRef} className="flex overflow-x-auto scrollbar-none">
+        {MENU.map(({ id, label, icon: Icon }) => {
+          const on = active === id;
+          return (
+            <button
+              key={id}
+              ref={(el) => { itemRefs.current[id] = el; }}
+              onClick={() => onSelect(id)}
+              aria-current={on ? "page" : undefined}
+              className={cn(
+                "relative flex flex-col items-center justify-center gap-1 px-3 pt-3 pb-2 flex-1 min-w-[68px] min-h-[56px] text-[10px] font-medium tap cursor-pointer whitespace-nowrap",
+                on ? "text-brick-300" : "text-white/45"
+              )}
+            >
+              {on && (
+                <motion.span
+                  layoutId="admin-tabbar-active"
+                  className="absolute inset-x-2 top-0 h-0.5 rounded-full bg-brick-300"
+                  transition={transition}
+                />
+              )}
+              <Icon className="flex-shrink-0" style={{ width: 19, height: 19 }} />
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    </nav>
   );
 }
 
@@ -1595,7 +1704,7 @@ function BookPickerModal({
           <DialogTitle>책 선택 (복수 선택 가능)</DialogTitle>
         </DialogHeader>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-600" />
           <Input
             className="pl-9"
             placeholder="제목 또는 저자로 검색..."
@@ -1606,7 +1715,7 @@ function BookPickerModal({
         </div>
         <div className="flex-1 overflow-y-auto min-h-0">
           {filtered.length === 0 ? (
-            <p className="text-sm text-neutral-400 text-center py-8">검색 결과가 없습니다.</p>
+            <p className="text-sm text-stone-600 text-center py-8">검색 결과가 없습니다.</p>
           ) : (
             <div className="grid grid-cols-2 gap-2 pb-1">
               {filtered.map((b) => {
@@ -1617,7 +1726,7 @@ function BookPickerModal({
                     type="button"
                     onClick={() => onSelect(b.id)}
                     className={cn(
-                      "relative flex items-start gap-3 p-3 rounded-xl border text-left transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer motion-safe:active:scale-[0.97]",
+                      "relative flex items-start gap-3 p-3 rounded-xl border text-left tap cursor-pointer",
                       isSelected
                         ? "border-brick bg-brick/5 ring-1 ring-brick/30"
                         : "border-sand hover:border-stone-400 bg-white"
@@ -1630,7 +1739,7 @@ function BookPickerModal({
                     </div>
                     <div className="flex-1 min-w-0 pr-5">
                       <p className="text-sm font-semibold text-ink leading-snug line-clamp-2">{b.title}</p>
-                      <p className="text-xs text-neutral-400 mt-0.5 truncate">{b.author}</p>
+                      <p className="text-xs text-stone-600 mt-0.5 truncate">{b.author}</p>
                     </div>
                     {isSelected && (
                       <div className="absolute top-2 right-2 w-5 h-5 rounded-full bg-brick flex items-center justify-center">
@@ -1644,7 +1753,7 @@ function BookPickerModal({
           )}
         </div>
         <div className="pt-2 border-t border-cream flex justify-end items-center">
-          <Button variant="outline" onClick={onClose} className="cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">확인</Button>
+          <Button variant="outline" onClick={onClose} className="cursor-pointer tap">확인</Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -1661,7 +1770,7 @@ function SectionHeader({ icon, title, description }: { icon: React.ReactNode; ti
       </div>
       <div>
         <h2 className="text-lg font-semibold text-ink">{title}</h2>
-        <p className="text-sm text-neutral-400 mt-0.5">{description}</p>
+        <p className="text-sm text-stone-600 mt-0.5">{description}</p>
       </div>
     </div>
   );
@@ -1670,7 +1779,7 @@ function SectionHeader({ icon, title, description }: { icon: React.ReactNode; ti
 function FormCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="bg-white rounded-xl border border-sand p-5">
-      <h3 className="text-xs font-bold tracking-[0.15em] uppercase text-neutral-400 mb-4">{title}</h3>
+      <h3 className="eyebrow mb-4">{title}</h3>
       {children}
     </div>
   );
@@ -1679,7 +1788,7 @@ function FormCard({ title, children }: { title: string; children: React.ReactNod
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <Label className="text-xs font-semibold text-neutral-500">{label}</Label>
+      <Label className="text-xs font-semibold text-stone-700">{label}</Label>
       {children}
     </div>
   );
@@ -1688,7 +1797,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 function EmptyState({ text }: { text: string }) {
   return (
     <div className="bg-white/60 rounded-xl border border-dashed border-stone-400 px-6 py-8 text-center">
-      <p className="text-sm text-neutral-400">{text}</p>
+      <p className="text-sm text-stone-600">{text}</p>
     </div>
   );
 }
@@ -1717,6 +1826,7 @@ function MeetingAdminRow({
   onSaveBooks: (bookIds: number[]) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const rowMotion = useAccordionTransition();
   const [currentTitle, setCurrentTitle] = useState(meeting.title);
   const [currentDate, setCurrentDate] = useState(meeting.date);
   const [summary, setSummary] = useState("");
@@ -1775,35 +1885,54 @@ function MeetingAdminRow({
   return (
     <div className="bg-white rounded-xl border border-sand overflow-visible">
       <div className="flex items-center gap-3 px-4 py-3">
-        <button className="flex-1 text-left flex items-center gap-3 cursor-pointer min-w-0 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]" onClick={() => setExpanded((p) => !p)}>
+        <button
+          className="flex-1 text-left flex items-center gap-3 cursor-pointer min-w-0 tap"
+          onClick={() => setExpanded((p) => !p)}
+          aria-expanded={expanded}
+        >
           <div className="w-2 h-2 rounded-full bg-brick flex-shrink-0" />
-          <span className="font-medium text-sm text-ink truncate">{currentTitle}</span>
-          <span className="text-xs text-neutral-400 flex-shrink-0">
-            {format(new Date(currentDate + "T00:00:00"), "yyyy년 M/d (EEE)", { locale: ko })}
-          </span>
-          {currentBooks.length > 0
-            ? currentBooks.map((b) => <span key={b.id} className="text-[10px] px-2 py-0.5 rounded-full bg-cream text-stone-600 flex-shrink-0">{b.title}</span>)
-            : <span className="text-[10px] text-neutral-300 flex-shrink-0">책 미지정</span>}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline gap-2 min-w-0">
+              <span className="font-medium text-sm text-ink truncate">{currentTitle}</span>
+              <span className="text-xs text-stone-600 flex-shrink-0">
+                {format(new Date(currentDate + "T00:00:00"), "M/d (EEE)", { locale: ko })}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 mt-1 overflow-hidden">
+              {currentBooks.length > 0
+                ? currentBooks.map((b) => <span key={b.id} className="text-[10px] px-2 py-0.5 rounded-full bg-cream text-stone-600 truncate max-w-[10rem] flex-shrink-0">{b.title}</span>)
+                : <span className="text-[10px] text-stone-400 flex-shrink-0">책 미지정</span>}
+            </div>
+          </div>
         </button>
         <div className="flex items-center gap-1 flex-shrink-0">
-          <button onClick={() => setExpanded((p) => !p)} className="p-1.5 hover:bg-neutral-100 rounded-md cursor-pointer text-neutral-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
+          <button onClick={() => setExpanded((p) => !p)} aria-expanded={expanded} aria-label="상세 열기" className="w-9 h-9 inline-flex items-center justify-center hover:bg-cream rounded-md cursor-pointer text-stone-600 tap">
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
-          <button onClick={onDelete} className="p-1.5 hover:bg-red-50 rounded-md cursor-pointer text-neutral-300 hover:text-red-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
+          <button onClick={onDelete} className="w-9 h-9 inline-flex items-center justify-center hover:bg-red-50 rounded-md cursor-pointer text-stone-400 hover:text-red-400 tap">
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
 
+      <AnimatePresence initial={false}>
       {expanded && (
+        <motion.div
+          key="panel"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={rowMotion}
+          className="overflow-hidden"
+        >
         <div className="border-t border-cream px-4 py-4 bg-linen space-y-5 rounded-b-xl">
           {/* 모임명 + 날짜 */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold tracking-widest uppercase text-neutral-400">모임 정보</p>
+              <p className="eyebrow">모임 정보</p>
               <SavedIndicator saved={infoSaved} />
             </div>
-            <div className="grid grid-cols-[1fr_160px] gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_160px] gap-2">
               <Input
                 value={currentTitle}
                 onChange={(e) => { setCurrentTitle(e.target.value); debouncedSaveInfo(e.target.value, currentDate); }}
@@ -1820,7 +1949,7 @@ function MeetingAdminRow({
           {/* 책 선택 */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold tracking-widest uppercase text-neutral-400">읽는 책</p>
+              <p className="eyebrow">읽는 책</p>
               <SavedIndicator saved={bookSaved} />
             </div>
             {currentBooks.length > 0 && (
@@ -1828,7 +1957,7 @@ function MeetingAdminRow({
                 {currentBooks.map((b) => (
                   <span key={b.id} className="flex items-center gap-1 text-xs bg-cream text-ink rounded-full px-2.5 py-1">
                     {b.title}
-                    <button type="button" onClick={() => handleBookToggle(b.id)} className="text-neutral-400 hover:text-neutral-700 cursor-pointer ml-0.5 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">✕</button>
+                    <button type="button" onClick={() => handleBookToggle(b.id)} className="text-stone-600 hover:text-ink cursor-pointer ml-0.5 tap">✕</button>
                   </span>
                 ))}
               </div>
@@ -1836,16 +1965,16 @@ function MeetingAdminRow({
             <button
               type="button"
               onClick={() => setBookModalOpen(true)}
-              className="w-full flex items-center gap-2.5 border rounded-lg px-3 py-2.5 text-sm text-left hover:bg-white transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer bg-white/60 motion-safe:active:scale-[0.97]"
+              className="w-full flex items-center gap-2.5 border rounded-lg px-3 py-2.5 text-sm text-left hover:bg-white tap cursor-pointer bg-white/60"
             >
-              <span className="text-neutral-400 text-xs">{currentBooks.length > 0 ? "책 추가..." : "책 선택 (클릭하여 변경)"}</span>
+              <span className="text-stone-600 text-xs">{currentBooks.length > 0 ? "책 추가..." : "책 선택 (클릭하여 변경)"}</span>
             </button>
           </div>
 
           {/* 참석자 */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold tracking-widest uppercase text-neutral-400">참석자</p>
+              <p className="eyebrow">참석자</p>
               <SavedIndicator saved={attendeesSaved} />
             </div>
             <MemberMultiSelect members={members} selected={currentAttendees} onChange={handleAttendeesChange} />
@@ -1854,7 +1983,7 @@ function MeetingAdminRow({
           {/* 요약 */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-bold tracking-widest uppercase text-neutral-400">모임 요약</p>
+              <p className="eyebrow">모임 요약</p>
               <SavedIndicator saved={summarySaved} />
             </div>
             <Textarea
@@ -1866,7 +1995,9 @@ function MeetingAdminRow({
             />
           </div>
         </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       <BookPickerModal
         open={bookModalOpen}
@@ -1888,6 +2019,7 @@ function BookAdminRow({
   onSave: (updates: Partial<Book & { description: string }>) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const rowMotion = useAccordionTransition();
   const [form, setForm] = useState({
     title: book.title, author: book.author,
     cover_url: book.cover_url ?? "", description: book.description ?? "",
@@ -1926,7 +2058,7 @@ function BookAdminRow({
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium text-sm text-ink truncate">{book.title}</span>
-            <span className="text-xs text-neutral-400">{book.author}</span>
+            <span className="text-xs text-stone-600">{book.author}</span>
             {cat && (
               <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ backgroundColor: cat.color + "22", color: cat.color }}>
                 {cat.name}
@@ -1935,46 +2067,57 @@ function BookAdminRow({
           </div>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0">
-          <button onClick={() => setExpanded((p) => !p)}
-            className="p-1.5 hover:bg-neutral-100 rounded-md cursor-pointer text-neutral-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
+          <button onClick={() => setExpanded((p) => !p)} aria-expanded={expanded} aria-label="상세 열기"
+            className="w-9 h-9 inline-flex items-center justify-center hover:bg-cream rounded-md cursor-pointer text-stone-600 tap">
             {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
           <button onClick={onDelete}
-            className="p-1.5 hover:bg-red-50 rounded-md cursor-pointer text-neutral-300 hover:text-red-400 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
+            className="w-9 h-9 inline-flex items-center justify-center hover:bg-red-50 rounded-md cursor-pointer text-stone-400 hover:text-red-400 tap">
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
       </div>
 
+      <AnimatePresence initial={false}>
       {expanded && (
+        <motion.div
+          key="panel"
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: "auto", opacity: 1 }}
+          exit={{ height: 0, opacity: 0 }}
+          transition={rowMotion}
+          className="overflow-hidden"
+        >
         <div className="border-t border-cream px-4 py-4 bg-linen space-y-3 rounded-b-xl">
           <div className="flex items-center justify-end h-5">
             <SavedIndicator saved={saved} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-neutral-400">제목</Label>
+              <Label className="text-xs font-semibold text-stone-600">제목</Label>
               <Input value={form.title} onChange={(e) => updateForm({ title: e.target.value })} className="h-8 text-xs bg-white" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-neutral-400">저자</Label>
+              <Label className="text-xs font-semibold text-stone-600">저자</Label>
               <Input value={form.author} onChange={(e) => updateForm({ author: e.target.value })} className="h-8 text-xs bg-white" />
             </div>
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-neutral-400">표지 URL</Label>
+            <Label className="text-xs font-semibold text-stone-600">표지 URL</Label>
             <Input value={form.cover_url} onChange={(e) => updateForm({ cover_url: e.target.value })} className="h-8 text-xs bg-white" placeholder="https://..." />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-neutral-400">소개</Label>
+            <Label className="text-xs font-semibold text-stone-600">소개</Label>
             <Textarea value={form.description} onChange={(e) => updateForm({ description: e.target.value })} rows={2} className="text-xs resize-none bg-white" />
           </div>
           <div className="space-y-1.5">
-            <Label className="text-xs font-semibold text-neutral-400">카테고리</Label>
+            <Label className="text-xs font-semibold text-stone-600">카테고리</Label>
             <CategorySelect categories={categories} value={form.category_id} onChange={(v) => updateForm({ category_id: v })} />
           </div>
         </div>
+        </motion.div>
       )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -2009,11 +2152,11 @@ function AttendeeOrderItem({
     >
       <span
         onPointerDown={(e) => controls.start(e)}
-        className="touch-none cursor-grab active:cursor-grabbing text-neutral-300 hover:text-neutral-400 flex-shrink-0"
+        className="touch-none cursor-grab active:cursor-grabbing text-stone-400 hover:text-stone-600 flex-shrink-0"
       >
         <GripVertical className="w-4 h-4" />
       </span>
-      <span className="w-5 text-center text-[11px] font-mono text-neutral-400 flex-shrink-0">
+      <span className="w-5 text-center text-[11px] font-mono text-stone-600 flex-shrink-0">
         {pos ?? "—"}
       </span>
       <span className="flex-1 text-sm font-medium text-ink">{name}</span>
@@ -2022,7 +2165,7 @@ function AttendeeOrderItem({
           type="button"
           onClick={onMoveUp}
           disabled={isFirst}
-          className="p-1 text-neutral-300 hover:text-neutral-600 disabled:opacity-20 cursor-pointer disabled:cursor-default transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]"
+          className="p-1 text-stone-400 hover:text-stone-700 disabled:opacity-20 cursor-pointer disabled:cursor-default tap"
         >
           <ChevronUp className="w-3.5 h-3.5" />
         </button>
@@ -2030,7 +2173,7 @@ function AttendeeOrderItem({
           type="button"
           onClick={onMoveDown}
           disabled={isLast}
-          className="p-1 text-neutral-300 hover:text-neutral-600 disabled:opacity-20 cursor-pointer disabled:cursor-default transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]"
+          className="p-1 text-stone-400 hover:text-stone-700 disabled:opacity-20 cursor-pointer disabled:cursor-default tap"
         >
           <ChevronDown className="w-3.5 h-3.5" />
         </button>
@@ -2039,8 +2182,8 @@ function AttendeeOrderItem({
         type="button"
         onClick={onToggle}
         className={cn(
-          "w-5 h-5 rounded border-2 flex-shrink-0 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer flex items-center justify-center motion-safe:active:scale-[0.97]",
-          on ? "bg-ink border-ink" : "border-neutral-300 bg-white"
+          "w-5 h-5 rounded border-2 flex-shrink-0 tap cursor-pointer flex items-center justify-center",
+          on ? "bg-ink border-ink" : "border-stone-400 bg-white"
         )}
       >
         {on && <Check className="w-3 h-3 text-white" />}
@@ -2103,7 +2246,7 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <SectionHeader
         icon={<FileText className="w-5 h-5" />}
         title="PDF 생성"
@@ -2112,7 +2255,7 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
 
       <FormCard title="모임 선택">
         {sortedMeetings.length === 0 ? (
-          <p className="text-sm text-neutral-400">등록된 모임이 없습니다.</p>
+          <p className="text-sm text-stone-600">등록된 모임이 없습니다.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {sortedMeetings.map((m) => {
@@ -2124,7 +2267,7 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
                   type="button"
                   onClick={() => setSelectedMeetingId(String(m.id))}
                   className={cn(
-                    "w-full text-left rounded-xl border transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong cursor-pointer overflow-hidden group motion-safe:active:scale-[0.97]",
+                    "w-full text-left rounded-xl border tap cursor-pointer overflow-hidden group",
                     isSelected
                       ? "border-brick ring-1 ring-brick/30 bg-white"
                       : "border-sand bg-white hover:border-stone-400"
@@ -2152,7 +2295,7 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
 
                     {/* 내용 */}
                     <div className="flex-1 min-w-0 px-3 py-2.5">
-                      <p className="text-[10px] font-medium text-neutral-400 mb-0.5">
+                      <p className="text-[10px] font-medium text-stone-600 mb-0.5">
                         {format(new Date(m.date + "T00:00:00"), "yyyy년 M월 d일 (EEE)", { locale: ko })}
                         {m.location && <span className="ml-1.5">· {m.location}</span>}
                       </p>
@@ -2176,14 +2319,14 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
       {selectedMeetingId && (
         <FormCard title="참석자 순서">
           {loadingAttendees ? (
-            <p className="text-sm text-neutral-400 animate-pulse">불러오는 중...</p>
+            <p className="text-sm text-stone-600 animate-pulse">불러오는 중...</p>
           ) : order.length === 0 ? (
-            <p className="text-sm text-neutral-400">이 모임의 참석자 또는 독후감이 없습니다.</p>
+            <p className="text-sm text-stone-600">이 모임의 참석자 또는 독후감이 없습니다.</p>
           ) : (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-xs text-neutral-400">{selected.size}/{order.length}명 선택 · 드래그 또는 화살표로 순서 변경</p>
-                <button type="button" onClick={toggleAll} className="text-xs text-brick hover:underline cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
+                <p className="text-xs text-stone-600">{selected.size}/{order.length}명 선택 · 드래그 또는 화살표로 순서 변경</p>
+                <button type="button" onClick={toggleAll} className="text-xs text-brick hover:underline cursor-pointer tap">
                   {selected.size === order.length ? "전체 해제" : "전체 선택"}
                 </button>
               </div>
@@ -2224,21 +2367,21 @@ function PdfSection({ meetings }: { meetings: Meeting[] }) {
       {selectedMeetingId && orderedSelected.length > 0 && (
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-4 flex-wrap">
-            <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-neutral-600 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-stone-700 tap">
               <input
                 type="checkbox"
                 checked={includeQuestions}
                 onChange={(e) => setIncludeQuestions(e.target.checked)}
-                className="w-4 h-4 accent-brick cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]"
+                className="w-4 h-4 accent-brick cursor-pointer"
               />
               AI 토론 질문 포함
             </label>
-            <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-neutral-600 transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-stone-700 tap">
               <input
                 type="checkbox"
                 checked={randomize}
                 onChange={(e) => setRandomize(e.target.checked)}
-                className="w-4 h-4 accent-brick cursor-pointer transition-[color,background-color,border-color,box-shadow,scale] duration-200 ease-out-strong motion-safe:active:scale-[0.97]"
+                className="w-4 h-4 accent-brick cursor-pointer"
               />
               <Shuffle className="w-3.5 h-3.5" />
               랜덤 순서
