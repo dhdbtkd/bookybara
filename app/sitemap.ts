@@ -1,9 +1,19 @@
 import type { MetadataRoute } from "next";
-import { createClient } from "@/utils/supabase/server";
+import { createClient } from "@supabase/supabase-js";
 import { siteUrl } from "@/lib/site";
 
-// 모임·독후감이 수시로 늘어난다. 정적으로 굳히지 않는다.
-export const dynamic = "force-dynamic";
+// 사이트맵은 쿠키를 읽을 이유가 없다. 쿠키 기반 서버 클라이언트를 쓰면
+// 라우트가 완전 동적이 되고, 배포 환경에 따라 경로 자체가 누락되기도 한다.
+// 공개 키로 직접 붙고 한 시간마다 다시 만든다.
+export const revalidate = 3600;
+
+function publicClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY!,
+    { auth: { persistSession: false } }
+  );
+}
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
@@ -17,7 +27,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const supabase = await createClient();
+    const supabase = publicClient();
     const [meetingsRes, reviewsRes] = await Promise.all([
       supabase.from("meetings").select("id, date").order("date", { ascending: false }),
       supabase.from("reviews").select("id, created_at").order("created_at", { ascending: false }),
@@ -32,7 +42,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     const reviews: MetadataRoute.Sitemap = (reviewsRes.data ?? []).map((r) => ({
       url: `${siteUrl}/reviews/${r.id}`,
-      lastModified: r.created_at ? new Date(r.created_at) : new Date(),
+      lastModified: r.created_at ? new Date(r.created_at) : now,
       changeFrequency: "monthly" as const,
       priority: 0.7,
     }));
